@@ -47,7 +47,6 @@ export function openModal(title, bodyBuilder) {
 }
 
 export function ratingLabel(r) { return r == null ? "" : (r / 2).toFixed(1); }
-export function fmtMin(m) { return m == null ? "" : `${m} min`; }
 export function fmtPct(p) { return `${Math.round(p)}%`; }
 export function today() { return new Date().toISOString().slice(0, 10); }
 export function debounce(fn, ms = 200) {

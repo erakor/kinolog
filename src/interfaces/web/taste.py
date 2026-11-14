@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 
-from src.core.db import Database
 from src.interfaces.web.state import AppState
 
 logger = logging.getLogger(__name__)
@@ -15,7 +14,7 @@ class TasteUnavailableError(Exception):
 
 
 def taste_scores(
-    state: AppState, db: Database, candidate_ids: list[int], ranker: str = "nearest_exemplar"
+    state: AppState, candidate_ids: list[int], ranker: str = "nearest_exemplar"
 ) -> dict[int, float]:
     """Taste score per candidate item (only those with embeddings). Cached until a mutation."""
     from src.core.taste import RANKERS
@@ -23,7 +22,8 @@ def taste_scores(
     fn = RANKERS.get(ranker)
     if fn is None:
         raise TasteUnavailableError(f"Unknown ranker: {ranker}")
-    if not state.taste_available(db):
+    db = state.db
+    if not state.taste_available():
         raise TasteUnavailableError("Vector search or embeddings are not available")
     heart_ids = db.get_heart_ids()
     if not heart_ids:

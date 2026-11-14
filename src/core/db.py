@@ -193,6 +193,17 @@ def _check_rating(rating: int | None) -> int | None:
     return rating
 
 
+def _title_or_director(q: str) -> tuple[str, list[str]]:
+    """SQL fragment (alias i) matching a title or a director name, plus its params."""
+    like = f"%{q.strip()}%"
+    return (
+        """ AND (i.title LIKE ? OR EXISTS (SELECT 1 FROM credits c
+               JOIN people p ON p.id = c.person_id
+               WHERE c.item_id = i.id AND c.role = 'Director' AND p.name LIKE ?))""",
+        [like, like],
+    )
+
+
 def content_hash(text: str) -> str:
     """SHA-256 hex digest of text, used for change detection."""
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
@@ -822,6 +833,12 @@ class Database:
     def get_item_card(self, item_id: int) -> dict | None:
         return self.get_item_cards([item_id]).get(item_id)
 
+    def get_item_sources(self, item_id: int) -> list[str]:
+        rows = self.conn.execute(
+            "SELECT DISTINCT source FROM documents WHERE item_id = ? ORDER BY source", (item_id,)
+        ).fetchall()
+        return [r["source"] for r in rows]
+
     def find_items_by_title(self, q: str, limit: int = 10, item_type: str = "film") -> list[dict]:
         q = q.strip()
         if not q:
@@ -857,11 +874,9 @@ class Database:
             sql += " AND i.year >= ? AND i.year < ?"
             params.extend([decade, decade + 10])
         if q:
-            like = f"%{q.strip()}%"
-            sql += """ AND (i.title LIKE ? OR EXISTS (SELECT 1 FROM credits c
-                       JOIN people p ON p.id = c.person_id
-                       WHERE c.item_id = i.id AND c.role = 'Director' AND p.name LIKE ?))"""
-            params.extend([like, like])
+            clause, qparams = _title_or_director(q)
+            sql += clause
+            params.extend(qparams)
         order = {
             "added": "us.watchlist_added_at DESC, i.id DESC",
             "runtime": "i.runtime_min IS NULL, i.runtime_min ASC, i.id",
@@ -873,6 +888,17 @@ class Database:
         ids = ids[offset:] if limit is None else ids[offset:offset + limit]
         cards = self.get_item_cards(ids)
         return total, [cards[i] for i in ids]
+
+    def watchlist_summary(self, short_max: int = 90) -> dict:
+        """Count, total minutes and number of films at or under ``short_max`` minutes."""
+        row = self.conn.execute(
+            """SELECT COUNT(*) AS n, COALESCE(SUM(i.runtime_min), 0) AS minutes,
+                      COALESCE(SUM(CASE WHEN i.runtime_min <= ? THEN 1 ELSE 0 END), 0) AS short
+               FROM items i JOIN user_status us ON us.item_id = i.id
+               WHERE us.on_watchlist = 1 AND i.item_type = 'film'""",
+            (short_max,),
+        ).fetchone()
+        return {"count": row["n"], "total_minutes": row["minutes"], "short_count": row["short"]}
 
     def get_watch_log(
         self,
@@ -898,11 +924,9 @@ class Database:
             sql += " AND w.rating >= ?"
             params.append(min_rating)
         if q:
-            like = f"%{q.strip()}%"
-            sql += """ AND (i.title LIKE ? OR EXISTS (SELECT 1 FROM credits c
-                       JOIN people p ON p.id = c.person_id
-                       WHERE c.item_id = i.id AND c.role = 'Director' AND p.name LIKE ?))"""
-            params.extend([like, like])
+            clause, qparams = _title_or_director(q)
+            sql += clause
+            params.extend(qparams)
         rows = self.conn.execute(sql + " ORDER BY w.watched_on DESC, w.id DESC", params).fetchall()
 
         rated = [r["rating"] for r in rows if r["rating"] is not None]
@@ -965,7 +989,10 @@ class Database:
 
     def stats(self) -> dict[str, int]:
         """Quick table row counts."""
-        tables = ["items", "user_status", "documents", "chunks", "people", "credits", "eval_runs", "watch_log"]
+        tables = [
+            "items", "user_status", "documents", "chunks", "people", "credits", "eval_runs",
+            "watch_log",
+        ]
         result = {}
         for t in tables:
             row = self.conn.execute(f"SELECT COUNT(*) as c FROM {t}").fetchone()

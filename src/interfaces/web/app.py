@@ -31,7 +31,6 @@ def create_app(
     *,
     load_model: bool = True,
     generator: Callable[[str, str], str] | None = None,
-    llm_enabled: bool = False,
     w_taste: float = 0.0,
     w_comp: float = 0.0,
 ) -> FastAPI:
@@ -40,8 +39,7 @@ def create_app(
 
     app = FastAPI(title="Kinolog", docs_url=None, redoc_url=None, openapi_url=None)
     app.state.kin = AppState(
-        db, load_model=load_model, generator=generator, llm_enabled=llm_enabled,
-        w_taste=w_taste, w_comp=w_comp,
+        db, load_model=load_model, generator=generator, w_taste=w_taste, w_comp=w_comp,
     )
 
     @app.middleware("http")

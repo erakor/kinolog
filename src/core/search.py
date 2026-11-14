@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     import numpy as np
 
+from src.core.collections import SHORT_MAX_MIN
 from src.core.db import Database
 
 logger = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ class SearchFilters:
     runtime_max: int | None = None
     item_ids: list[int] | None = None
     exclude_ids: list[int] | None = None
-    features_only: bool = False  # drop shorts (<= 40 min) and TV movies
+    features_only: bool = False  # drop shorts and TV movies (see collections.SHORT_MAX_MIN)
 
     def to_sql_conditions(self) -> tuple[str, list]:
         """Returns (WHERE clause fragments, params) for items table alias 'i'."""
@@ -75,7 +76,8 @@ class SearchFilters:
                 conditions.append("0 = 1")
         if self.features_only:
             conditions.append(
-                "COALESCE(i.is_tv, 0) = 0 AND (i.runtime_min IS NULL OR i.runtime_min > 40)"
+                "COALESCE(i.is_tv, 0) = 0 "
+                f"AND (i.runtime_min IS NULL OR i.runtime_min > {SHORT_MAX_MIN})"
             )
         if self.exclude_ids:
             conditions.append(f"i.id NOT IN ({','.join('?' for _ in self.exclude_ids)})")

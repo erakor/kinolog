@@ -19,5 +19,5 @@ def health(state: AppState = Depends(get_state), db: Database = Depends(get_db))
         "model_loaded": state.model_loaded,
         "llm_configured": state.generator is not None,
         "counts": {k: stats[k] for k in ("items", "chunks", "people", "credits", "watch_log")},
-        "taste_available": state.taste_available(db),
+        "taste_available": state.taste_available(),
     }

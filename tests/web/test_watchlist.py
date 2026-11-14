@@ -44,7 +44,7 @@ def test_taste_sort_with_stubbed_ranker(client, db, monkeypatch):
     from src.core import taste
     from src.interfaces.web.state import AppState
 
-    monkeypatch.setattr(AppState, "taste_available", lambda self, db, model_name="bge_m3": True)
+    monkeypatch.setattr(AppState, "taste_available", lambda self, model_name="bge_m3": True)
 
     def fake(db_, cands, hearts, **kw):
         order = {ids["Brief Encounter Again"]: 0.9, ids["Glass Orchard"]: 0.5}

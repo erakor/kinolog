@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from collections.abc import Callable
 from typing import Any
 
 from src.core.db import Database
@@ -20,7 +19,6 @@ class AppState:
         *,
         load_model: bool = True,
         generator: Callable[[str, str], str] | None = None,
-        llm_enabled: bool = False,
         w_taste: float = 0.0,
         w_comp: float = 0.0,
     ):
@@ -30,7 +28,6 @@ class AppState:
         self.db_lock = threading.Lock()
         self.load_model = load_model
         self.generator = generator
-        self.llm_enabled = llm_enabled
         # Rerank weights stay 0 (pure retrieval) until `eval concierge` justifies more.
         self.w_taste = w_taste
         self.w_comp = w_comp
@@ -38,11 +35,6 @@ class AppState:
         self._model: Any = None
         self._model_tried = False
         self._model_lock = threading.Lock()
-
-    @contextmanager
-    def use_db(self) -> Iterator[Database]:
-        with self.db_lock:
-            yield self.db
 
     def get_model(self) -> Any:
         """Lazy-load the embedding model; None if disabled or unavailable."""
@@ -63,11 +55,11 @@ class AppState:
     def model_loaded(self) -> bool:
         return self._model is not None
 
-    def taste_available(self, db: Database, model_name: str = "bge_m3") -> bool:
+    def taste_available(self, model_name: str = "bge_m3") -> bool:
         """Taste rankers read stored embeddings, so they need the vec table, not the model."""
-        if not db.vec_available:
+        if not self.db.vec_available:
             return False
-        row = db.execute(
+        row = self.db.execute(
             "SELECT 1 FROM sqlite_master WHERE name = ?", (f"vec_{model_name}",)
         ).fetchone()
         return row is not None

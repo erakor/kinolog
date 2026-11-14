@@ -1,12 +1,11 @@
 // Shared mutations and dialogs used by several views.
 import { api } from "./api.js";
-import { append, h, openModal, ratingLabel, today, toast } from "./util.js";
+import { h, openModal, ratingLabel, today, toast } from "./util.js";
 
-async function run(promise, okMessage, ctx, reload) {
+async function run(promise, okMessage, reload) {
   try {
     await promise;
     if (okMessage) toast(okMessage);
-    if (ctx && ctx.refreshHealth) ctx.refreshHealth();
     if (reload) await reload();
   } catch (e) {
     toast(e.message || "Something went wrong", "error");
@@ -14,20 +13,20 @@ async function run(promise, okMessage, ctx, reload) {
 }
 
 // item may be a card (item_id) or a collection film (item_id) - both expose item_id/title.
-export function queueButton(item, ctx, reload) {
+export function queueButton(item, reload) {
   return h("button", { class: "btn btn--sm", type: "button",
-    onclick: () => run(api.post("/api/watchlist", { item_id: item.item_id }), `Queued ${item.title}`, ctx, reload) },
+    onclick: () => run(api.post("/api/watchlist", { item_id: item.item_id }), `Queued ${item.title}`, reload) },
   "+ Queue");
 }
 
-export function removeButton(item, ctx, reload) {
+export function removeButton(item, reload) {
   return h("button", { class: "btn btn--icon", type: "button", "aria-label": `Remove ${item.title} from Watch List`, title: "Remove from Watch List",
-    onclick: () => run(api.del(`/api/watchlist/${item.item_id}`), `Removed ${item.title}`, ctx, reload) }, "🗑");
+    onclick: () => run(api.del(`/api/watchlist/${item.item_id}`), `Removed ${item.title}`, reload) }, "🗑");
 }
 
-export function logButton(item, ctx, reload, label = "Log Watched") {
-  return h("button", { class: `btn btn--primary${label === "Log" ? " btn--sm" : ""}`, type: "button",
-    onclick: () => openLogDialog(item, ctx, reload) }, label === "Log" ? "Log" : `✓ ${label}`);
+export function logButton(item, reload, small = false) {
+  return h("button", { class: `btn btn--primary${small ? " btn--sm" : ""}`, type: "button",
+    onclick: () => openLogDialog(item, reload) }, small ? "Log" : "✓ Log Watched");
 }
 
 export function ratingOptions(selected) {
@@ -36,7 +35,7 @@ export function ratingOptions(selected) {
   return opts;
 }
 
-export function openLogDialog(item, ctx, reload) {
+export function openLogDialog(item, reload) {
   return openModal(`Log ${item.title}`, (close) => {
     const date = h("input", { type: "date", value: today(), max: today(), required: true });
     const rating = h("select", {}, ratingOptions(null));
@@ -50,7 +49,7 @@ export function openLogDialog(item, ctx, reload) {
         const body = { watched_on: date.value, keep_on_watchlist: keep.checked };
         if (rating.value) body.rating = Number(rating.value);
         if (liked.checked) body.liked = true;
-        await run(api.post(`/api/watchlist/${item.item_id}/watched`, body), `Logged ${item.title}`, ctx, reload);
+        await run(api.post(`/api/watchlist/${item.item_id}/watched`, body), `Logged ${item.title}`, reload);
         close();
       },
     },
@@ -66,7 +65,7 @@ export function openLogDialog(item, ctx, reload) {
 }
 
 // Used by "+ Add Film": the header button.
-export function lookupList(query, onPick, ctx) {
+export function lookupList(onPick) {
   const box = h("div", { class: "list", style: "margin-top:12px" });
   let seq = 0;
   async function search(q) {
@@ -76,7 +75,7 @@ export function lookupList(query, onPick, ctx) {
     if (my !== seq) return;
     box.replaceChildren();
     if (!items.length) {
-      append(box, [h("p", { class: "muted", style: "padding:16px" }, "No match in your index. Import a Letterboxd export or run the ingest pipeline to add new films.")]);
+      box.append(h("p", { class: "muted", style: "padding:16px" }, "No match in your index. Import a Letterboxd export or run the ingest pipeline to add new films."));
       return;
     }
     for (const it of items) box.append(onPick(it));

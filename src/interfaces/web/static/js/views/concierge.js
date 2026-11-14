@@ -102,8 +102,8 @@ export async function mount(el, ctx) {
       rationale(p.rationale),
       p.completion.slice(0, 1).map((d) => completionPanel(d)),
       h("div", { style: "display:flex;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--color-rule);flex-wrap:wrap" },
-        h("button", { class: "btn btn--primary", type: "button", onclick: () => openLogDialog(it, ctx, reload) }, "✓ Log as Watched"),
-        onList ? null : queueButton(it, ctx, reload)));
+        h("button", { class: "btn btn--primary", type: "button", onclick: () => openLogDialog(it, reload) }, "✓ Log as Watched"),
+        onList ? null : queueButton(it, reload)));
   }
 
   function rationale(r) {

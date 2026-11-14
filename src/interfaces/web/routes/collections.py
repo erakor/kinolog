@@ -30,10 +30,9 @@ def list_directors(
     db: Database = Depends(get_db),
 ):
     allc = coll.director_completion(db, sort=sort, status=status, q=q, min_films=min_films)
-    page = coll.director_completion(
-        db, sort=sort, status=status, q=q, min_films=min_films,
-        limit=limit, offset=offset, with_films=include_films,
-    )
+    page = allc[offset:offset + limit]
+    if include_films:
+        coll.attach_films(db, page)
     return {
         "total": len(allc),
         "summary": coll.collection_summary(db, min_films=min_films),
@@ -48,5 +47,5 @@ def director(person_id: int, db: Database = Depends(get_db)):
         raise HTTPException(404, {"code": "not_found", "message": "No such director"})
     out = _summary(d, with_films=True)
     for f in out["films"]:
-        f["after_pct"] = None if f["seen"] else round(100.0 * (d.seen + 1) / d.total, 1)
+        f["after_pct"] = None if f["seen"] else coll.pct(d.seen + 1, d.total)
     return out

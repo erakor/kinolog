@@ -403,10 +403,6 @@ def _mention_scope(db: Database) -> set[int]:
     }
 
 
-def _gain(deltas: list[coll.CompletionDelta]) -> float:
-    return max((d.after_pct - d.before_pct for d in deltas), default=0.0)
-
-
 def _chunk_meta(db: Database, chunk_ids: list[int]) -> dict[int, dict]:
     ids = [c for c in chunk_ids if c is not None]
     if not ids:
@@ -557,7 +553,10 @@ def pick(
         ranked = [(i, 0.0) for i in cand]
 
     cand_ids = [i for i, _ in ranked]
-    deltas_all = coll.completion_deltas(db, cand_ids, with_remaining=False)
+    # Gains only matter for ordering when there is no text query or completion is weighted.
+    needs_gain = not residual or w_comp > 0
+    deltas_all = coll.completion_deltas(db, cand_ids) if needs_gain else {}
+    base_by_id = dict(ranked)
     taste: dict[int, float] = {}
     if w_taste > 0 and taste_fn and cand_ids:
         try:
@@ -569,7 +568,7 @@ def pick(
 
     def key(entry: tuple[int, float]) -> tuple:
         item_id, base = entry
-        gain = _gain(deltas_all.get(item_id, []))
+        gain = coll.best_gain(deltas_all.get(item_id, []))
         score = base + w_taste * taste.get(item_id, 0.0) + w_comp * gain / 100.0
         if residual:
             return (-score,)
@@ -584,13 +583,13 @@ def pick(
     for item_id, f in item_facts(db, top_ids).items():
         cards[item_id]["genres"] = f["genres"]
     deltas = coll.completion_deltas(db, top_ids, with_remaining=True)
-    mention_scope = _mention_scope(db)
+    mention_scope = _mention_scope(db) if rationales else set()
     agent = KinologChatAgent(db, model_embed=model)
 
     picks = []
     for item_id in top_ids:
-        base = dict(ranked)[item_id]
-        gain = _gain(deltas.get(item_id, []))
+        base = base_by_id[item_id]
+        gain = coll.best_gain(deltas.get(item_id, []))
         score = base + w_taste * taste.get(item_id, 0.0) + w_comp * gain / 100.0
         score_parts = {
             "retrieval": round(base, 4),
@@ -639,9 +638,9 @@ def pick(
                 ok = False
             if ok:
                 out, generator = llm_out, "llm"
-            elif "llm_ungrounded" not in degraded:
+            else:
                 degraded.append("llm_ungrounded: fell back to template rationale")
-        elif "no_llm: template rationale" not in degraded:
+        else:
             degraded.append("no_llm: template rationale")
 
         meta = _chunk_meta(db, [c.chunk_id for c in assembled.chunks])
@@ -672,7 +671,7 @@ def pick(
         "query": query,
         "parsed": parsed.to_dict(),
         "mode_used": mode,
-        "degraded": degraded,
+        "degraded": list(dict.fromkeys(degraded)),
         "excluded_unknown_runtime": _count_unknown_runtime(db, filters),
         "picks": picks,
         "empty": None,

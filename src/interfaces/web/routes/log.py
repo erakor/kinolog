@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, Query, Response
 
 from src.core.db import Database
-from src.interfaces.web.deps import get_db, get_state
+from src.interfaces.web.deps import card_or_404, get_db, get_state
 from src.interfaces.web.schemas import LogCreate, LogPatch
 from src.interfaces.web.state import AppState
 
@@ -30,14 +30,12 @@ def list_log(
 def create_entry(
     body: LogCreate, state: AppState = Depends(get_state), db: Database = Depends(get_db)
 ):
-    if db.get_item(body.item_id) is None:
-        raise HTTPException(404, {"code": "not_found", "message": "No such item"})
+    card = card_or_404(db, body.item_id)
     entry_id = db.log_watch(
         body.item_id, body.watched_on, rating=body.rating, liked=body.liked, rewatch=body.rewatch
     )
     # a logged film is no longer queued
-    card = db.get_item_card(body.item_id)
-    if card and card["status"]["on_watchlist"]:
+    if card["status"]["on_watchlist"]:
         db.set_watchlist(body.item_id, False)
     state.invalidate()
     return db.get_watch_entry_view(entry_id)

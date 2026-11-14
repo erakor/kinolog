@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
 from src.core.db import Database
-from src.interfaces.web.deps import get_db, get_state
+from src.interfaces.web.deps import card_or_404, get_db, get_state
 from src.interfaces.web.schemas import LikedBody, RatingBody
 from src.interfaces.web.state import AppState
 
@@ -21,13 +21,7 @@ def lookup(
 
 @router.get("/{item_id}")
 def get_item(item_id: int, db: Database = Depends(get_db)):
-    card = db.get_item_card(item_id)
-    if card is None:
-        raise HTTPException(404, {"code": "not_found", "message": "No such item"})
-    rows = db.execute(
-        "SELECT DISTINCT source FROM documents WHERE item_id = ? ORDER BY source", (item_id,)
-    ).fetchall()
-    return {**card, "sources": [r["source"] for r in rows]}
+    return {**card_or_404(db, item_id), "sources": db.get_item_sources(item_id)}
 
 
 @router.put("/{item_id}/rating")
@@ -37,8 +31,7 @@ def set_rating(
     state: AppState = Depends(get_state),
     db: Database = Depends(get_db),
 ):
-    if db.get_item(item_id) is None:
-        raise HTTPException(404, {"code": "not_found", "message": "No such item"})
+    card_or_404(db, item_id)
     db.set_rating(item_id, body.rating)
     state.invalidate()
     return db.get_item_card(item_id)
@@ -51,8 +44,7 @@ def set_liked(
     state: AppState = Depends(get_state),
     db: Database = Depends(get_db),
 ):
-    if db.get_item(item_id) is None:
-        raise HTTPException(404, {"code": "not_found", "message": "No such item"})
+    card_or_404(db, item_id)
     db.set_liked(item_id, body.liked)
     state.invalidate()  # hearts feed taste ranking
     return db.get_item_card(item_id)

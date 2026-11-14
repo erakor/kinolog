@@ -75,7 +75,7 @@ _AGG_SQL = f"""
 """
 
 
-def _pct(seen: int, total: int) -> float:
+def pct(seen: int, total: int) -> float:
     return round(100.0 * seen / total, 1) if total else 0.0
 
 
@@ -103,10 +103,25 @@ def _films_for(db: Database, person_ids: list[int], role: str) -> dict[int, list
     return out
 
 
+def attach_films(
+    db: Database, directors: list[DirectorCompletion], role: str = "Director"
+) -> list[DirectorCompletion]:
+    """Fill ``films`` for the given directors with one query."""
+    films = _films_for(db, [d.person_id for d in directors], role)
+    for d in directors:
+        d.films = films.get(d.person_id, [])
+    return directors
+
+
+def best_gain(deltas: list[CompletionDelta]) -> float:
+    """Largest completion jump (in percentage points) among an item's directors."""
+    return max((d.after_pct - d.before_pct for d in deltas), default=0.0)
+
+
 def _summary_from_row(r: Any) -> DirectorCompletion:
     return DirectorCompletion(
         person_id=r["person_id"], name=r["name"], seen=r["seen"], total=r["total"],
-        pct=_pct(r["seen"], r["total"]), hearted=r["hearted"], unseen_on_watchlist=r["queued"],
+        pct=pct(r["seen"], r["total"]), hearted=r["hearted"], unseen_on_watchlist=r["queued"],
     )
 
 
@@ -152,9 +167,7 @@ def director_completion(
 
     result = result[offset:] if limit is None else result[offset:offset + limit]
     if with_films:
-        films = _films_for(db, [d.person_id for d in result], role)
-        for d in result:
-            d.films = films.get(d.person_id, [])
+        attach_films(db, result, role)
     return result
 
 
@@ -241,7 +254,7 @@ def completion_deltas(
             ][:3]
         out[r["item_id"]].append(CompletionDelta(
             person_id=r["person_id"], name=s["name"], seen=s["seen"], total=s["total"],
-            before_pct=_pct(s["seen"], s["total"]), after_pct=_pct(s["seen"] + 1, s["total"]),
+            before_pct=pct(s["seen"], s["total"]), after_pct=pct(s["seen"] + 1, s["total"]),
             remaining=remaining,
         ))
     for deltas in out.values():

@@ -1,4 +1,5 @@
 import { api } from "../api.js";
+import { importButton } from "./import.js";
 import { ratingOptions } from "../actions.js";
 import { emptyState, h, openModal, searchBox, segmented, toast } from "../util.js";
 
@@ -24,9 +25,7 @@ export async function mount(el, ctx) {
       segmented([["", "All Ratings"], ["9", "4.5+ Stars"], ["8", "4.0+ Stars"]], state.min, (v) => { state.min = v; state.offset = 0; load(); })),
     empty, holder, h("div", { style: "text-align:center;margin-top:16px" }, more));
 
-  ctx.logTools = tools; // the import control (added by the import module) mounts here
-  const importMod = await import("./import.js").catch(() => null);
-  if (importMod) tools.append(importMod.importButton(ctx, () => load()));
+  tools.append(importButton(ctx, () => load()));
 
   async function load(append = false) {
     const data = await api.get("/api/log", { q: state.q, min_rating: state.min, limit: PAGE, offset: state.offset });

@@ -53,7 +53,7 @@ export async function mount(el, ctx) {
       return;
     }
     for (const row of data.items) {
-      list.append(listRow(row, ctx, load, (r) => [logButton(r, ctx, load), removeButton(r, ctx, load)]));
+      list.append(listRow(row, (r) => [logButton(r, load), removeButton(r, load)]));
     }
   }
 
@@ -69,12 +69,12 @@ export async function mount(el, ctx) {
   await load();
 }
 
-export function pushText(row) {
+function pushText(row) {
   const d = row.completion && row.completion[0];
   return d ? `Pushes ${d.name} ${fmtPct(d.before_pct)} → ${fmtPct(d.after_pct)}` : null;
 }
 
-export function listRow(row, ctx, reload, actions = null) {
+export function listRow(row, actions = null) {
   const dirs = row.directors.map((d) => d.name).join(", ");
   const push = pushText(row);
   const sub = [dirs, row.genres && row.genres.join(" / ")].filter(Boolean).join(" · ");

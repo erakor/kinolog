@@ -37,15 +37,14 @@ def parse(body: ParseBody):
 @router.get("/overview")
 def overview(db: Database = Depends(get_db)):
     """Numbers and the completion radar for the Concierge home screen."""
-    _, queue = db.get_watchlist()
-    minutes = sum(c["runtime_min"] or 0 for c in queue)
     _, _, log_summary = db.get_watch_log(limit=1)
     rated = log_summary["avg_rating"]  # half-star integers across logged viewings
 
-    directors = coll.director_completion(db, sort="pct", with_films=True)
-    incomplete = [d for d in directors if d.seen < d.total]
+    directors = coll.director_completion(db, sort="pct")
+    top = [d for d in directors if d.seen < d.total][:3]
+    coll.attach_films(db, top)  # films are only needed for the radar cards
     radar = []
-    for d in incomplete[:3]:
+    for d in top:
         unseen = [f for f in (d.films or []) if not f.seen]
         unseen.sort(key=lambda f: (f.runtime_min is None, f.runtime_min or 0, f.title))
         q = unseen[0] if unseen else None
@@ -55,7 +54,7 @@ def overview(db: Database = Depends(get_db)):
             "quickest": None if q is None else {
                 "item_id": q.item_id, "title": q.title, "year": q.year,
                 "runtime_min": q.runtime_min, "on_watchlist": q.on_watchlist,
-                "after_pct": round(100.0 * (d.seen + 1) / d.total, 1),
+                "after_pct": coll.pct(d.seen + 1, d.total),
             },
         })
     closest = None
@@ -63,11 +62,7 @@ def overview(db: Database = Depends(get_db)):
         top = radar[0]
         closest = {k: top[k] for k in ("person_id", "name", "pct", "seen", "total", "quickest")}
     return {
-        "watchlist": {
-            "count": len(queue),
-            "total_minutes": minutes,
-            "short_count": sum(1 for c in queue if c["runtime_min"] and c["runtime_min"] <= 90),
-        },
+        "watchlist": db.watchlist_summary(),
         "log": {
             "count": log_summary["count"],
             "avg_rating": None if rated is None else round(rated / 2, 1),
@@ -82,7 +77,8 @@ def overview(db: Database = Depends(get_db)):
 def concierge(body: ConciergeBody, state: AppState = Depends(get_state)):
     # Load the model (slow, first time only) before taking the DB lock.
     model = state.get_model() if state.db.vec_available else None
-    with state.use_db() as db:
+    with state.db_lock:
+        db = state.db
         result = pick(
             db,
             body.query,
@@ -90,10 +86,9 @@ def concierge(body: ConciergeBody, state: AppState = Depends(get_state)):
             scope=body.scope,
             limit=body.limit,
             generator_fn=state.generator,
-            taste_fn=lambda ids: taste_scores(state, db, ids),
+            taste_fn=lambda ids: taste_scores(state, ids),
             w_taste=state.w_taste,
             w_comp=state.w_comp,
         )
-    result["degraded"] = list(dict.fromkeys(result["degraded"]))
     return result
 

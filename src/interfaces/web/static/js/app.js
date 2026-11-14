@@ -21,7 +21,7 @@ async function refreshHealth() {
 
 document.getElementById("add-film").addEventListener("click", async () => {
   const { openAddFilm } = await import("./views/add-film.js");
-  openAddFilm(ctx);
+  openAddFilm();
 });
 
 await refreshHealth();
