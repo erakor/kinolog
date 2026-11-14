@@ -58,5 +58,125 @@
     "target_title": "8½",
     "target_year": 1963,
     "category": "thematic"
+  },
+  {
+    "query": "clandestine resistance movement fighting French paratroopers in the Casbah",
+    "target_title": "The Battle of Algiers",
+    "target_year": 1966,
+    "category": "factual"
+  },
+  {
+    "query": "Jean-Pierre Léaud running toward the sea shoreline at the end",
+    "target_title": "The 400 Blows",
+    "target_year": 1959,
+    "category": "thematic"
+  },
+  {
+    "query": "Alain Delon as a cool hitman who keeps a pet bird in an austere apartment",
+    "target_title": "Le Samouraï",
+    "target_year": 1967,
+    "category": "named_entity"
+  },
+  {
+    "query": "film score by Georges Delerue with melancholic strings in Capri villa",
+    "target_title": "Le Mépris",
+    "target_year": 1963,
+    "category": "factual"
+  },
+  {
+    "query": "two factory workers during the Italian economic miracle searching for housing",
+    "target_title": "Il Posto",
+    "target_year": 1961,
+    "category": "thematic"
+  },
+  {
+    "query": "Belgian film following a young girl working at a waffle trailer in a trailer park",
+    "target_title": "Rosetta",
+    "target_year": 1999,
+    "category": "named_entity"
+  },
+  {
+    "query": "priest in rural northern France suffering from stomach cancer and loneliness",
+    "target_title": "Diary of a Country Priest",
+    "target_year": 1951,
+    "category": "thematic"
+  },
+  {
+    "query": "Michelangelo Antonioni mystery set among fashionable 1960s London photographers",
+    "target_title": "Blow-Up",
+    "target_year": 1966,
+    "category": "named_entity"
+  },
+  {
+    "query": "two bourgeois women and an actress who refuses to speak in an isolated cottage",
+    "target_title": "Persona",
+    "target_year": 1966,
+    "category": "thematic"
+  },
+  {
+    "query": "parricide and family decay in a crumbling Emilian villa, Bellocchio debut",
+    "target_title": "Fists in the Pocket",
+    "target_year": 1965,
+    "category": "thematic"
+  },
+  {
+    "query": "pickpocket learning sleight of hand techniques with meticulous closeups of hands and wallets",
+    "target_title": "Pickpocket",
+    "target_year": 1959,
+    "category": "factual"
+  },
+  {
+    "query": "Jeanne Moreau singing Le Tourbillon in a bohemian love triangle",
+    "target_title": "Jules and Jim",
+    "target_year": 1962,
+    "category": "named_entity"
+  },
+  {
+    "query": "deliberate repetition of hallway tracking shots in an ornate baroque spa hotel",
+    "target_title": "Last Year at Marienbad",
+    "target_year": 1961,
+    "category": "thematic"
+  },
+  {
+    "query": "an innocent donkey passed between cruel and gentle owners across the French countryside",
+    "target_title": "Au Hasard Balthazar",
+    "target_year": 1966,
+    "category": "thematic"
+  },
+  {
+    "query": "elderly couple visiting their self-absorbed adult children in Tokyo",
+    "target_title": "Tokyo Story",
+    "target_year": 1953,
+    "category": "factual"
+  },
+  {
+    "query": "a condemned Resistance fighter methodically plans his escape from Montluc prison",
+    "target_title": "A Man Escaped",
+    "target_year": 1956,
+    "category": "factual"
+  },
+  {
+    "query": "young pop singer wandering Paris awaiting biopsy results on summer solstice",
+    "target_title": "Cléo from 5 to 7",
+    "target_year": 1962,
+    "category": "named_entity"
+  },
+  {
+    "query": "aristocratic Sicilian prince during the Risorgimento with grand final ballroom sequence",
+    "target_title": "The Leopard",
+    "target_year": 1963,
+    "category": "thematic"
+  },
+  {
+    "query": "three French bank robbers trapped in an elaborate jewelry heist on Place Vendôme",
+    "target_title": "Le Cercle Rouge",
+    "target_year": 1970,
+    "category": "factual"
+  },
+  {
+    "query": "carpentry workshop teacher and teenage delinquent in Liege by the Dardenne brothers",
+    "target_title": "The Son",
+    "target_year": 2002,
+    "category": "named_entity"
   }
 ]

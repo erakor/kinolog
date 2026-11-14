@@ -1,0 +1,102 @@
+[
+  {
+    "id": 1,
+    "question": "Which films in my index are set in Rome?",
+    "expected_item_titles": ["La Dolce Vita", "Bicycle Thieves"]
+  },
+  {
+    "id": 2,
+    "question": "What films did Federico Fellini direct that I have watched or liked?",
+    "expected_item_titles": ["La Dolce Vita", "8½"]
+  },
+  {
+    "id": 3,
+    "question": "Are there any French New Wave films featuring Jean-Paul Belmondo?",
+    "expected_item_titles": ["À bout de souffle"]
+  },
+  {
+    "id": 4,
+    "question": "Which films deal with a filmmaker or artist having a creative crisis?",
+    "expected_item_titles": ["8½"]
+  },
+  {
+    "id": 5,
+    "question": "Tell me about movies featuring Alain Delon as a solitary criminal.",
+    "expected_item_titles": ["Le Samouraï"]
+  },
+  {
+    "id": 6,
+    "question": "What films in my collection were directed by Jean-Luc Godard?",
+    "expected_item_titles": ["À bout de souffle", "Le Mépris"]
+  },
+  {
+    "id": 7,
+    "question": "Which film involves a game of chess played on a rocky beach during the Black Death?",
+    "expected_item_titles": ["The Seventh Seal"]
+  },
+  {
+    "id": 8,
+    "question": "Can you recommend Italian neorealist cinema from my index?",
+    "expected_item_titles": ["Bicycle Thieves"]
+  },
+  {
+    "id": 9,
+    "question": "Which films feature music composed by Nino Rota or Georges Delerue?",
+    "expected_item_titles": ["La Dolce Vita", "8½", "Le Mépris"]
+  },
+  {
+    "id": 10,
+    "question": "Are there any movies set in Capri or featuring Villa Malaparte?",
+    "expected_item_titles": ["Le Mépris"]
+  },
+  {
+    "id": 11,
+    "question": "What films take place in a space station orbiting an alien ocean?",
+    "expected_item_titles": ["Solaris"]
+  },
+  {
+    "id": 12,
+    "question": "Which films in my index explore characters mysteriously disappearing on a Mediterranean island?",
+    "expected_item_titles": ["L'Avventura"]
+  },
+  {
+    "id": 13,
+    "question": "Tell me about films where dinner guests find themselves physically unable to leave a salon.",
+    "expected_item_titles": ["The Exterminating Angel"]
+  },
+  {
+    "id": 14,
+    "question": "Which movies feature Jeanne Moreau in a romantic triangle in Paris?",
+    "expected_item_titles": ["Jules and Jim"]
+  },
+  {
+    "id": 15,
+    "question": "What movies in my database are directed by the Dardenne brothers?",
+    "expected_item_titles": ["Rosetta", "The Son"]
+  },
+  {
+    "id": 16,
+    "question": "Which French films focus on an innocent donkey suffering through human cruelty?",
+    "expected_item_titles": ["Au Hasard Balthazar"]
+  },
+  {
+    "id": 17,
+    "question": "Are there any films documenting the Algerian independence struggle?",
+    "expected_item_titles": ["The Battle of Algiers"]
+  },
+  {
+    "id": 18,
+    "question": "Which film follows a young female pop singer awaiting medical test results around Montparnasse?",
+    "expected_item_titles": ["Cléo from 5 to 7"]
+  },
+  {
+    "id": 19,
+    "question": "What films portray the twilight of Sicilian aristocracy during Italian unification?",
+    "expected_item_titles": ["The Leopard"]
+  },
+  {
+    "id": 20,
+    "question": "Which film depicts a meticulous jewelry robbery orchestrated by Corey and Vogel?",
+    "expected_item_titles": ["Le Cercle Rouge"]
+  }
+]
