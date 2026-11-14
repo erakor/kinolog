@@ -1,5 +1,5 @@
 import type { ReactNode, Ref } from 'react'
-import { fmtPct } from '../format'
+import { directorNames, fmtPct } from '../format'
 import type { WatchlistRow } from '../types'
 
 interface ListRowProps {
@@ -10,7 +10,7 @@ interface ListRowProps {
 }
 
 export function ListRow({ row, actions, highlighted = false, rowRef }: ListRowProps) {
-  const dirs = row.directors.map((d) => d.name).join(', ')
+  const dirs = directorNames(row.directors)
   const d = row.completion[0]
   const sub = [dirs, row.genres.join(' / ')].filter(Boolean).join(' · ')
   return (

@@ -19,15 +19,15 @@ export function AddFilmDialog({ onClose }: { onClose: () => void }) {
   const toast = useToast()
   const { refreshView } = useRefresh()
   // useAsync drops responses from superseded queries, so a slow lookup can't overwrite a newer one.
-  const { data: items, error } = useAsync<Item[]>(
-    () => (q ? api.get<Item[]>('/api/items/lookup', { q, limit: 8 }) : Promise.resolve([])),
-    [q],
-  )
-  const [shownError, setShownError] = useState<Error | null>(null)
-  if (error && error !== shownError) {
-    setShownError(error)
-    toast(error.message, 'error')
-  }
+  const { data: items } = useAsync<Item[]>(async () => {
+    if (!q) return []
+    try {
+      return await api.get<Item[]>('/api/items/lookup', { q, limit: 8 })
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Lookup failed', 'error')
+      return []
+    }
+  }, [q])
 
   const done = () => {
     onClose()

@@ -1,5 +1,5 @@
 import { ProgressBar } from '../../components/ProgressBar'
-import { fmtPct } from '../../format'
+import { fmtPct, nextFromPrompt } from '../../format'
 import type { RadarEntry } from '../../types'
 
 interface RadarProps {
@@ -43,7 +43,7 @@ export function Radar({ radar, onAsk }: RadarProps) {
               style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}
               type="button"
               onClick={() => {
-                onAsk(`What should I watch next from ${d.name}?`)
+                onAsk(nextFromPrompt(d.name))
                 window.scrollTo({ top: 0, behavior: 'smooth' })
               }}
             >

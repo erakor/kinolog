@@ -18,6 +18,8 @@ const RUNTIME_OPTIONS = [
   ['120', '≤ 120 min'],
 ] as const
 
+const SHORT_MIN = 90
+
 const SORT_OPTIONS: [WatchlistSort, string][] = [
   ['impact', 'Sort: Director Impact'],
   ['added', 'Sort: Recently Added'],
@@ -34,7 +36,7 @@ export default function Watchlist() {
   const [highlightedId, setHighlightedId] = useState<number | null>(null)
   const highlightRef = useRef<HTMLDivElement>(null)
 
-  const { data, error, reload } = useAsync<WatchlistResponse | null>(async () => {
+  const { data, reload } = useAsync<WatchlistResponse | null>(async () => {
     try {
       return await api.get<WatchlistResponse>('/api/watchlist', { sort, runtime_max: runtime, q })
     } catch (e) {
@@ -46,8 +48,7 @@ export default function Watchlist() {
       throw e
     }
   }, [sort, runtime, q])
-  if (error && !data) throw error
-
+  
   useEffect(() => setHighlightedId(null), [data])
   useEffect(() => {
     highlightRef.current?.scrollIntoView?.({ block: 'center', behavior: 'smooth' })
@@ -56,9 +57,9 @@ export default function Watchlist() {
   const sorts = data?.taste_available ? [...SORT_OPTIONS, ['taste', 'Sort: Taste Match'] as [WatchlistSort, string]] : SORT_OPTIONS
 
   function pickShort() {
-    const pick = data?.items.find((r) => r.runtime_min && r.runtime_min <= 90)
+    const pick = data?.items.find((r) => r.runtime_min && r.runtime_min <= SHORT_MIN)
     if (!pick) {
-      toast('No film of 90 minutes or less in your Watch List.')
+      toast(`No film of ${SHORT_MIN} minutes or less in your Watch List.`)
       return
     }
     setHighlightedId(pick.item_id)

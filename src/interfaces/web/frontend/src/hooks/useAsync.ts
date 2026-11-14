@@ -42,8 +42,9 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]): AsyncState<T
     return () => {
       seq.current++
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps)
 
+  // A failed first load has nothing to show: let the view's ErrorBoundary report it.
+  if (state.error && !state.data) throw state.error
   return { ...state, reload: run }
 }

@@ -6,6 +6,14 @@ export function fmtPct(p: number): string {
   return `${Math.round(p)}%`
 }
 
+export function fmtHours(minutes: number): number {
+  return Math.round(minutes / 60)
+}
+
+export function nextFromPrompt(director: string): string {
+  return `What should I watch next from ${director}?`
+}
+
 export function today(): string {
   return new Date().toISOString().slice(0, 10)
 }

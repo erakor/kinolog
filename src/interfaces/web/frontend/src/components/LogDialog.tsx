@@ -4,7 +4,7 @@ import { today } from '../format'
 import { useAction } from '../hooks/useAction'
 import type { ItemRef } from './ItemActions'
 import { Modal } from './Modal'
-import { RatingSelect } from './RatingSelect'
+import { WatchFields } from './WatchFields'
 
 interface LogDialogProps {
   item: ItemRef
@@ -34,16 +34,7 @@ export function LogDialog({ item, reload, onClose }: LogDialogProps) {
   return (
     <Modal title={`Log ${item.title}`} onClose={onClose}>
       <form onSubmit={submit}>
-        <div className="field-row">
-          <label className="field">
-            Date watched
-            <input type="date" value={date} max={today()} required onChange={(e) => setDate(e.target.value)} />
-          </label>
-          <label className="field">
-            Rating
-            <RatingSelect value={rating} onChange={setRating} />
-          </label>
-        </div>
+        <WatchFields date={date} onDate={setDate} rating={rating} onRating={setRating} max={today()} />
         <label className="field field--check">
           <input type="checkbox" checked={liked} onChange={(e) => setLiked(e.target.checked)} />
           Add a heart

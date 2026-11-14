@@ -7,7 +7,7 @@ import { LogButton, QueueButton } from '../components/ItemActions'
 import { ProgressBar } from '../components/ProgressBar'
 import { SearchBox } from '../components/SearchBox'
 import { Segmented } from '../components/Segmented'
-import { fmtPct } from '../format'
+import { fmtPct, nextFromPrompt } from '../format'
 import { useAsync } from '../hooks/useAsync'
 import type { CollectionsResponse, DirectorCollection } from '../types'
 
@@ -20,7 +20,7 @@ const STATUS_OPTIONS = [
 
 function DirectorCard({ d, reload }: { d: DirectorCollection; reload: () => void }) {
   const queued = d.films.filter((f) => !f.seen && f.on_watchlist).length
-  const ask = `What should I watch next from ${d.name}?`
+  const ask = nextFromPrompt(d.name)
   return (
     <article className="card dir-card">
       <div className="dir-card__head">
@@ -59,7 +59,7 @@ function DirectorCard({ d, reload }: { d: DirectorCollection; reload: () => void
 export default function Collections() {
   const [status, setStatus] = useState<Status>('all')
   const [q, setQ] = useState('')
-  const { data, error, reload } = useAsync(
+  const { data, reload } = useAsync(
     () =>
       api.get<CollectionsResponse>('/api/collections/directors', {
         status,
@@ -69,7 +69,6 @@ export default function Collections() {
       }),
     [status, q],
   )
-  if (error && !data) throw error
 
   const s = data?.summary
   return (

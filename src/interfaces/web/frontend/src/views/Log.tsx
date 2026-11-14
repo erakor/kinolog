@@ -6,7 +6,7 @@ import { ImportButton } from '../components/ImportButton'
 import { RatingSelect } from '../components/RatingSelect'
 import { SearchBox } from '../components/SearchBox'
 import { Segmented } from '../components/Segmented'
-import { directorNames } from '../format'
+import { directorNames, fmtHours } from '../format'
 import { useAction } from '../hooks/useAction'
 import { useAsync } from '../hooks/useAsync'
 import type { LogEntry, LogResponse } from '../types'
@@ -72,11 +72,10 @@ export default function Log() {
   const [min, setMin] = useState<'' | '9' | '8'>('')
   const [pages, setPages] = useState(1)
   // "Show more" re-fetches a longer first page, so edits and deletes never leave a stale tail.
-  const { data, error, reload } = useAsync(
+  const { data, reload } = useAsync(
     () => api.get<LogResponse>('/api/log', { q, min_rating: min, limit: PAGE * pages, offset: 0 }),
     [q, min, pages],
   )
-  if (error && !data) throw error
 
   const s = data?.summary
   const none = !!data && !data.entries.length
@@ -90,7 +89,7 @@ export default function Log() {
             <p className="hero__lede">
               {s && (
                 <>
-                  <span className="num">{s.count}</span> films logged · <span className="num">{Math.round(s.total_minutes / 60)}</span> hrs
+                  <span className="num">{s.count}</span> films logged · <span className="num">{fmtHours(s.total_minutes)}</span> hrs
                   watched
                 </>
               )}

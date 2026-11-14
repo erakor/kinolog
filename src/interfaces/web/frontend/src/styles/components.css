@@ -101,7 +101,6 @@ table.table { width: 100%; border-collapse: collapse; min-width: 640px; }
 .pick__tags .primary { color: var(--color-accent); }
 .pick h3 { font-size: var(--text-xl); margin: var(--space-2) 0; }
 .pick__rationale { margin: var(--space-3) 0; }
-.pick__facts { font-size: var(--text-sm); color: var(--color-ink-muted); display: flex; gap: var(--space-4); flex-wrap: wrap; }
 .cite { color: var(--color-accent); background: none; border: 0; padding: 0 1px; font-size: .75em; vertical-align: super; }
 .cite-panel { margin-top: var(--space-3); padding: var(--space-3) var(--space-4); border-left: 2px solid var(--color-accent); background: #faf8f4; font-size: var(--text-sm); color: var(--color-ink-muted); }
 .completion { background: #faf8f4; border: 1px solid var(--color-rule); border-radius: var(--radius-btn); padding: var(--space-3) var(--space-4); margin-top: var(--space-3); }
@@ -126,7 +125,6 @@ table.table { width: 100%; border-collapse: collapse; min-width: 640px; }
 .toast { background: var(--color-ink); color: var(--color-on-ink); padding: 10px 14px; border-radius: var(--radius-btn); font-size: var(--text-sm); }
 .toast--error { background: var(--color-accent); }
 
-.poster-art { border-radius: 6px; flex-shrink: 0; }
 .loading { color: var(--color-ink-muted); padding: var(--space-8) 0; }
 
 /* Small utilities replacing repeated inline styles from the vanilla UI. */

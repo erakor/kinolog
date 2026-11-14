@@ -4,7 +4,7 @@ import { BannerArt } from '../components/BannerArt'
 import { EmptyState } from '../components/EmptyState'
 import { Segmented } from '../components/Segmented'
 import { useHealth } from '../context/HealthContext'
-import { fmtPct } from '../format'
+import { fmtHours, fmtPct } from '../format'
 import { useAsync } from '../hooks/useAsync'
 import type { ConciergeOverview, ConciergeResponse } from '../types'
 import { formatNote } from './concierge/citations'
@@ -88,14 +88,14 @@ function Results({ data, reload }: { data: ConciergeResponse; reload: () => void
 }
 
 export default function Concierge({ query }: { query: URLSearchParams }) {
-  const { refreshHealth } = useHealth()
+  const { health, refreshHealth } = useHealth()
   const [scope, setScope] = useState<'unseen' | 'watchlist'>('unseen')
   const [text, setText] = useState(query.get('q') ?? '')
   const [result, setResult] = useState<Result>({ status: 'idle' })
   const seq = useRef(0)
   const started = useRef(false)
 
-  const { data: home, error } = useAsync(
+  const { data: home } = useAsync(
     async () => {
       const [overview, suggestions] = await Promise.all([
         api.get<ConciergeOverview>('/api/concierge/overview'),
@@ -105,7 +105,6 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
     },
     [],
   )
-  if (error && !home) throw error
 
   async function ask(raw: string) {
     const q = raw.trim()
@@ -120,7 +119,8 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
     } catch (e) {
       if (my === seq.current) setResult({ status: 'error', message: e instanceof Error ? e.message : String(e) })
     } finally {
-      if (my === seq.current) void refreshHealth()
+      // /api/health only changes here when the embedding model gets loaded by the first query
+      if (my === seq.current && !health?.model_loaded) void refreshHealth()
     }
   }
 
@@ -130,7 +130,6 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
       started.current = true
       void ask(q)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function onSubmit(e: FormEvent) {
@@ -229,7 +228,7 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
       {overview && (
         <>
           <div className="stats">
-            <Stat label="Watch List" value={`${overview.watchlist.count} films`} sub={`${Math.round(overview.watchlist.total_minutes / 60)} hrs queued`} />
+            <Stat label="Watch List" value={`${overview.watchlist.count} films`} sub={`${fmtHours(overview.watchlist.total_minutes)} hrs queued`} />
             <Stat
               label="Watching Log"
               value={`${overview.log.count} logged`}

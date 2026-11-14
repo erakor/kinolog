@@ -3,7 +3,7 @@ import { api } from '../api'
 import { useAction } from '../hooks/useAction'
 import type { LogEntry } from '../types'
 import { Modal } from './Modal'
-import { RatingSelect } from './RatingSelect'
+import { WatchFields } from './WatchFields'
 
 interface EditLogDialogProps {
   entry: LogEntry
@@ -29,16 +29,7 @@ export function EditLogDialog({ entry, reload, onClose }: EditLogDialogProps) {
   return (
     <Modal title={`Edit ${entry.item.title}`} onClose={onClose}>
       <form onSubmit={submit}>
-        <div className="field-row">
-          <label className="field">
-            Date watched
-            <input type="date" value={date} required onChange={(e) => setDate(e.target.value)} />
-          </label>
-          <label className="field">
-            Rating
-            <RatingSelect value={rating} onChange={setRating} />
-          </label>
-        </div>
+        <WatchFields date={date} onDate={setDate} rating={rating} onRating={setRating} />
         <label className="field field--check">
           <input type="checkbox" checked={rewatch} onChange={(e) => setRewatch(e.target.checked)} />
           Rewatch
