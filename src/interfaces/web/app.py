@@ -74,12 +74,13 @@ def create_app(
     async def value_error(_: Request, exc: ValueError):
         return error_response(422, "invalid_request", str(exc))
 
-    from src.interfaces.web.routes import collections, health, items, watchlist
+    from src.interfaces.web.routes import collections, health, items, log, watchlist
 
     app.include_router(health.router)
     app.include_router(collections.router)
     app.include_router(watchlist.router)
     app.include_router(items.router)
+    app.include_router(log.router)
 
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
