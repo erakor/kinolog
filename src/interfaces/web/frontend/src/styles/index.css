@@ -22,9 +22,9 @@
   input[type="date"]::-webkit-datetime-edit-fields-wrapper {
     padding: 1px 0;
   }
-  /* Preflight fades placeholders to 50% of the text color; keep the browser's #757575. */
+  /* Preflight fades placeholders to 50% of the text color; keep the browser's grey. */
   ::placeholder {
-    color: #757575;
+    color: var(--color-placeholder);
     opacity: 1;
   }
   :focus-visible {

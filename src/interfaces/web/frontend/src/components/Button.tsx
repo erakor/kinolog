@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from 'react'
+import type { ComponentProps } from 'react'
 import { cx } from './ui'
 
 export type ButtonVariant = 'default' | 'primary' | 'accent' | 'icon'
@@ -23,18 +23,16 @@ export function buttonClass(variant: ButtonVariant = 'default', size?: 'sm'): st
   return cx(BASE, VARIANT[variant], variant === 'icon' ? SIZE.icon : size === 'sm' ? SIZE.sm : SIZE.md)
 }
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends ComponentProps<'button'> {
   variant?: ButtonVariant
   size?: 'sm'
 }
 
 export function Button({ variant = 'default', size, className, type = 'button', ...rest }: ButtonProps) {
   return (
-    // data-icon lets Modal skip icon buttons when choosing the first focus target.
     <button
       type={type}
       className={cx(buttonClass(variant, size), className)}
-      data-icon={variant === 'icon' ? '' : undefined}
       {...rest}
     />
   )

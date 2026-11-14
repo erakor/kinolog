@@ -20,6 +20,15 @@ function Harness() {
 }
 
 describe('Modal', () => {
+  it('focuses the first field, not the close button, when the dialog has only buttons', async () => {
+    render(
+      <Modal title="Buttons" onClose={() => {}}>
+        <button>only</button>
+      </Modal>,
+    )
+    expect(screen.getByText('only')).toHaveFocus()
+  })
+
   it('has dialog semantics and focuses the first field', async () => {
     render(<Harness />)
     await userEvent.click(screen.getByText('open'))
@@ -46,7 +55,7 @@ describe('Modal', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
 
     await userEvent.click(screen.getByText('open'))
-    await userEvent.click(screen.getByTestId('modal-backdrop'))
+    await userEvent.click(screen.getByRole('dialog').parentElement!)
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 })

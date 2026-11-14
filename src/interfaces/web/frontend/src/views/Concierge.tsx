@@ -168,7 +168,7 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
           </p>
           <div className="mt-5">
             <form
-              className="flex gap-2 bg-surface border border-rule rounded-xl py-1.5 pr-1.5 pl-3.5 items-center"
+              className="flex gap-2 bg-surface border border-rule rounded-xl py-1.5 pr-1.5 pl-3.5 items-center focus-within:border-ink-faint"
               onSubmit={onSubmit}
             >
               <span aria-hidden="true" className="text-ink-muted">

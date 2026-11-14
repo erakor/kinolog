@@ -38,8 +38,8 @@ export const listRow =
 export const field = 'grid gap-1 mb-3 text-sm'
 export const fieldCheck = 'flex gap-2 items-center mb-3 text-sm'
 export const fieldInput = 'border border-rule rounded-lg px-2.5 py-2 bg-surface min-h-9'
-/** Checkbox inside a field: keeps the stock checkbox margin that Preflight zeroes. */
-export const fieldCheckInput = `${fieldInput} m-1`
+/** Checkbox inside a field: Preflight zeroes the stock checkbox margin. */
+export const fieldCheckInput = 'm-1'
 export const fieldRow = 'flex gap-3 flex-wrap'
 
 export const chip = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent-wash text-xs text-ink'
