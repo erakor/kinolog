@@ -1,5 +1,6 @@
 import { api } from "../api.js";
 import { bannerArt } from "../placeholder-art.js";
+import { logButton, removeButton } from "../actions.js";
 import { emptyState, fmtPct, h, searchBox, segmented, toast } from "../util.js";
 
 export async function mount(el, ctx) {
@@ -46,12 +47,13 @@ export async function mount(el, ctx) {
     showing.textContent = `Showing ${data.total} of ${data.summary.count}`;
     list.replaceChildren();
     if (!data.items.length) {
-      list.replaceWith(list = h("div", { class: "list" }));
       list.append(emptyState(data.summary.count ? "Nothing fits those filters" : "Your Watch List is empty",
         data.summary.count ? "Try a longer runtime or clear the search." : "Add films with “+ Add Film” or import a Letterboxd export."));
       return;
     }
-    for (const row of data.items) list.append(listRow(row, ctx, load));
+    for (const row of data.items) {
+      list.append(listRow(row, ctx, load, (r) => [logButton(r, ctx, load), removeButton(r, ctx, load)]));
+    }
   }
 
   function pickShort() {

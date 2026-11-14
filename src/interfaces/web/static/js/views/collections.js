@@ -1,4 +1,5 @@
 import { api } from "../api.js";
+import { logButton, queueButton } from "../actions.js";
 import { bannerArt } from "../placeholder-art.js";
 import { emptyState, fmtPct, h, progressBar, ratingLabel, searchBox, segmented } from "../util.js";
 
@@ -46,7 +47,8 @@ function directorCard(d, ctx, reload) {
     h("div", { class: "dir-card__head" }, h("h3", {}, d.name), h("span", { class: "pct num" }, fmtPct(d.pct))),
     h("p", { class: "dir-card__meta" }, `${d.seen} / ${d.total} watched`, queued ? ` · ${queued} queued` : ""),
     progressBar(d.seen, d.total, d.seen + queued),
-    h("ul", { class: "film-list" }, d.films.map((f) => filmRow(f, ctx, reload))),
+    h("ul", { class: "film-list" }, d.films.map((f) => filmRow(f, ctx, reload,
+      (film) => film.seen ? [] : [film.on_watchlist ? null : queueButton(film, ctx, reload), logButton(film, ctx, reload, "Log")]))),
     h("div", { class: "card__foot" },
       h("a", { class: "link", href: `#/concierge?q=${encodeURIComponent(`What should I watch next from ${d.name}?`)}` },
         `Ask Concierge for next ${d.name} pick →`)));

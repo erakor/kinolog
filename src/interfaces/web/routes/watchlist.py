@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -8,6 +9,7 @@ from src.core import collections as coll
 from src.core.db import Database
 from src.core.docfacts import item_facts
 from src.interfaces.web.deps import get_db, get_state
+from src.interfaces.web.schemas import ItemRef, WatchedBody
 from src.interfaces.web.state import AppState
 from src.interfaces.web.taste import TasteUnavailableError, taste_scores
 
@@ -73,3 +75,48 @@ def list_watchlist(
         "summary": {"count": len(all_cards), "total_minutes": minutes},
         "items": rows[offset:offset + limit],
     }
+
+
+def _card_or_404(db: Database, item_id: int) -> dict:
+    card = db.get_item_card(item_id)
+    if card is None:
+        raise HTTPException(404, {"code": "not_found", "message": f"No such item: {item_id}"})
+    return card
+
+
+@router.post("")
+def add_to_watchlist(
+    body: ItemRef, state: AppState = Depends(get_state), db: Database = Depends(get_db)
+):
+    _card_or_404(db, body.item_id)
+    db.set_watchlist(body.item_id, True)
+    state.invalidate()
+    return db.get_item_card(body.item_id)
+
+
+@router.delete("/{item_id}")
+def remove_from_watchlist(
+    item_id: int, state: AppState = Depends(get_state), db: Database = Depends(get_db)
+):
+    _card_or_404(db, item_id)
+    db.set_watchlist(item_id, False)
+    state.invalidate()
+    return db.get_item_card(item_id)
+
+
+@router.post("/{item_id}/watched")
+def log_as_watched(
+    item_id: int,
+    body: WatchedBody,
+    state: AppState = Depends(get_state),
+    db: Database = Depends(get_db),
+):
+    card = _card_or_404(db, item_id)
+    entry_id = db.log_watch(
+        item_id, body.watched_on or date.today().isoformat(),
+        rating=body.rating, liked=body.liked,
+    )
+    if not body.keep_on_watchlist and card["status"]["on_watchlist"]:
+        db.set_watchlist(item_id, False)
+    state.invalidate()
+    return {"entry": db.get_watch_entry_view(entry_id), "item": db.get_item_card(item_id)}

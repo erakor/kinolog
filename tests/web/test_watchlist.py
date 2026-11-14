@@ -55,3 +55,61 @@ def test_taste_sort_with_stubbed_ranker(client, db, monkeypatch):
     assert [x["title"] for x in r["items"]][:2] == ["Brief Encounter Again", "Glass Orchard"]
     assert r["items"][0]["taste"]["score"] == pytest.approx(0.9)
     assert r["items"][2]["taste"] is None
+
+
+def test_add_and_remove(client, db):
+    ids = seed(db)
+    mid = ids["Midnight Ferry"]
+    r = client.post("/api/watchlist", json={"item_id": mid})
+    assert r.status_code == 200 and r.json()["status"]["on_watchlist"] is True
+    assert client.get("/api/watchlist").json()["total"] == 4
+    r = client.delete(f"/api/watchlist/{mid}")
+    assert r.json()["status"]["on_watchlist"] is False
+    assert client.get("/api/watchlist").json()["total"] == 3
+    # removal is a record, not a row delete
+    assert db.get_item(mid) is not None
+
+
+def test_unknown_item_404_and_bad_body_422(client, db):
+    seed(db)
+    assert client.post("/api/watchlist", json={"item_id": 9999}).status_code == 404
+    assert client.delete("/api/watchlist/9999").status_code == 404
+    assert client.post("/api/watchlist", json={}).status_code == 422
+
+
+def test_log_as_watched_creates_entry_and_dequeues(client, db):
+    ids = seed(db)
+    tid = ids["The Long Corridor"]
+    r = client.post(
+        f"/api/watchlist/{tid}/watched",
+        json={"watched_on": "2024-08-01", "rating": 9, "liked": True},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["entry"]["watched_on"] == "2024-08-01" and body["entry"]["rating"] == 9
+    assert body["item"]["status"]["seen"] and not body["item"]["status"]["on_watchlist"]
+    assert body["item"]["status"]["liked"]
+    assert client.get("/api/watchlist").json()["total"] == 2
+    # completion deltas update: Ann now 3/5
+    d = client.get("/api/collections/directors", params={"q": "ann"}).json()["items"][0]
+    assert d["seen"] == 3
+
+
+def test_log_as_watched_keep_and_validation(client, db):
+    ids = seed(db)
+    tid = ids["The Long Corridor"]
+    r = client.post(f"/api/watchlist/{tid}/watched", json={"keep_on_watchlist": True})
+    assert r.status_code == 200 and r.json()["item"]["status"]["on_watchlist"]
+    assert client.post(f"/api/watchlist/{tid}/watched", json={"rating": 11}).status_code == 422
+    r = client.post(f"/api/watchlist/{tid}/watched", json={"watched_on": "nope"})
+    assert r.status_code == 422
+
+
+def test_lookup_and_item(client, db):
+    ids = seed(db)
+    r = client.get("/api/items/lookup", params={"q": "glass"}).json()
+    assert [x["title"] for x in r] == ["Glass Orchard"]
+    item = client.get(f"/api/items/{ids['Glass Orchard']}").json()
+    assert item["sources"] == ["tmdb"] and item["directors"][0]["name"] == "Bob Bergman"
+    assert client.get("/api/items/9999").status_code == 404
+    assert client.get("/api/items/lookup").status_code == 422
