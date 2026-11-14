@@ -2,7 +2,12 @@
 
 import pytest
 
-from src.core.crew import crew_overlap_with_hearts, directors_by_heart_count, filmography
+from src.core.crew import (
+    crew_overlap_with_hearts,
+    directors_by_heart_count,
+    filmography,
+    find_people,
+)
 from src.core.db import Database
 
 
@@ -77,3 +82,20 @@ def test_directors_by_heart_count(db_with_crew):
     top = directors[0]
     assert top["name"] == "Federico Fellini"
     assert top["heart_count"] == 2
+
+
+def test_find_people(db_with_crew):
+    # Search by name
+    matches = find_people(db_with_crew, name="Fellini")
+    assert len(matches) == 1
+    assert matches[0]["name"] == "Federico Fellini"
+
+    # Search by person_id
+    person_id = matches[0]["id"]
+    by_id = find_people(db_with_crew, person_id=person_id)
+    assert len(by_id) == 1
+    assert by_id[0]["id"] == person_id
+
+    # Error when neither provided
+    with pytest.raises(ValueError, match="Provide person_name or person_id"):
+        find_people(db_with_crew)

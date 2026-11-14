@@ -30,6 +30,23 @@ class CrewOverlap:
     films: list[dict]
 
 
+def find_people(
+    db: Database,
+    name: str | None = None,
+    person_id: int | None = None,
+) -> list:
+    """Find people by name (partial match) or person_id."""
+    if person_id:
+        return db.execute("SELECT id, name FROM people WHERE id = ?", (person_id,)).fetchall()
+    elif name:
+        return db.execute(
+            "SELECT id, name FROM people WHERE name LIKE ?",
+            (f"%{name}%",),
+        ).fetchall()
+    else:
+        raise ValueError("Provide person_name or person_id")
+
+
 def filmography(
     db: Database,
     person_name: str | None = None,
@@ -41,15 +58,7 @@ def filmography(
 
     Search by name (partial match) or person_id.
     """
-    if person_id:
-        people = db.execute("SELECT id, name FROM people WHERE id = ?", (person_id,)).fetchall()
-    elif person_name:
-        people = db.execute(
-            "SELECT id, name FROM people WHERE name LIKE ?",
-            (f"%{person_name}%",),
-        ).fetchall()
-    else:
-        raise ValueError("Provide person_name or person_id")
+    people = find_people(db, name=person_name, person_id=person_id)
 
     results = []
     for person in people:
