@@ -6,6 +6,7 @@ import hashlib
 import json
 import logging
 import sqlite3
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 
@@ -100,6 +101,26 @@ CREATE TABLE IF NOT EXISTS eval_runs (
     value REAL NOT NULL,
     stdev REAL
 );
+
+CREATE TABLE IF NOT EXISTS tmdb_movies (
+    tmdb_id INTEGER PRIMARY KEY,
+    title TEXT NOT NULL,
+    original_title TEXT,
+    release_date TEXT,
+    year INTEGER,
+    runtime INTEGER,
+    status TEXT,
+    is_video INTEGER DEFAULT 0,
+    genre_ids TEXT,
+    fetched_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS person_filmography (
+    person_id INTEGER NOT NULL REFERENCES people(id),
+    tmdb_id INTEGER NOT NULL,
+    job TEXT NOT NULL,
+    PRIMARY KEY (person_id, tmdb_id, job)
+);
 """
 
 _FTS_SQL = """
@@ -140,6 +161,7 @@ CREATE INDEX IF NOT EXISTS idx_chunks_doc ON chunks(document_id);
 CREATE INDEX IF NOT EXISTS idx_chunks_strategy ON chunks(strategy);
 CREATE INDEX IF NOT EXISTS idx_credits_item ON credits(item_id);
 CREATE INDEX IF NOT EXISTS idx_credits_person ON credits(person_id);
+CREATE INDEX IF NOT EXISTS idx_pf_person ON person_filmography(person_id);
 """
 
 
@@ -194,12 +216,15 @@ class Database:
     # --- Vector tables ---
 
     def try_create_vec_table(self, model_name: str, dim: int) -> bool:
-        """Create a vec0 table for a given model. Returns True if created, False if vec not available."""
+        """Create a vec0 table for a given model. Returns True if created."""
         if not self._vec_available:
             logger.warning("Cannot create vec table: sqlite-vec not loaded")
             return False
         table_name = f"vec_{model_name}"
-        sql = f"CREATE VIRTUAL TABLE IF NOT EXISTS {table_name} USING vec0(chunk_id INTEGER PRIMARY KEY, embedding float[{dim}])"
+        sql = (
+            f"CREATE VIRTUAL TABLE IF NOT EXISTS {table_name} "
+            f"USING vec0(chunk_id INTEGER PRIMARY KEY, embedding float[{dim}])"
+        )
         self.conn.execute(sql)
         self.conn.commit()
         logger.info("Created vector table %s (dim=%d)", table_name, dim)
@@ -339,7 +364,8 @@ class Database:
             return row["id"]
 
         cur = self.conn.execute(
-            "INSERT INTO documents (item_id, source, lang, text, content_hash) VALUES (?, ?, ?, ?, ?)",
+            """INSERT INTO documents (item_id, source, lang, text, content_hash)
+               VALUES (?, ?, ?, ?, ?)""",
             (item_id, source, lang, text, c_hash),
         )
         self.conn.commit()
@@ -361,7 +387,8 @@ class Database:
         """Insert or update a chunk. Returns chunk id."""
         c_hash = content_hash(text)
         row = self.conn.execute(
-            "SELECT id, content_hash FROM chunks WHERE document_id = ? AND strategy = ? AND ord = ?",
+            """SELECT id, content_hash FROM chunks
+               WHERE document_id = ? AND strategy = ? AND ord = ?""",
             (document_id, strategy, ord),
         ).fetchone()
 
@@ -371,7 +398,17 @@ class Database:
             self.conn.execute(
                 """UPDATE chunks SET item_id=?, text=?, section_name=?, lang=?,
                    token_count=?, start_ms=?, end_ms=?, content_hash=? WHERE id=?""",
-                (item_id, text, section_name, lang, token_count, start_ms, end_ms, c_hash, row["id"]),
+                (
+                    item_id,
+                    text,
+                    section_name,
+                    lang,
+                    token_count,
+                    start_ms,
+                    end_ms,
+                    c_hash,
+                    row["id"],
+                ),
             )
             self.conn.commit()
             return row["id"]
@@ -443,12 +480,13 @@ class Database:
 
     def cache_put(self, source: str, external_id: str, path: str, content_hash: str | None = None):
         """Insert or update a cache entry."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         self.conn.execute(
-            """INSERT OR REPLACE INTO raw_cache (source, external_id, fetched_at, content_hash, path)
+            """INSERT OR REPLACE INTO raw_cache
+               (source, external_id, fetched_at, content_hash, path)
                VALUES (?, ?, ?, ?, ?)""",
-            (source, external_id, datetime.now(timezone.utc).isoformat(), content_hash, path),
+            (source, external_id, datetime.now(UTC).isoformat(), content_hash, path),
         )
         self.conn.commit()
 
@@ -457,7 +495,8 @@ class Database:
     def queue_for_review(self, item_id: int, candidates: list[dict], reason: str):
         """Add an item to the match review queue."""
         self.conn.execute(
-            "INSERT OR REPLACE INTO match_review_queue (item_id, candidates_json, reason) VALUES (?, ?, ?)",
+            """INSERT OR REPLACE INTO match_review_queue
+               (item_id, candidates_json, reason) VALUES (?, ?, ?)""",
             (item_id, json.dumps(candidates, ensure_ascii=False), reason),
         )
         self.conn.commit()
@@ -483,7 +522,8 @@ class Database:
             )
         elif tmdb_id is not None:
             self.conn.execute(
-                "UPDATE items SET tmdb_id = ?, match_status = 'manual', match_confidence = 1.0 WHERE id = ?",
+                """UPDATE items SET tmdb_id = ?, match_status = 'manual',
+                   match_confidence = 1.0 WHERE id = ?""",
                 (tmdb_id, item_id),
             )
         self.conn.execute("DELETE FROM match_review_queue WHERE item_id = ?", (item_id,))
@@ -500,12 +540,13 @@ class Database:
         config: dict | None = None,
     ):
         """Log an evaluation run."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         self.conn.execute(
-            "INSERT INTO eval_runs (run_at, suite, config_json, metric, value, stdev) VALUES (?, ?, ?, ?, ?, ?)",
+            """INSERT INTO eval_runs (run_at, suite, config_json, metric, value, stdev)
+               VALUES (?, ?, ?, ?, ?, ?)""",
             (
-                datetime.now(timezone.utc).isoformat(),
+                datetime.now(UTC).isoformat(),
                 suite,
                 json.dumps(config) if config else None,
                 metric,
@@ -540,7 +581,17 @@ class Database:
 
     def stats(self) -> dict[str, int]:
         """Quick table row counts."""
-        tables = ["items", "user_status", "documents", "chunks", "people", "credits", "eval_runs"]
+        tables = [
+            "items",
+            "user_status",
+            "documents",
+            "chunks",
+            "people",
+            "credits",
+            "eval_runs",
+            "tmdb_movies",
+            "person_filmography",
+        ]
         result = {}
         for t in tables:
             row = self.conn.execute(f"SELECT COUNT(*) as c FROM {t}").fetchone()

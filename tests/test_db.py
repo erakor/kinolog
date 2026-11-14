@@ -28,6 +28,36 @@ class TestSchema:
         assert "eval_runs" in names
         assert "raw_cache" in names
         assert "match_review_queue" in names
+        assert "tmdb_movies" in names
+        assert "person_filmography" in names
+
+    def test_filmography_tables_and_reopen(self, tmp_path):
+        db_path = tmp_path / "test_reopen.db"
+        db1 = Database(db_path)
+        tables1 = {
+            r["name"]
+            for r in db1.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        }
+        assert "tmdb_movies" in tables1
+        assert "person_filmography" in tables1
+        assert "idx_pf_person" in {
+            r["name"]
+            for r in db1.execute("SELECT name FROM sqlite_master WHERE type='index'").fetchall()
+        }
+        db1.close()
+
+        # Reopening existing DB file succeeds and maintains schema
+        db2 = Database(db_path)
+        tables2 = {
+            r["name"]
+            for r in db2.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        }
+        assert "tmdb_movies" in tables2
+        assert "person_filmography" in tables2
+        stats = db2.stats()
+        assert stats["tmdb_movies"] == 0
+        assert stats["person_filmography"] == 0
+        db2.close()
 
     def test_fts_created(self, db):
         tables = db.execute(
