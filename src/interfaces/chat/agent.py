@@ -1,17 +1,20 @@
-"""Chat agent loop: context assembly under token budget, tool dispatch, and grounded answers with citations."""
+"""Chat agent loop: context assembly under a token budget and grounded, cited answers."""
 
 from __future__ import annotations
 
 import logging
 import re
-from dataclasses import dataclass, field
-from typing import Any, Callable
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
 
 from src.core.db import Database
 from src.core.search import SearchFilters, SearchResult, search
 from src.eval.metrics import groundedness
 
 logger = logging.getLogger(__name__)
+
+CITATION_RE = re.compile(r"\[\^(\d+)\]")
 
 
 @dataclass
@@ -94,22 +97,31 @@ class KinologChatAgent:
         token_budget: int = 1500,
         search_mode: str = "bm25",
         generator_fn: Callable[[str, str], str] | None = None,
+        *,
+        filters: SearchFilters | None = None,
+        results: list[SearchResult] | None = None,
+        limit: int = 10,
+        mention_scope: set[int] | None = None,
     ) -> dict[str, Any]:
         """
-        1. Retrieve top chunks via search
+        1. Retrieve top chunks via search (skipped when ``results`` is given)
         2. Assemble context under token budget
         3. Generate answer grounded in context
-        4. Validate groundedness of cited films
+        4. Validate groundedness of mentioned films and the validity of [^n] citations
+
+        ``mention_scope`` limits the titles checked for mentions to those item ids (a
+        candidate set); None checks every item in the DB, as before.
         """
-        # Retrieve chunks
-        results = search(
-            self.db,
-            question,
-            model=self.model_embed,
-            mode=search_mode,
-            limit=10,
-            dedupe_items=False,
-        )
+        if results is None:
+            results = search(
+                self.db,
+                question,
+                model=self.model_embed,
+                mode=search_mode,
+                limit=limit,
+                filters=filters,
+                dedupe_items=False,
+            )
 
         assembled = assemble_context(results, token_budget=token_budget)
 
@@ -117,14 +129,18 @@ class KinologChatAgent:
         if generator_fn is None:
             # Deterministic synthesis for evaluation and local use
             if not assembled.chunks:
-                answer = "I could not find any matching films or books in your index for that query."
+                answer = (
+                    "I could not find any matching films or books in your index for that query."
+                )
             else:
                 items_summary = []
                 for c in assembled.chunks[:5]:
                     year_str = f" ({c.year})" if c.year else ""
-                    items_summary.append(f"- **{c.title}**{year_str} [^{c.citation_id}]: {c.text[:140]}...")
+                    items_summary.append(
+                        f"- **{c.title}**{year_str} [^{c.citation_id}]: {c.text[:140]}..."
+                    )
                 answer = (
-                    f"Based on your index, here are relevant items:\n\n"
+                    "Based on your index, here are relevant items:\n\n"
                     + "\n".join(items_summary)
                 )
         else:
@@ -132,10 +148,19 @@ class KinologChatAgent:
 
         # Extract mentioned item titles to check grounding
         mentioned_item_ids = []
-        for item in self.db.get_items():
+        if mention_scope is None:
+            candidates = self.db.get_items()
+        else:
+            candidates = [it for it in (self.db.get_item(i) for i in mention_scope) if it]
+        for item in candidates:
             pattern = r"\b" + re.escape(item["title"]) + r"\b"
             if re.search(pattern, answer, re.IGNORECASE):
                 mentioned_item_ids.append(item["id"])
+
+        valid_ids = {c.citation_id for c in assembled.chunks}
+        invalid_citations = sorted(
+            {int(n) for n in CITATION_RE.findall(answer) if int(n) not in valid_ids}
+        )
 
         grounded_score = groundedness(mentioned_item_ids, assembled.referenced_item_ids)
 
@@ -144,11 +169,16 @@ class KinologChatAgent:
             "answer": answer,
             "context": assembled.context_text,
             "citations": [
-                {"citation_id": c.citation_id, "item_id": c.item_id, "title": c.title, "year": c.year}
+                {
+                    "citation_id": c.citation_id, "item_id": c.item_id,
+                    "title": c.title, "year": c.year,
+                }
                 for c in assembled.chunks
             ],
             "mentioned_item_ids": mentioned_item_ids,
             "context_item_ids": list(assembled.referenced_item_ids),
             "groundedness": grounded_score,
             "is_fully_grounded": grounded_score == 1.0,
+            "invalid_citations": invalid_citations,
+            "citations_valid": not invalid_citations,
         }
