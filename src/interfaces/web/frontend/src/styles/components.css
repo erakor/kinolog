@@ -128,3 +128,9 @@ table.table { width: 100%; border-collapse: collapse; min-width: 640px; }
 
 .poster-art { border-radius: 6px; flex-shrink: 0; }
 .loading { color: var(--color-ink-muted); padding: var(--space-8) 0; }
+
+/* Small utilities replacing repeated inline styles from the vanilla UI. */
+.field--check { display: flex; gap: 8px; align-items: center; }
+.text-sm { font-size: .875rem; }
+.text-xs { font-size: .8rem; }
+.row-wrap { display: flex; gap: 8px; flex-wrap: wrap; }
