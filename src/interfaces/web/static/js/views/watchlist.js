@@ -1,6 +1,7 @@
 import { api } from "../api.js";
 import { bannerArt } from "../placeholder-art.js";
 import { logButton, removeButton } from "../actions.js";
+import { importButton } from "./import.js";
 import { emptyState, fmtPct, h, searchBox, segmented, toast } from "../util.js";
 
 export async function mount(el, ctx) {
@@ -18,7 +19,7 @@ export async function mount(el, ctx) {
         h("p", { class: "hero__lede" }, "Filter by available runtime or prioritize films that push a director filmography toward completion."),
         h("div", { class: "toolbar", style: "margin-bottom:0" },
           searchBox("Filter by title or director…", (v) => { state.q = v; load(); }),
-          pickBtn)),
+          pickBtn, importButton(ctx, () => load()))),
       h("div", { class: "hero__art" }, bannerArt("watchlist"))),
     h("div", { class: "toolbar" },
       segmented([["", "All Runtimes"], ["90", "≤ 90 min"], ["105", "≤ 105 min"], ["120", "≤ 120 min"]], state.runtime,
