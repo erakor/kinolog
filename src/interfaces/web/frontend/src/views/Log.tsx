@@ -7,7 +7,7 @@ import { RatingSelect } from '../components/RatingSelect'
 import { SearchBox } from '../components/SearchBox'
 import { Segmented } from '../components/Segmented'
 import { Button } from '../components/Button'
-import { eyebrow, heroLede, heroTitle, hero, num, td, th, toolbar } from '../components/ui'
+import { eyebrow, heroLede, heroTitle, listBox, num, td, th, toolbar } from '../components/ui'
 import { directorNames, fmtHours } from '../format'
 import { useAction } from '../hooks/useAction'
 import { useAsync } from '../hooks/useAsync'
@@ -83,7 +83,7 @@ export default function Log() {
   const none = !!data && !data.entries.length
   return (
     <>
-      <section className={`${hero} mb-4`}>
+      <section className="grid gap-6 mb-4">
         <div className="flex justify-between gap-4 flex-wrap items-end">
           <div>
             <p className={eyebrow}>Chronological diary</p>
@@ -126,7 +126,7 @@ export default function Log() {
         />
       )}
       {data && !none && (
-        <div className="overflow-x-auto bg-surface border border-rule rounded-xl">
+        <div className={`${listBox} overflow-x-auto`}>
           <table className="w-full border-collapse min-w-2xl [&_tr:first-child_td]:border-t-0">
             <thead>
               <tr>

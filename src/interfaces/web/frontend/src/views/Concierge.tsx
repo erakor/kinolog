@@ -4,7 +4,7 @@ import { BannerArt } from '../components/BannerArt'
 import { EmptyState } from '../components/EmptyState'
 import { Segmented } from '../components/Segmented'
 import { Button } from '../components/Button'
-import { chip, chipPlain, eyebrow, grid2, heroArt, heroLede, heroSplit, heroTitle, num, toolbar } from '../components/ui'
+import { bareInput, chip, chipPlain, eyebrow, grid2, heroArt, heroLede, heroSplit, heroTitle, num, toolbar } from '../components/ui'
 import { useHealth } from '../context/HealthContext'
 import { fmtHours, fmtPct } from '../format'
 import { useAsync } from '../hooks/useAsync'
@@ -28,7 +28,7 @@ function Stat({ label, value, sub, accent = false }: { label: string; value: str
   return (
     <div>
       <div className="text-sm text-ink-muted">{label}</div>
-      <div className={`font-mono text-3xl font-bold${accent ? ' text-accent' : ''}`}>{value}</div>
+      <div className={`${num} text-3xl font-bold${accent ? ' text-accent' : ''}`}>{value}</div>
       <div className="font-mono text-xs text-ink-muted">{sub}</div>
     </div>
   )
@@ -175,7 +175,7 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
                 ⌕
               </span>
               <input
-                className="flex-1 border-0 outline-0 bg-transparent min-w-0 py-2.5"
+                className={`${bareInput} py-2.5`}
                 type="text"
                 placeholder="I have 90 minutes. Give me a movie."
                 aria-label="Ask the concierge"

@@ -4,7 +4,7 @@ import { useAction } from '../hooks/useAction'
 import type { LogEntry } from '../types'
 import { Button } from './Button'
 import { Modal } from './Modal'
-import { fieldCheck, fieldCheckInput } from './ui'
+import { dialogActions, fieldCheck, fieldCheckInput } from './ui'
 import { WatchFields } from './WatchFields'
 
 interface EditLogDialogProps {
@@ -36,7 +36,7 @@ export function EditLogDialog({ entry, reload, onClose }: EditLogDialogProps) {
           <input className={fieldCheckInput} type="checkbox" checked={rewatch} onChange={(e) => setRewatch(e.target.checked)} />
           Rewatch
         </label>
-        <div className="flex gap-2 justify-end mt-4 flex-wrap">
+        <div className={dialogActions}>
           <Button onClick={onClose}>Cancel</Button>
           <Button variant="primary" type="submit">
             Save

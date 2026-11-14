@@ -12,7 +12,7 @@ export function Segmented<T extends string>({ options, value, onChange }: Segmen
           key={v}
           type="button"
           aria-pressed={v === value}
-          className="border-0 bg-transparent px-3 py-1.5 rounded-md text-sm text-ink-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-xs"
+          className="px-3 py-1.5 rounded-md text-sm text-ink-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-xs"
           onClick={() => onChange(v)}
         >
           {label}

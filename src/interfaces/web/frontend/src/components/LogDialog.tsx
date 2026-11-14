@@ -5,7 +5,7 @@ import { useAction } from '../hooks/useAction'
 import type { ItemRef } from './ItemActions'
 import { Button } from './Button'
 import { Modal } from './Modal'
-import { fieldCheck, fieldCheckInput } from './ui'
+import { dialogActions, fieldCheck, fieldCheckInput } from './ui'
 import { WatchFields } from './WatchFields'
 
 interface LogDialogProps {
@@ -45,7 +45,7 @@ export function LogDialog({ item, reload, onClose }: LogDialogProps) {
           <input className={fieldCheckInput} type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} />
           Keep on Watch List
         </label>
-        <div className="flex gap-2 justify-end mt-4 flex-wrap">
+        <div className={dialogActions}>
           <Button onClick={onClose}>Cancel</Button>
           <Button variant="primary" type="submit" disabled={busy}>
             Log as watched

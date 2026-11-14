@@ -7,7 +7,21 @@ import { LogButton, QueueButton } from '../components/ItemActions'
 import { ProgressBar } from '../components/ProgressBar'
 import { SearchBox } from '../components/SearchBox'
 import { Segmented } from '../components/Segmented'
-import { card, eyebrow, grid2, heroArt, heroLede, heroSplit, heroTitle, link, num, toolbar } from '../components/ui'
+import {
+  card,
+  dirHead,
+  dirMeta,
+  eyebrow,
+  grid2,
+  heroArt,
+  heroLede,
+  heroSplit,
+  heroTitle,
+  link,
+  num,
+  pct,
+  toolbar,
+} from '../components/ui'
 import { fmtPct, nextFromPrompt } from '../format'
 import { useAsync } from '../hooks/useAsync'
 import type { CollectionsResponse, DirectorCollection } from '../types'
@@ -24,15 +38,15 @@ function DirectorCard({ d, reload }: { d: DirectorCollection; reload: () => void
   const ask = nextFromPrompt(d.name)
   return (
     <article className={card}>
-      <div className="flex justify-between items-baseline gap-3">
+      <div className={dirHead}>
         <h3 className="text-3xl">{d.name}</h3>
-        <span className="font-display tabular-nums text-accent font-bold text-xl">{fmtPct(d.pct)}</span>
+        <span className={pct}>{fmtPct(d.pct)}</span>
       </div>
-      <p className="font-mono text-xs text-ink-muted mt-0.5 mb-3">
+      <p className={dirMeta}>
         {d.seen} / {d.total} watched{queued ? ` · ${queued} queued` : ''}
       </p>
       <ProgressBar seen={d.seen} total={d.total} afterSeen={d.seen + queued} />
-      <ul className="list-none mt-4 p-0">
+      <ul className="mt-4">
         {d.films.map((f) => (
           <FilmRow
             key={f.item_id}

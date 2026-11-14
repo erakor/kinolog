@@ -1,7 +1,7 @@
 import { ProgressBar } from '../../components/ProgressBar'
 import { fmtPct, nextFromPrompt } from '../../format'
 import type { RadarEntry } from '../../types'
-import { card, grid3, link } from '../../components/ui'
+import { card, dirHead, dirMeta, grid3, link, pct } from '../../components/ui'
 
 interface RadarProps {
   radar: RadarEntry[]
@@ -24,11 +24,11 @@ export function Radar({ radar, onAsk }: RadarProps) {
       <div className={grid3}>
         {radar.map((d) => (
           <article className={card} key={d.person_id}>
-            <div className="flex justify-between items-baseline gap-3">
+            <div className={dirHead}>
               <h3 className="text-xl">{d.name}</h3>
-              <span className="font-display tabular-nums text-accent font-bold text-xl">{fmtPct(d.pct)}</span>
+              <span className={pct}>{fmtPct(d.pct)}</span>
             </div>
-            <p className="font-mono text-xs text-ink-muted mt-0.5 mb-3">
+            <p className={dirMeta}>
               {d.seen} of {d.total} features seen
             </p>
             <ProgressBar seen={d.seen} total={d.total} />

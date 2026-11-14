@@ -40,7 +40,7 @@ function Shell() {
     <>
       <header className="bg-bg border-b border-rule sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-3.5 flex items-center justify-between gap-4 flex-wrap">
-          <a className="font-display font-extrabold text-2xl no-underline" href="#/concierge">
+          <a className="font-display font-extrabold text-2xl" href="#/concierge">
             Kinolog
           </a>
           <nav className="flex gap-6 order-3 w-full overflow-x-auto md:order-none md:w-auto md:gap-8" aria-label="Primary">
@@ -49,7 +49,7 @@ function Shell() {
                 key={name}
                 href={`#/${name}`}
                 aria-current={route.name === name ? 'page' : undefined}
-                className="no-underline text-ink-muted py-1.5 border-b-2 border-transparent whitespace-nowrap text-sm md:text-base hover:text-ink aria-[current=page]:text-ink aria-[current=page]:border-accent"
+                className="text-ink-muted py-1.5 border-b-2 border-transparent whitespace-nowrap text-sm md:text-base hover:text-ink aria-[current=page]:text-ink aria-[current=page]:border-accent"
               >
                 {label}
               </a>
@@ -81,10 +81,10 @@ function Shell() {
       <footer className="max-w-6xl mx-auto px-4 py-6 border-t border-rule flex justify-between flex-wrap gap-3 text-sm text-ink-muted">
         <span>Kinolog: personal watch list and director completion</span>
         <span>
-          <a className="no-underline ml-4 hover:text-ink" href="#/log">
+          <a className="ml-4 hover:text-ink" href="#/log">
             Import Letterboxd CSV
           </a>
-          <a className="no-underline ml-4 hover:text-ink" href="#/collections">
+          <a className="ml-4 hover:text-ink" href="#/collections">
             Director Collections
           </a>
         </span>

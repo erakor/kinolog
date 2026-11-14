@@ -15,8 +15,7 @@
     font-weight: 700;
   }
   /* Tailwind v4 Preflight uses the default cursor on buttons. */
-  button:not(:disabled),
-  [role="button"]:not(:disabled) {
+  button:not(:disabled) {
     cursor: pointer;
   }
   /* Preflight drops the stock inner padding of date fields; keep it so inputs keep their height. */

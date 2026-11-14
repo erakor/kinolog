@@ -4,13 +4,13 @@ import { cx } from './ui'
 export type ButtonVariant = 'default' | 'primary' | 'accent' | 'icon'
 
 const BASE =
-  'inline-flex items-center justify-center gap-2 rounded-lg border leading-tight no-underline hover:border-ink-faint disabled:opacity-50 disabled:cursor-not-allowed'
+  'inline-flex items-center justify-center gap-2 rounded-lg border leading-tight hover:border-ink-faint disabled:opacity-50 disabled:cursor-not-allowed'
 
 const VARIANT: Record<ButtonVariant, string> = {
   default: 'bg-surface text-ink border-rule',
   primary: 'bg-ink text-on-ink border-ink hover:bg-ink-hover',
   accent: 'bg-accent text-white border-accent',
-  icon: 'bg-transparent text-ink-muted border-transparent',
+  icon: 'text-ink-muted border-transparent',
 }
 
 const SIZE = {
