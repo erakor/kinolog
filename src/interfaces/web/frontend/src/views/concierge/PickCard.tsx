@@ -7,13 +7,14 @@ import { Rationale } from './Rationale'
 interface PickCardProps {
   pick: ConciergePick
   primary: boolean
-  reload: () => void
+  onChanged: (itemId: number) => void
 }
 
-export function PickCard({ pick: p, primary, reload }: PickCardProps) {
+export function PickCard({ pick: p, primary, onChanged }: PickCardProps) {
   const it = p.item
   const onList = it.status.on_watchlist
   const delta = p.completion[0]
+  const reload = () => onChanged(it.item_id)
   return (
     <article className="card pick">
       <div className="pick__tags">

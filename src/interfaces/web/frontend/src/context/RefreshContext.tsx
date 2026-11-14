@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 
 interface RefreshValue {
-  /** Used as the `key` of the active view: bumping it remounts the view and reloads its data. */
+  /** Bumped by refreshView(); useAsync reloads when it changes, so views keep their state. */
   key: number
   refreshView: () => void
 }

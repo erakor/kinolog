@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRefresh } from '../context/RefreshContext'
 
 export interface AsyncState<T> {
   data: T | null
@@ -18,6 +19,7 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]): AsyncState<T
     error: null,
     loading: true,
   })
+  const { key: refreshKey } = useRefresh() // refreshView() reloads every mounted view's data
   const seq = useRef(0)
   const fnRef = useRef(fn)
   fnRef.current = fn
@@ -42,7 +44,7 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]): AsyncState<T
     return () => {
       seq.current++
     }
-  }, deps)
+  }, [...deps, refreshKey])
 
   // A failed first load has nothing to show: let the view's ErrorBoundary report it.
   if (state.error && !state.data) throw state.error

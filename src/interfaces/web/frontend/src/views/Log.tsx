@@ -61,7 +61,7 @@ function LogRow({ entry: e, reload }: { entry: LogEntry; reload: () => void }) {
         <button className="btn btn--icon" type="button" aria-label={`Delete ${it.title} entry`} title="Delete entry" onClick={remove}>
           🗑
         </button>
-        {editing && <EditLogDialog entry={e} reload={reload} onClose={() => setEditing(false)} />}
+        {editing && <EditLogDialog entry={{ ...e, rating }} reload={reload} onClose={() => setEditing(false)} />}
       </td>
     </tr>
   )
@@ -137,7 +137,7 @@ export default function Log() {
             </thead>
             <tbody>
               {data.entries.map((e) => (
-                <LogRow key={e.entry_id} entry={e} reload={reload} />
+                <LogRow key={`${e.entry_id}:${e.rating}`} entry={e} reload={reload} />
               ))}
             </tbody>
           </table>

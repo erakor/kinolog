@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from 'react'
+import { useId, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 interface ModalProps {
@@ -11,8 +11,6 @@ interface ModalProps {
 export function Modal({ title, onClose, children }: ModalProps) {
   const titleId = useId()
   const modalRef = useRef<HTMLDivElement>(null)
-  const closeRef = useRef(onClose)
-  closeRef.current = onClose
 
   useLayoutEffect(() => {
     const prev = document.activeElement as HTMLElement | null
@@ -22,17 +20,15 @@ export function Modal({ title, onClose, children }: ModalProps) {
     return () => prev?.focus?.()
   }, [])
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeRef.current()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [])
-
   return createPortal(
     <div
       className="modal-backdrop"
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          e.stopPropagation() // React events bubble through portals: don't close the modal underneath
+          onClose()
+        }
+      }}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}

@@ -58,9 +58,9 @@ function Shell() {
         {notes.join(' ')}
       </div>
       <main className="page" tabIndex={-1}>
-        <ErrorBoundary key={route.name}>
+        <ErrorBoundary key={route.name} resetKey={`${refreshKey}:${route.query.toString()}`}>
           <Suspense fallback={<p className="loading">Loading…</p>}>
-            <View key={`${refreshKey}:${route.query.toString()}`} query={route.query} />
+            <View key={route.query.toString()} query={route.query} />
           </Suspense>
         </ErrorBoundary>
       </main>

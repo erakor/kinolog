@@ -118,8 +118,8 @@ def create_app(
     app.include_router(imports.router)
     app.include_router(concierge.router)
 
-    if (dist / "assets").is_dir():
-        app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
+    # check_dir=False: the build may appear after the server starts
+    app.mount("/assets", StaticFiles(directory=dist / "assets", check_dir=False), name="assets")
 
     @app.get("/", include_in_schema=False)
     def index():

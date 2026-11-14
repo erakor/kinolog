@@ -6,7 +6,7 @@ import { Segmented } from '../components/Segmented'
 import { useHealth } from '../context/HealthContext'
 import { fmtHours, fmtPct } from '../format'
 import { useAsync } from '../hooks/useAsync'
-import type { ConciergeOverview, ConciergeResponse } from '../types'
+import type { ConciergeOverview, ConciergeResponse, Item } from '../types'
 import { formatNote } from './concierge/citations'
 import { PickCard } from './concierge/PickCard'
 import { Radar } from './concierge/Radar'
@@ -32,7 +32,7 @@ function Stat({ label, value, sub, accent = false }: { label: string; value: str
   )
 }
 
-function Results({ data, reload }: { data: ConciergeResponse; reload: () => void }) {
+function Results({ data, onChanged }: { data: ConciergeResponse; onChanged: (itemId: number) => void }) {
   const notes = data.degraded.filter((d) => !d.startsWith('no_llm'))
   if (data.excluded_unknown_runtime) {
     notes.push(`${data.excluded_unknown_runtime} film(s) with unknown runtime were skipped`)
@@ -68,11 +68,11 @@ function Results({ data, reload }: { data: ConciergeResponse; reload: () => void
         />
       ) : (
         <>
-          <PickCard pick={first} primary reload={reload} />
+          <PickCard pick={first} primary onChanged={onChanged} />
           {rest.length > 0 && (
             <div className="grid grid--2 pick-grid">
               {rest.map((p) => (
-                <PickCard key={p.item.item_id} pick={p} primary={false} reload={reload} />
+                <PickCard key={p.item.item_id} pick={p} primary={false} onChanged={onChanged} />
               ))}
             </div>
           )}
@@ -131,6 +131,20 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
       void ask(q)
     }
   }, [])
+
+  /** After queue/log, refresh just that pick's status instead of re-running the retrieval. */
+  async function refreshPick(itemId: number) {
+    try {
+      const card = await api.get<Item>(`/api/items/${itemId}`)
+      setResult((r) =>
+        r.status === 'done'
+          ? { ...r, data: { ...r.data, picks: r.data.picks.map((p) => (p.item.item_id === itemId ? { ...p, item: { ...p.item, ...card } } : p)) } }
+          : r,
+      )
+    } catch {
+      /* the action already toasted; the card just keeps its old status */
+    }
+  }
 
   function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -222,7 +236,7 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
       <section aria-live="polite">
         {result.status === 'loading' && <p className="loading">Searching your index…</p>}
         {result.status === 'error' && <EmptyState title="Could not get a recommendation" text={result.message} />}
-        {result.status === 'done' && <Results data={result.data} reload={() => void ask(text)} />}
+        {result.status === 'done' && <Results data={result.data} onChanged={(id) => void refreshPick(id)} />}
       </section>
 
       {overview && (

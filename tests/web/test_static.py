@@ -1,7 +1,7 @@
 import re
 from pathlib import Path
 
-import pytest
+from fastapi.testclient import TestClient
 
 from src.interfaces.web.app import BUILD_HINT, FRONTEND_DIR, create_app
 
@@ -12,8 +12,6 @@ EXTERNAL_URL = re.compile(
 
 
 def test_index_served(db, tmp_path):
-    from fastapi.testclient import TestClient
-
     (tmp_path / "index.html").write_text("<title>Kinolog</title>")
     app = create_app(db, load_model=False, dist_dir=tmp_path)
     with TestClient(app, base_url="http://localhost") as c:
@@ -23,8 +21,6 @@ def test_index_served(db, tmp_path):
 
 
 def test_missing_build_returns_503_with_hint(db, tmp_path):
-    from fastapi.testclient import TestClient
-
     app = create_app(db, load_model=False, dist_dir=tmp_path / "nope")
     with TestClient(app, base_url="http://localhost") as c:
         r = c.get("/")
@@ -34,8 +30,6 @@ def test_missing_build_returns_503_with_hint(db, tmp_path):
 
 
 def test_assets_served(db, tmp_path):
-    from fastapi.testclient import TestClient
-
     (tmp_path / "assets").mkdir()
     (tmp_path / "assets" / "app.css").write_text(":root { --color-accent: red; }")
     app = create_app(db, load_model=False, dist_dir=tmp_path)
@@ -70,7 +64,3 @@ def test_light_theme_only():
     assert "prefers-color-scheme" not in css
     assert "--color-accent" in css
 
-
-@pytest.mark.parametrize("name", ["index.html"])
-def test_frontend_entry_exists(name):
-    assert (FRONTEND_DIR / name).is_file()

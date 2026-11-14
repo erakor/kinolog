@@ -36,14 +36,14 @@ export default function Watchlist() {
   const [highlightedId, setHighlightedId] = useState<number | null>(null)
   const highlightRef = useRef<HTMLDivElement>(null)
 
-  const { data, reload } = useAsync<WatchlistResponse | null>(async () => {
+  const { data, reload } = useAsync<WatchlistResponse>(async () => {
     try {
       return await api.get<WatchlistResponse>('/api/watchlist', { sort, runtime_max: runtime, q })
     } catch (e) {
       if (e instanceof ApiError && e.code === 'taste_unavailable') {
         toast('Taste ranking is unavailable.', 'error')
-        setSort('impact') // changing the sort re-runs the load
-        return null
+        setSort('impact') // the select follows; this load already returns the fallback
+        return await api.get<WatchlistResponse>('/api/watchlist', { sort: 'impact', runtime_max: runtime, q })
       }
       throw e
     }
