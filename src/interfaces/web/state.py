@@ -21,6 +21,8 @@ class AppState:
         load_model: bool = True,
         generator: Callable[[str, str], str] | None = None,
         llm_enabled: bool = False,
+        w_taste: float = 0.0,
+        w_comp: float = 0.0,
     ):
         self.db = db
         # One SQLite connection is shared across worker threads, so all DB use is serialized.
@@ -29,6 +31,9 @@ class AppState:
         self.load_model = load_model
         self.generator = generator
         self.llm_enabled = llm_enabled
+        # Rerank weights stay 0 (pure retrieval) until `eval concierge` justifies more.
+        self.w_taste = w_taste
+        self.w_comp = w_comp
         self.taste_cache: dict[Any, Any] = {}
         self._model: Any = None
         self._model_tried = False

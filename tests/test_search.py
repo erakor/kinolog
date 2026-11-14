@@ -82,3 +82,13 @@ def test_runtime_and_id_filters(db_with_data):
     assert search_bm25(db, q, filters=SearchFilters(item_ids=[])) == []
     excl = search_bm25(db, q, limit=20, filters=SearchFilters(exclude_ids=ids))
     assert "8½" not in {r.title for r in excl}
+
+
+def test_features_only_filter(db_with_data):
+    db = db_with_data
+    db.execute("UPDATE items SET runtime_min = 12 WHERE title = '8½'")
+    db.execute("UPDATE items SET is_tv = 1 WHERE title = 'Bicycle Thieves'")
+    q = "Fellini Godard Rome film"
+    titles = {r.title for r in search_bm25(db, q, limit=20, filters=SearchFilters(features_only=True))}
+    assert "8½" not in titles and "Bicycle Thieves" not in titles
+    assert "La Dolce Vita" in titles

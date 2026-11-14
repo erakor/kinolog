@@ -14,7 +14,7 @@ from typing import Any
 
 from src.core import collections as coll
 from src.core.db import Database
-from src.core.docfacts import parse_tmdb_text
+from src.core.docfacts import item_facts, parse_tmdb_text
 from src.core.search import SearchFilters, SearchResult, search
 
 # --- lexicons ---------------------------------------------------------------------------
@@ -310,6 +310,7 @@ def to_search_filters(
             on_watchlist = True
     return SearchFilters(
         item_type="film",
+        features_only=True,
         seen=seen,
         on_watchlist=on_watchlist,
         decade=f.get("decade"),
@@ -347,8 +348,6 @@ def _filter_only_candidates(
     conds = [c for c in (item_cond, status_cond) if c]
     if conds:
         sql += " WHERE " + " AND ".join(conds)
-    sql += " AND " if conds else " WHERE "
-    sql += "COALESCE(i.is_tv, 0) = 0"
     rows = db.execute(sql + " LIMIT 2000", tuple(params + sparams)).fetchall()
     return [r["id"] for r in rows][:limit * 40]
 
@@ -577,6 +576,8 @@ def pick(
     ranked.sort(key=key)
     top_ids = [i for i, _ in ranked[:limit]]
     cards = db.get_item_cards(top_ids)
+    for item_id, f in item_facts(db, top_ids).items():
+        cards[item_id]["genres"] = f["genres"]
     deltas = coll.completion_deltas(db, top_ids, with_remaining=True)
     mention_scope = _mention_scope(db)
     agent = KinologChatAgent(db, model_embed=model)

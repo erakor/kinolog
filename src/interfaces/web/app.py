@@ -32,13 +32,16 @@ def create_app(
     load_model: bool = True,
     generator: Callable[[str, str], str] | None = None,
     llm_enabled: bool = False,
+    w_taste: float = 0.0,
+    w_comp: float = 0.0,
 ) -> FastAPI:
     if isinstance(db, str):
         db = Database(db, check_same_thread=False)
 
     app = FastAPI(title="Kinolog", docs_url=None, redoc_url=None, openapi_url=None)
     app.state.kin = AppState(
-        db, load_model=load_model, generator=generator, llm_enabled=llm_enabled
+        db, load_model=load_model, generator=generator, llm_enabled=llm_enabled,
+        w_taste=w_taste, w_comp=w_comp,
     )
 
     @app.middleware("http")
@@ -74,7 +77,15 @@ def create_app(
     async def value_error(_: Request, exc: ValueError):
         return error_response(422, "invalid_request", str(exc))
 
-    from src.interfaces.web.routes import collections, health, imports, items, log, watchlist
+    from src.interfaces.web.routes import (
+        collections,
+        concierge,
+        health,
+        imports,
+        items,
+        log,
+        watchlist,
+    )
 
     app.include_router(health.router)
     app.include_router(collections.router)
@@ -82,6 +93,7 @@ def create_app(
     app.include_router(items.router)
     app.include_router(log.router)
     app.include_router(imports.router)
+    app.include_router(concierge.router)
 
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
