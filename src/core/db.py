@@ -6,6 +6,7 @@ import hashlib
 import json
 import logging
 import sqlite3
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -168,7 +169,28 @@ _ADDED_COLUMNS = [
     ("user_status", "watchlist_added_at", "TEXT"),
     ("user_status", "watchlist_removed_at", "TEXT"),
     ("user_status", "manual_updated_at", "TEXT"),
+    ("watch_log", "edited", "INTEGER DEFAULT 0"),
 ]
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def _check_date(value: str) -> str:
+    try:
+        date.fromisoformat(value)
+    except (TypeError, ValueError) as e:
+        raise ValueError(f"Invalid date (expected YYYY-MM-DD): {value!r}") from e
+    return value
+
+
+def _check_rating(rating: int | None) -> int | None:
+    if rating is None:
+        return None
+    if isinstance(rating, bool) or not isinstance(rating, int) or not 1 <= rating <= 10:
+        raise ValueError(f"Rating must be an integer 1..10 (half-stars), got {rating!r}")
+    return rating
 
 
 def content_hash(text: str) -> str:
@@ -561,6 +583,362 @@ class Database:
             ),
         )
         self.conn.commit()
+
+    # --- User actions (UI mutations) ---
+
+    def _ensure_status(self, item_id: int):
+        if not self.conn.execute("SELECT 1 FROM items WHERE id = ?", (item_id,)).fetchone():
+            raise KeyError(f"No such item: {item_id}")
+        self.conn.execute("INSERT OR IGNORE INTO user_status (item_id) VALUES (?)", (item_id,))
+
+    def set_watchlist(
+        self, item_id: int, on: bool, *, at: str | None = None, manual: bool = True
+    ) -> None:
+        """Add/remove an item from the watchlist. Removal is recorded, never a row delete."""
+        self._ensure_status(item_id)
+        stamp = at or _now()
+        if on:
+            self.conn.execute(
+                """UPDATE user_status SET on_watchlist = 1, watchlist_added_at = ?,
+                   watchlist_removed_at = NULL WHERE item_id = ?""",
+                (stamp, item_id),
+            )
+        else:
+            self.conn.execute(
+                "UPDATE user_status SET on_watchlist = 0, watchlist_removed_at = ? WHERE item_id = ?",
+                (stamp, item_id),
+            )
+        if manual:
+            self.conn.execute(
+                "UPDATE user_status SET manual_updated_at = ? WHERE item_id = ?", (_now(), item_id)
+            )
+        self.conn.commit()
+
+    def log_watch(
+        self,
+        item_id: int,
+        watched_on: str,
+        *,
+        rating: int | None = None,
+        liked: bool | None = None,
+        rewatch: bool = False,
+        source: str = "manual",
+        source_key: str | None = None,
+    ) -> int:
+        """Record a viewing. Idempotent by (source, source_key); tombstones are respected."""
+        _check_date(watched_on)
+        _check_rating(rating)
+        self._ensure_status(item_id)
+        now = _now()
+        liked_v = None if liked is None else int(bool(liked))
+
+        existing = None
+        if source_key is not None:
+            existing = self.conn.execute(
+                "SELECT id, deleted_at, edited FROM watch_log WHERE source = ? AND source_key = ?",
+                (source, source_key),
+            ).fetchone()
+        if existing:
+            if not existing["deleted_at"] and not existing["edited"]:
+                self.conn.execute(
+                    """UPDATE watch_log SET watched_on = ?, rating = ?, liked = ?, rewatch = ?,
+                       updated_at = ? WHERE id = ?""",
+                    (watched_on, rating, liked_v, int(rewatch), now, existing["id"]),
+                )
+                self.conn.commit()
+            return existing["id"]
+
+        cur = self.conn.execute(
+            """INSERT INTO watch_log (item_id, watched_on, rating, liked, rewatch, source,
+               source_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (item_id, watched_on, rating, liked_v, int(rewatch), source, source_key, now, now),
+        )
+        entry_id = cur.lastrowid
+        if source == "manual":
+            if rating is not None:
+                self.conn.execute(
+                    "UPDATE user_status SET rating = ?, manual_updated_at = ? WHERE item_id = ?",
+                    (rating, now, item_id),
+                )
+            if liked is not None:
+                self.set_liked(item_id, bool(liked), at=watched_on)
+        self.conn.commit()
+        self.recompute_user_status(item_id)
+        return entry_id  # type: ignore[return-value]
+
+    def get_watch_entry(self, entry_id: int) -> dict | None:
+        row = self.conn.execute("SELECT * FROM watch_log WHERE id = ?", (entry_id,)).fetchone()
+        return dict(row) if row else None
+
+    def update_watch(self, entry_id: int, **fields: Any) -> None:
+        """Edit a live log entry. Marks it edited so re-imports leave it alone."""
+        allowed = {"watched_on", "rating", "liked", "rewatch"}
+        bad = set(fields) - allowed
+        if bad:
+            raise ValueError(f"Cannot update fields: {sorted(bad)}")
+        entry = self.get_watch_entry(entry_id)
+        if not entry or entry["deleted_at"]:
+            raise KeyError(f"No such log entry: {entry_id}")
+        if "watched_on" in fields:
+            _check_date(fields["watched_on"])
+        if "rating" in fields:
+            _check_rating(fields["rating"])
+        for k in ("liked", "rewatch"):
+            if k in fields and fields[k] is not None:
+                fields[k] = int(bool(fields[k]))
+        if fields:
+            set_clause = ", ".join(f"{k} = ?" for k in fields)
+            self.conn.execute(
+                f"UPDATE watch_log SET {set_clause}, edited = 1, updated_at = ? WHERE id = ?",
+                [*fields.values(), _now(), entry_id],
+            )
+            self.conn.commit()
+        self.recompute_user_status(entry["item_id"])
+
+    def delete_watch(self, entry_id: int) -> None:
+        """Soft-delete (tombstone) a log entry."""
+        entry = self.get_watch_entry(entry_id)
+        if not entry:
+            raise KeyError(f"No such log entry: {entry_id}")
+        self.conn.execute(
+            "UPDATE watch_log SET deleted_at = ?, updated_at = ? WHERE id = ?",
+            (_now(), _now(), entry_id),
+        )
+        self.conn.commit()
+        self.recompute_user_status(entry["item_id"])
+
+    def set_rating(self, item_id: int, rating: int | None) -> None:
+        _check_rating(rating)
+        self._ensure_status(item_id)
+        self.conn.execute(
+            "UPDATE user_status SET rating = ?, manual_updated_at = ? WHERE item_id = ?",
+            (rating, _now(), item_id),
+        )
+        self.conn.commit()
+
+    def set_liked(
+        self, item_id: int, liked: bool, *, at: str | None = None, manual: bool = True
+    ) -> None:
+        self._ensure_status(item_id)
+        self.conn.execute(
+            "UPDATE user_status SET liked = ?, liked_date = ? WHERE item_id = ?",
+            (int(liked), (at or date.today().isoformat()) if liked else None, item_id),
+        )
+        if manual:
+            self.conn.execute(
+                "UPDATE user_status SET manual_updated_at = ? WHERE item_id = ?", (_now(), item_id)
+            )
+        self.conn.commit()
+
+    def recompute_user_status(self, item_id: int) -> None:
+        """Derive seen/seen_date from live log entries.
+
+        With live entries: seen=1, seen_date=latest. With none: seen=0 only if the user
+        deleted entries (tombstones exist); items known only from watched.csv are untouched.
+        """
+        self._ensure_status(item_id)
+        live = self.conn.execute(
+            "SELECT MAX(watched_on) AS d, COUNT(*) AS n FROM watch_log"
+            " WHERE item_id = ? AND deleted_at IS NULL",
+            (item_id,),
+        ).fetchone()
+        if live["n"]:
+            self.conn.execute(
+                "UPDATE user_status SET seen = 1, seen_date = ? WHERE item_id = ?",
+                (live["d"], item_id),
+            )
+        else:
+            dead = self.conn.execute(
+                "SELECT COUNT(*) AS n FROM watch_log WHERE item_id = ? AND deleted_at IS NOT NULL",
+                (item_id,),
+            ).fetchone()
+            if dead["n"]:
+                self.conn.execute(
+                    "UPDATE user_status SET seen = 0, seen_date = NULL WHERE item_id = ?",
+                    (item_id,),
+                )
+        self.conn.commit()
+
+    # --- UI queries ---
+
+    def get_watchlist_ids(self) -> list[int]:
+        rows = self.conn.execute(
+            """SELECT i.id FROM items i JOIN user_status us ON i.id = us.item_id
+               WHERE us.on_watchlist = 1 ORDER BY i.id"""
+        ).fetchall()
+        return [r["id"] for r in rows]
+
+    def get_heart_ids(self) -> list[int]:
+        rows = self.conn.execute(
+            "SELECT item_id FROM user_status WHERE liked = 1 ORDER BY item_id"
+        ).fetchall()
+        return [r["item_id"] for r in rows]
+
+    def get_item_cards(self, item_ids: list[int]) -> dict[int, dict]:
+        """Batch-build UI item cards (item + directors + status) keyed by item id."""
+        if not item_ids:
+            return {}
+        ph = ",".join("?" for _ in item_ids)
+        ids = tuple(item_ids)
+        cards: dict[int, dict] = {}
+        for r in self.conn.execute(
+            f"""SELECT i.id, i.title, i.year, i.item_type, i.runtime_min,
+                       us.seen, us.seen_date, us.on_watchlist, us.liked, us.rating,
+                       us.watchlist_added_at,
+                       (SELECT MAX(watched_on) FROM watch_log w
+                        WHERE w.item_id = i.id AND w.deleted_at IS NULL) AS last_log
+                FROM items i LEFT JOIN user_status us ON us.item_id = i.id
+                WHERE i.id IN ({ph})""",
+            ids,
+        ):
+            cards[r["id"]] = {
+                "item_id": r["id"],
+                "title": r["title"],
+                "year": r["year"],
+                "item_type": r["item_type"],
+                "runtime_min": r["runtime_min"],
+                "directors": [],
+                "status": {
+                    "seen": bool(r["seen"]),
+                    "on_watchlist": bool(r["on_watchlist"]),
+                    "liked": bool(r["liked"]),
+                    "rating": r["rating"],
+                    "last_watched_on": r["last_log"] or r["seen_date"],
+                },
+                "added_at": r["watchlist_added_at"],
+            }
+        for r in self.conn.execute(
+            f"""SELECT c.item_id, p.id AS person_id, p.name FROM credits c
+                JOIN people p ON p.id = c.person_id
+                WHERE c.role = 'Director' AND c.item_id IN ({ph}) ORDER BY p.name""",
+            ids,
+        ):
+            if r["item_id"] in cards:
+                cards[r["item_id"]]["directors"].append(
+                    {"person_id": r["person_id"], "name": r["name"]}
+                )
+        return cards
+
+    def get_item_card(self, item_id: int) -> dict | None:
+        return self.get_item_cards([item_id]).get(item_id)
+
+    def find_items_by_title(self, q: str, limit: int = 10, item_type: str = "film") -> list[dict]:
+        q = q.strip()
+        if not q:
+            return []
+        like = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        rows = self.conn.execute(
+            """SELECT id FROM items WHERE item_type = ? AND
+               (title LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\')
+               ORDER BY (title LIKE ? ESCAPE '\\') DESC, year DESC LIMIT ?""",
+            (item_type, f"{like}%", f"%{like}%", f"{like}%", limit),
+        ).fetchall()
+        cards = self.get_item_cards([r["id"] for r in rows])
+        return [cards[r["id"]] for r in rows]
+
+    def get_watchlist(
+        self,
+        *,
+        runtime_max: int | None = None,
+        decade: int | None = None,
+        q: str | None = None,
+        sort: str = "added",
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> tuple[int, list[dict]]:
+        """Watchlist cards. Items with unknown runtime are excluded under runtime_max."""
+        sql = """SELECT i.id FROM items i JOIN user_status us ON us.item_id = i.id
+                 WHERE us.on_watchlist = 1 AND i.item_type = 'film'"""
+        params: list[Any] = []
+        if runtime_max is not None:
+            sql += " AND i.runtime_min IS NOT NULL AND i.runtime_min <= ?"
+            params.append(runtime_max)
+        if decade is not None:
+            sql += " AND i.year >= ? AND i.year < ?"
+            params.extend([decade, decade + 10])
+        if q:
+            like = f"%{q.strip()}%"
+            sql += """ AND (i.title LIKE ? OR EXISTS (SELECT 1 FROM credits c
+                       JOIN people p ON p.id = c.person_id
+                       WHERE c.item_id = i.id AND c.role = 'Director' AND p.name LIKE ?))"""
+            params.extend([like, like])
+        order = {
+            "added": "us.watchlist_added_at DESC, i.id DESC",
+            "runtime": "i.runtime_min IS NULL, i.runtime_min ASC, i.id",
+            "year": "i.year DESC, i.id",
+            "title": "i.title COLLATE NOCASE",
+        }.get(sort, "us.watchlist_added_at DESC, i.id DESC")
+        ids = [r["id"] for r in self.conn.execute(sql + f" ORDER BY {order}", params)]
+        total = len(ids)
+        ids = ids[offset:] if limit is None else ids[offset:offset + limit]
+        cards = self.get_item_cards(ids)
+        return total, [cards[i] for i in ids]
+
+    def get_watch_log(
+        self,
+        *,
+        year: int | None = None,
+        month: int | None = None,
+        min_rating: int | None = None,
+        q: str | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> tuple[int, list[dict], dict]:
+        """Live log entries (newest first) with a summary over the whole filtered set."""
+        sql = """SELECT w.*, i.runtime_min FROM watch_log w JOIN items i ON i.id = w.item_id
+                 WHERE w.deleted_at IS NULL"""
+        params: list[Any] = []
+        if year is not None:
+            sql += " AND substr(w.watched_on, 1, 4) = ?"
+            params.append(f"{year:04d}")
+        if month is not None:
+            sql += " AND substr(w.watched_on, 6, 2) = ?"
+            params.append(f"{month:02d}")
+        if min_rating is not None:
+            sql += " AND w.rating >= ?"
+            params.append(min_rating)
+        if q:
+            like = f"%{q.strip()}%"
+            sql += """ AND (i.title LIKE ? OR EXISTS (SELECT 1 FROM credits c
+                       JOIN people p ON p.id = c.person_id
+                       WHERE c.item_id = i.id AND c.role = 'Director' AND p.name LIKE ?))"""
+            params.extend([like, like])
+        rows = self.conn.execute(sql + " ORDER BY w.watched_on DESC, w.id DESC", params).fetchall()
+
+        rated = [r["rating"] for r in rows if r["rating"] is not None]
+        by_month: dict[str, int] = {}
+        for r in rows:
+            by_month[r["watched_on"][:7]] = by_month.get(r["watched_on"][:7], 0) + 1
+        summary = {
+            "count": len(rows),
+            "avg_rating": round(sum(rated) / len(rated), 2) if rated else None,
+            "total_minutes": sum(r["runtime_min"] or 0 for r in rows),
+            "by_month": [{"month": m, "count": c} for m, c in sorted(by_month.items(), reverse=True)],
+        }
+        page = rows[offset:] if limit is None else rows[offset:offset + limit]
+        cards = self.get_item_cards([r["item_id"] for r in page])
+        entries = [self._entry_dict(r, cards[r["item_id"]]) for r in page]
+        return len(rows), entries, summary
+
+    @staticmethod
+    def _entry_dict(row: Any, card: dict) -> dict:
+        return {
+            "entry_id": row["id"],
+            "item": card,
+            "watched_on": row["watched_on"],
+            "rating": row["rating"],
+            "liked": None if row["liked"] is None else bool(row["liked"]),
+            "rewatch": bool(row["rewatch"]),
+            "source": row["source"],
+        }
+
+    def get_watch_entry_view(self, entry_id: int) -> dict | None:
+        row = self.conn.execute(
+            "SELECT * FROM watch_log WHERE id = ? AND deleted_at IS NULL", (entry_id,)
+        ).fetchone()
+        if not row:
+            return None
+        return self._entry_dict(row, self.get_item_card(row["item_id"]))
 
     # --- Low-level ---
 
