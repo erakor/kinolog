@@ -97,6 +97,14 @@ def handle_ingest_enrich(db_path: str, item_type: str = "film"):
     db.close()
 
 
+def handle_ingest_backfill_runtime(db_path: str):
+    from src.ingest.enrichers.tmdb import backfill_runtime_and_tv
+    db = Database(db_path)
+    stats = backfill_runtime_and_tv(db)
+    print_table("Runtime backfill", ["Metric", "Count"], [[k, str(v)] for k, v in stats.items()])
+    db.close()
+
+
 def handle_ingest_review(db_path: str):
     from src.ingest.review_cli import review_queue
     review_queue(db_path)
@@ -243,6 +251,11 @@ def run_argparse_cli():
     enr_parser = ingest_subs.add_parser("enrich", help="Enrich items with TMDB metadata", parents=[base_parser])
     enr_parser.add_argument("--type", default="film", help="Item type (film/book)")
 
+    ingest_subs.add_parser(
+        "backfill-runtime", help="Set runtime/TV flag from existing TMDB documents",
+        parents=[base_parser],
+    )
+
     ingest_subs.add_parser("review", help="Review and clear the match review queue", parents=[base_parser])
 
     chk_parser = ingest_subs.add_parser("chunk", help="Chunk documents", parents=[base_parser])
@@ -300,6 +313,8 @@ def run_argparse_cli():
             handle_ingest_resolve(args.db, args.type)
         elif args.ingest_cmd == "enrich":
             handle_ingest_enrich(args.db, args.type)
+        elif args.ingest_cmd == "backfill-runtime":
+            handle_ingest_backfill_runtime(args.db)
         elif args.ingest_cmd == "review":
             handle_ingest_review(args.db)
         elif args.ingest_cmd == "chunk":
