@@ -89,6 +89,7 @@ def test_features_only_filter(db_with_data):
     db.execute("UPDATE items SET runtime_min = 12 WHERE title = '8½'")
     db.execute("UPDATE items SET is_tv = 1 WHERE title = 'Bicycle Thieves'")
     q = "Fellini Godard Rome film"
-    titles = {r.title for r in search_bm25(db, q, limit=20, filters=SearchFilters(features_only=True))}
+    flt = SearchFilters(features_only=True)
+    titles = {r.title for r in search_bm25(db, q, limit=20, filters=flt)}
     assert "8½" not in titles and "Bicycle Thieves" not in titles
     assert "La Dolce Vita" in titles

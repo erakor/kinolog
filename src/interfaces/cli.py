@@ -225,6 +225,39 @@ def handle_eval_hearts(db_path: str, ranker: str = "mean_heart", splits: int = 1
     db.close()
 
 
+def handle_eval_concierge(
+    db_path: str, mode: str = "bm25", ranker: str = "nearest_exemplar",
+    w_taste: float = 0.0, w_comp: float = 0.0, hearts: bool = False, splits: int = 5,
+):
+    from src.core.taste import RANKERS
+    from src.eval.concierge import eval_concierge, eval_concierge_hearts
+    from src.eval.harness import log_results
+    db = Database(db_path)
+    if ranker not in RANKERS:
+        print(f"Unknown ranker: {ranker}. Available: {list(RANKERS.keys())}")
+        return
+    model = None
+    if mode in ("vector", "rrf"):
+        from src.core.embed import BGE_M3
+        model = BGE_M3()
+
+    def taste_fn(ids):
+        return {s.item_id: s.score for s in RANKERS[ranker](db, ids, db.get_heart_ids())}
+
+    results = eval_concierge(
+        db, model=model, taste_fn=taste_fn if w_taste else None, w_taste=w_taste, w_comp=w_comp,
+        config={"mode": mode, "ranker": ranker},
+    )
+    if hearts:
+        results += eval_concierge_hearts(
+            db, RANKERS[ranker], model=model, w_taste=w_taste or 0.5, n_splits=splits
+        )
+    log_results(db, results)
+    rows = [[r.metric, f"{r.value:.4f}", f"{r.stdev:.4f}" if r.stdev else "—"] for r in results]
+    print_table(f"Concierge Eval ({mode}, {ranker})", ["Metric", "Value", "Stdev"], rows)
+    db.close()
+
+
 # --- Argparse CLI (universal, zero external dependency) ---
 
 def run_argparse_cli():
@@ -295,6 +328,14 @@ def run_argparse_cli():
     ki_parser = eval_subs.add_parser("known-items", help="Run known-item retrieval eval", parents=[base_parser])
     ki_parser.add_argument("--mode", default="bm25", choices=["bm25", "vector", "rrf"])
 
+    con_parser = eval_subs.add_parser("concierge", help="Run concierge eval", parents=[base_parser])
+    con_parser.add_argument("--mode", default="bm25", choices=["bm25", "rrf"])
+    con_parser.add_argument("--ranker", default="nearest_exemplar", help="Taste ranker")
+    con_parser.add_argument("--w-taste", type=float, default=0.0)
+    con_parser.add_argument("--w-comp", type=float, default=0.0)
+    con_parser.add_argument("--hearts", action="store_true", help="Also run held-out hearts check")
+    con_parser.add_argument("--splits", type=int, default=5)
+
     hearts_parser = eval_subs.add_parser("hearts", help="Run hearts recall eval", parents=[base_parser])
     hearts_parser.add_argument("--ranker", default="mean_heart", help="Taste ranker")
     hearts_parser.add_argument("--splits", type=int, default=10)
@@ -331,7 +372,10 @@ def run_argparse_cli():
     elif args.command == "crew-overlap":
         handle_crew_overlap(args.db, role=args.role, min_overlap=args.min_overlap)
     elif args.command == "eval":
-        if args.eval_cmd == "known-items":
+        if args.eval_cmd == "concierge":
+            handle_eval_concierge(args.db, args.mode, args.ranker, args.w_taste, args.w_comp,
+                                  args.hearts, args.splits)
+        elif args.eval_cmd == "known-items":
             handle_eval_known_items(args.db, mode=args.mode)
         elif args.eval_cmd == "hearts":
             handle_eval_hearts(args.db, ranker=args.ranker, splits=args.splits)

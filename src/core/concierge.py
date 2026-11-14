@@ -348,8 +348,8 @@ def _filter_only_candidates(
     conds = [c for c in (item_cond, status_cond) if c]
     if conds:
         sql += " WHERE " + " AND ".join(conds)
-    rows = db.execute(sql + " LIMIT 2000", tuple(params + sparams)).fetchall()
-    return [r["id"] for r in rows][:limit * 40]
+    rows = db.execute(sql + " LIMIT 5000", tuple(params + sparams)).fetchall()
+    return [r["id"] for r in rows]
 
 
 def _count_unknown_runtime(db: Database, filters: SearchFilters) -> int:
@@ -514,10 +514,13 @@ def pick(
     taste_fn: Callable[[list[int]], dict[int, float]] | None = None,
     w_taste: float = 0.0,
     w_comp: float = 0.0,
+    exclude_ids: list[int] | None = None,
+    rationales: bool = True,
 ) -> dict:
     """Parse constraints, retrieve under SQL filters, optionally rerank, add grounded rationales.
 
     ``w_taste`` and ``w_comp`` default to 0 (pure retrieval order) until an eval justifies more.
+    ``exclude_ids`` and ``rationales=False`` exist for evaluation (hold-out sets, no text).
     """
     from src.interfaces.chat.agent import KinologChatAgent, assemble_context
 
@@ -527,7 +530,9 @@ def pick(
         degraded.append("books_not_supported: this view recommends films only")
 
     director_name, director_ids = _director_item_ids(db, query)
-    filters = to_search_filters(parsed, scope, item_ids=director_ids if director_name else None)
+    filters = to_search_filters(
+        parsed, scope, exclude_ids=exclude_ids, item_ids=director_ids if director_name else None
+    )
     if director_name:
         parsed.chips.append(Chip("director", director_name, (0, 0)))
 
@@ -584,10 +589,21 @@ def pick(
 
     picks = []
     for item_id in top_ids:
-        card = cards[item_id]
         base = dict(ranked)[item_id]
         gain = _gain(deltas.get(item_id, []))
         score = base + w_taste * taste.get(item_id, 0.0) + w_comp * gain / 100.0
+        score_parts = {
+            "retrieval": round(base, 4),
+            "taste": round(taste[item_id], 4) if item_id in taste else None,
+            "completion_boost": round(w_comp * gain / 100.0, 4),
+        }
+        card = cards[item_id]
+        if not rationales:
+            picks.append({
+                "item": card, "score": round(score, 4), "score_parts": score_parts,
+                "completion": [asdict(d) for d in deltas.get(item_id, [])], "rationale": None,
+            })
+            continue
         chunks = _item_chunks(db, item_id, residual, model, mode)
         assembled = assemble_context(chunks, token_budget=RATIONALE_TOKEN_BUDGET)
         hearts = {
@@ -632,11 +648,7 @@ def pick(
         picks.append({
             "item": card,
             "score": round(score, 4),
-            "score_parts": {
-                "retrieval": round(base, 4),
-                "taste": round(taste[item_id], 4) if item_id in taste else None,
-                "completion_boost": round(w_comp * gain / 100.0, 4),
-            },
+            "score_parts": score_parts,
             "completion": [asdict(d) for d in deltas.get(item_id, [])],
             "rationale": {
                 "text": out["answer"],
