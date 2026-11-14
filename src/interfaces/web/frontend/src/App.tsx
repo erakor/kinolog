@@ -5,6 +5,10 @@ import { RefreshProvider, useRefresh } from './context/RefreshContext'
 import { ToastProvider } from './context/ToastContext'
 import { useHashRoute, type RouteName } from './hooks/useHashRoute'
 
+const AddFilmDialog = lazy(() =>
+  import('./components/AddFilmDialog').then((m) => ({ default: m.AddFilmDialog })),
+)
+
 const VIEWS: Record<RouteName, ComponentType<{ query: URLSearchParams }>> = {
   concierge: lazy(() => import('./views/Concierge')),
   watchlist: lazy(() => import('./views/Watchlist')),
@@ -23,7 +27,7 @@ function Shell() {
   const route = useHashRoute()
   const { health } = useHealth()
   const { key: refreshKey } = useRefresh()
-  const [, setAddFilmOpen] = useState(false)
+  const [addFilmOpen, setAddFilmOpen] = useState(false)
   const View = VIEWS[route.name]
   const notes = healthNotes(health)
 
@@ -60,6 +64,11 @@ function Shell() {
           </Suspense>
         </ErrorBoundary>
       </main>
+      {addFilmOpen && (
+        <Suspense fallback={null}>
+          <AddFilmDialog onClose={() => setAddFilmOpen(false)} />
+        </Suspense>
+      )}
       <footer className="footer">
         <span>Kinolog: personal watch list and director completion</span>
         <span>
