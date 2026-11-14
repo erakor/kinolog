@@ -144,13 +144,13 @@ export default function Log() {
           </table>
         </div>
       )}
-      {data && data.entries.length < data.total && (
-        <div style={{ textAlign: 'center', marginTop: 16 }}>
+      <div style={{ textAlign: 'center', marginTop: 16 }}>
+        {data && data.entries.length < data.total && (
           <button className="btn" type="button" onClick={() => setPages((p) => p + 1)}>
             Show more
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </>
   )
 }

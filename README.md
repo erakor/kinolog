@@ -94,13 +94,26 @@ python3 -m src.interfaces.cli eval hearts --ranker nearest_exemplar --splits 10
 A local, single-user web UI (Concierge, Watch List, Watching Log, Director Collections) runs on top of
 the same index. It binds to `127.0.0.1` only and makes no external requests from the browser.
 
+The frontend is Vite + React + TypeScript and needs Node to build (once, and after frontend changes);
+the build output is not committed.
+
 ```bash
 pip install -e '.[web]'
+npm --prefix src/interfaces/web/frontend ci
+npm --prefix src/interfaces/web/frontend run build
 python3 -m src.interfaces.web --db data/index.db          # http://127.0.0.1:8765
 python3 -m src.interfaces.web --no-model                  # keyword search only, no embedding model
 python3 -m src.interfaces.web --llm                       # optional LLM rationales (pip install '.[llm]')
 python3 -m src.interfaces.cli ingest backfill-runtime     # fill runtime/TV flags from existing TMDB docs
 python3 -m src.interfaces.cli eval concierge --hearts     # measure the Concierge
+```
+
+To work on the UI, run the Python server and the Vite dev server in two terminals; the dev server
+(http://127.0.0.1:5173) proxies `/api` to port 8765:
+
+```bash
+python3 -m src.interfaces.web --db data/index.db --no-model
+npm --prefix src/interfaces/web/frontend run dev
 ```
 
 `--llm` sends the query and retrieved chunk text to the Anthropic API, so it is opt-in; the
