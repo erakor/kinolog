@@ -1,6 +1,9 @@
 import type { ReactNode, Ref } from 'react'
 import { directorNames, fmtPct } from '../format'
 import type { WatchlistRow } from '../types'
+import { cx, listRow, num } from './ui'
+
+const meta = 'font-normal text-sm text-ink-muted ml-2'
 
 interface ListRowProps {
   row: WatchlistRow
@@ -14,30 +17,25 @@ export function ListRow({ row, actions, highlighted = false, rowRef }: ListRowPr
   const d = row.completion[0]
   const sub = [dirs, row.genres.join(' / ')].filter(Boolean).join(' · ')
   return (
-    <div
-      className="list-row"
-      data-item={row.item_id}
-      ref={rowRef}
-      style={highlighted ? { background: 'var(--color-accent-wash)' } : undefined}
-    >
-      <div className="list-row__main">
-        <div className="list-row__title">
+    <div className={cx(listRow, highlighted && 'bg-accent-wash')} data-item={row.item_id} ref={rowRef}>
+      <div className="flex-1 min-w-0">
+        <div className="font-display text-lg font-bold">
           {row.title}
-          <span className="num">{row.year ?? ''}</span>
-          {row.runtime_min ? <span className="num">{row.runtime_min} min</span> : null}
+          <span className={cx(num, meta)}>{row.year ?? ''}</span>
+          {row.runtime_min ? <span className={cx(num, meta)}>{row.runtime_min} min</span> : null}
         </div>
-        <div className="list-row__sub">
+        <div className="text-sm text-ink-muted">
           {sub}
           {sub && d ? ' · ' : ''}
           {d && (
-            <span className="push">
+            <span className="text-accent">
               Pushes {d.name} {fmtPct(d.before_pct)} → {fmtPct(d.after_pct)}
             </span>
           )}
         </div>
-        {row.overview && <p className="list-row__plot">{row.overview}</p>}
+        {row.overview && <p className="text-sm text-ink-muted mt-1">{row.overview}</p>}
       </div>
-      {actions && <div className="list-row__actions">{actions}</div>}
+      {actions && <div className="flex items-center gap-2">{actions}</div>}
     </div>
   )
 }

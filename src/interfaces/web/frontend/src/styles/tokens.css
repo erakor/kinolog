@@ -1,21 +1,27 @@
-/* Design tokens. Light theme only (v1). Values sampled from the reference screens. */
-:root {
+/* Design tokens. Light theme only (v1). Values sampled from the reference screens.
+   Each token in @theme is both a CSS variable and a Tailwind utility (bg-surface, text-ink-muted, ...). */
+@theme {
   --color-bg: #f8f6f2;
   --color-surface: #ffffff;
   --color-ink: #14130f;
+  --color-ink-hover: #2a2822;
   --color-ink-muted: #6b665d;
   --color-ink-faint: #a29d93;
   --color-rule: #e6e2da;
   --color-track: #e7e3db;
+  --color-segment: #eeebe4;
+  --color-subtle: #faf8f4;
   --color-accent: #c0432a;
   --color-accent-soft: #dcaa9d;
   --color-accent-wash: #f7e4de;
   --color-on-ink: #f8f6f2;
 
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: "Iowan Old Style", "Charter", "Palatino Linotype", Georgia, serif;
-  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 
+  /* Replace Tailwind's type scale. No bundled line-heights: text inherits the body's 1.5. */
+  --text-*: initial;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-md: 1rem;
@@ -27,16 +33,14 @@
   --radius-btn: 8px;
   --radius-pill: 999px;
 
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-12: 48px;
+  --container-page: 1152px;
 
-  --page-max: 1152px;
+  --breakpoint-nav: 720px;
+  --breakpoint-md: 760px;
+  --breakpoint-hero: 860px;
+}
+
+:root {
   --gutter: 16px;
   --progress-h: 6px;
 }

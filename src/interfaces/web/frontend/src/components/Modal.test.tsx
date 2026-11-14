@@ -46,7 +46,7 @@ describe('Modal', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
 
     await userEvent.click(screen.getByText('open'))
-    await userEvent.click(document.querySelector('.modal-backdrop')!)
+    await userEvent.click(screen.getByTestId('modal-backdrop'))
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 })

@@ -1,4 +1,7 @@
 import { RatingSelect } from './RatingSelect'
+import { cx, field, fieldInput, fieldRow } from './ui'
+
+const fieldLabel = cx(field, 'flex-[1_1_140px]')
 
 interface WatchFieldsProps {
   date: string
@@ -12,14 +15,14 @@ interface WatchFieldsProps {
 /** Date watched + rating row shared by the log and edit dialogs. */
 export function WatchFields({ date, onDate, rating, onRating, max }: WatchFieldsProps) {
   return (
-    <div className="field-row">
-      <label className="field">
+    <div className={fieldRow}>
+      <label className={fieldLabel}>
         Date watched
-        <input type="date" value={date} max={max} required onChange={(e) => onDate(e.target.value)} />
+        <input className={fieldInput} type="date" value={date} max={max} required onChange={(e) => onDate(e.target.value)} />
       </label>
-      <label className="field">
+      <label className={fieldLabel}>
         Rating
-        <RatingSelect value={rating} onChange={onRating} />
+        <RatingSelect className={fieldInput} value={rating} onChange={onRating} />
       </label>
     </div>
   )

@@ -7,6 +7,8 @@ import { LogButton, RemoveButton } from '../components/ItemActions'
 import { ListRow } from '../components/ListRow'
 import { SearchBox } from '../components/SearchBox'
 import { Segmented } from '../components/Segmented'
+import { Button } from '../components/Button'
+import { eyebrow, heroArt, heroLede, heroSplit, heroTitle, listBox, num, toolbar } from '../components/ui'
 import { useToast } from '../context/ToastContext'
 import { useAsync } from '../hooks/useAsync'
 import type { WatchlistResponse, WatchlistSort } from '../types'
@@ -69,30 +71,30 @@ export default function Watchlist() {
   const count = data?.summary.count ?? 0
   return (
     <>
-      <section className="hero hero--split">
+      <section className={heroSplit}>
         <div>
-          <p className="eyebrow">Queued screenings</p>
-          <h1>Watch List</h1>
-          <p className="hero__lede">
+          <p className={eyebrow}>Queued screenings</p>
+          <h1 className={heroTitle}>Watch List</h1>
+          <p className={heroLede}>
             Filter by available runtime or prioritize films that push a director filmography toward completion.
           </p>
-          <div className="toolbar" style={{ marginBottom: 0 }}>
+          <div className={`${toolbar} mt-6`}>
             <SearchBox placeholder="Filter by title or director…" onChange={setQ} />
-            <button className="btn" type="button" onClick={pickShort}>
-              Pick 90m Film
-            </button>
+            <Button onClick={pickShort}>Pick 90m Film</Button>
             <ImportButton onDone={reload} />
           </div>
         </div>
-        <div className="hero__art">
+        <div className={`${heroArt} min-h-[180px]`}>
           <BannerArt seed="watchlist" />
         </div>
       </section>
-      <div className="toolbar">
+      <div className={`${toolbar} my-6`}>
         <Segmented options={RUNTIME_OPTIONS} value={runtime} onChange={setRuntime} />
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <span className="num muted">{data && `Showing ${data.total} of ${count}`}</span>
-          <select className="select" aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value as WatchlistSort)}>
+        <div className="flex gap-3 items-center">
+          <span className={`${num} text-ink-muted`}>{data && `Showing ${data.total} of ${count}`}</span>
+          <select
+            className="bg-surface border border-rule rounded-btn px-3 py-2 min-h-10"
+            aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value as WatchlistSort)}>
             {sorts.map(([v, label]) => (
               <option key={v} value={v}>
                 {label}
@@ -101,7 +103,7 @@ export default function Watchlist() {
           </select>
         </div>
       </div>
-      <div className="list">
+      <div className={listBox}>
         {data && !data.items.length && (
           <EmptyState
             title={count ? 'Nothing fits those filters' : 'Your Watch List is empty'}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api } from '../api'
 import { useAction } from '../hooks/useAction'
+import { Button } from './Button'
 import { LogDialog } from './LogDialog'
 
 /** Anything with an id and title: a card, a collection film or a lookup result. */
@@ -17,28 +18,26 @@ interface ActionProps {
 export function QueueButton({ item, reload }: ActionProps) {
   const run = useAction(reload)
   return (
-    <button
-      className="btn btn--sm"
-      type="button"
+    <Button
+      size="sm"
       onClick={() => run(() => api.post('/api/watchlist', { item_id: item.item_id }), `Queued ${item.title}`)}
     >
       + Queue
-    </button>
+    </Button>
   )
 }
 
 export function RemoveButton({ item, reload }: ActionProps) {
   const run = useAction(reload)
   return (
-    <button
-      className="btn btn--icon"
-      type="button"
+    <Button
+      variant="icon"
       aria-label={`Remove ${item.title} from Watch List`}
       title="Remove from Watch List"
       onClick={() => run(() => api.del(`/api/watchlist/${item.item_id}`), `Removed ${item.title}`)}
     >
       🗑
-    </button>
+    </Button>
   )
 }
 
@@ -51,9 +50,9 @@ export function LogButton({
   const [open, setOpen] = useState(false)
   return (
     <>
-      <button className={`btn btn--primary${small ? ' btn--sm' : ''}`} type="button" onClick={() => setOpen(true)}>
+      <Button variant="primary" size={small ? 'sm' : undefined} onClick={() => setOpen(true)}>
         {label ?? (small ? 'Log' : '✓ Log Watched')}
-      </button>
+      </Button>
       {open && <LogDialog item={item} reload={reload} onClose={() => setOpen(false)} />}
     </>
   )

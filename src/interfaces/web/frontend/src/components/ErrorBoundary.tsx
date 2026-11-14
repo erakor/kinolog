@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from 'react'
+import { empty } from './ui'
 
 interface State {
   error: Error | null
@@ -19,7 +20,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode; resetKey?: s
 
   render() {
     if (this.state.error) {
-      return <p className="empty">Could not load this view: {this.state.error.message}</p>
+      return <p className={empty}>Could not load this view: {this.state.error.message}</p>
     }
     return this.props.children
   }

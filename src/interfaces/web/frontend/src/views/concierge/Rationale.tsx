@@ -6,7 +6,7 @@ export function Rationale({ rationale }: { rationale: RationaleData }) {
   const [openN, setOpenN] = useState<number | null>(null)
   const open = rationale.citations.find((c) => c.n === openN)
   return (
-    <div className="pick__rationale">
+    <div className="my-3">
       <p>
         {splitCitations(rationale.text).map((seg, i) => {
           if (seg.type === 'text') return seg.text
@@ -15,7 +15,7 @@ export function Rationale({ rationale }: { rationale: RationaleData }) {
           return (
             <button
               key={i}
-              className="cite"
+              className="text-accent bg-transparent border-0 px-px text-[.75em] align-super"
               type="button"
               aria-label={`Source ${seg.n}`}
               onClick={() => setOpenN((cur) => (cur === seg.n ? null : seg.n))}
@@ -25,7 +25,10 @@ export function Rationale({ rationale }: { rationale: RationaleData }) {
           )
         })}
       </p>
-      <div className="cite-panel" hidden={!open}>
+      <div
+        className="mt-3 px-4 py-3 border-l-2 border-accent bg-subtle text-sm text-ink-muted"
+        hidden={!open}
+      >
         {open && (
           <>
             <strong>
@@ -33,13 +36,13 @@ export function Rationale({ rationale }: { rationale: RationaleData }) {
               {open.year ? ` (${open.year})` : ''}
             </strong>
             {open.source && (
-              <span className="muted">
+              <span className="text-ink-muted">
                 {' '}
                 · {open.source}
                 {open.section_name ? ` · ${open.section_name}` : ''}
               </span>
             )}
-            <p style={{ marginTop: 6 }}>{open.snippet}</p>
+            <p className="mt-1.5">{open.snippet}</p>
           </>
         )}
       </div>

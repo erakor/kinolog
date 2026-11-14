@@ -25,9 +25,10 @@ export function SearchBox({ placeholder, onChange, initial = '' }: SearchBoxProp
   }, [text])
 
   return (
-    <label className="search">
+    <label className="flex items-center gap-2 bg-surface border border-rule rounded-btn px-3 min-h-10 flex-[1_1_260px] max-w-[520px] focus-within:border-ink-faint">
       <span aria-hidden="true">⌕</span>
       <input
+        className="border-0 outline-0 bg-transparent flex-1 min-w-0 py-2"
         type="search"
         placeholder={placeholder}
         aria-label={placeholder}
