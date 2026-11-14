@@ -1,6 +1,5 @@
-import { useId, useLayoutEffect, useRef, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
-import { Button } from './Button'
+import { useRef, useState, type ReactNode } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 interface ModalProps {
   title: string
@@ -8,54 +7,41 @@ interface ModalProps {
   children: ReactNode
 }
 
-/** Accessible dialog: Escape and backdrop click close it, focus moves in and is restored on close. */
+const FIELDS = 'input, select, button, [role="combobox"]'
+
+/**
+ * Thin wrapper over the shadcn Dialog for the mount-to-show pattern the dialogs use (always open while mounted).
+ * Radix handles the focus trap, Escape and outside click. Because there is no <DialogTrigger> (callers mount the
+ * dialog from their own state), Radix has nothing to hand focus back to, so we remember the opener ourselves.
+ */
 export function Modal({ title, onClose, children }: ModalProps) {
-  const titleId = useId()
-  const modalRef = useRef<HTMLDivElement>(null)
-  const closeRef = useRef<HTMLButtonElement>(null)
-
-  useLayoutEffect(() => {
-    const prev = document.activeElement as HTMLElement | null
-    const modal = modalRef.current
-    const fields = modal?.querySelectorAll<HTMLElement>('input, select, button') ?? []
-    // The close button is not a useful first target; fall back to the dialog itself.
-    const first = Array.from(fields).find((el) => el !== closeRef.current)
-    ;(first ?? modal)?.focus()
-    return () => prev?.focus?.()
-  }, [])
-
-  return createPortal(
-    <div
-      className="fixed inset-0 bg-ink/40 grid items-start justify-items-center pt-24 px-4 pb-4 z-30 overflow-y-auto"
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          e.stopPropagation() // React events bubble through portals: don't close the modal underneath
-          onClose()
-        }
-      }}
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose()
-      }}
-    >
-      <div
-        ref={modalRef}
-        className="bg-surface rounded-xl w-full max-w-xl p-6 border border-rule"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        tabIndex={-1}
+  const content = useRef<HTMLDivElement>(null)
+  // Captured on first render, before the dialog moves focus.
+  const [opener] = useState(() => (document.activeElement instanceof HTMLElement ? document.activeElement : null))
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        ref={content}
+        aria-describedby={undefined}
+        overlayProps={{ 'data-testid': 'modal-backdrop' } as object}
+        onCloseAutoFocus={(e) => {
+          e.preventDefault()
+          if (opener?.isConnected) opener.focus()
+        }}
+        onOpenAutoFocus={(e) => {
+          // The built-in close button is rendered after the children, so the first match is a real field.
+          const first = content.current?.querySelector<HTMLElement>(FIELDS)
+          if (first && first.getAttribute('aria-label') !== 'Close') {
+            e.preventDefault()
+            first.focus()
+          }
+        }}
       >
-        <div className="flex justify-between items-center mb-4">
-          <h2 id={titleId} className="text-2xl">
-            {title}
-          </h2>
-          <Button ref={closeRef} variant="icon" aria-label="Close" onClick={onClose}>
-            ✕
-          </Button>
-        </div>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
         {children}
-      </div>
-    </div>,
-    document.body,
+      </DialogContent>
+    </Dialog>
   )
 }

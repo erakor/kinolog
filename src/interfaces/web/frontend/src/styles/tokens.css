@@ -1,6 +1,7 @@
 /* Design tokens. Light theme only (v1). Values sampled from the reference screens.
    Only colors and fonts are customized; spacing, type scale, radii and breakpoints are Tailwind defaults.
-   Each token is both a CSS variable and a utility (bg-surface, text-ink-muted, font-display, ...). */
+   Each token is both a CSS variable and a utility (bg-surface, text-ink-muted, font-display, ...).
+   "brand" is the terracotta; shadcn's "accent" is a neutral hover wash (see the variables below). */
 @theme {
   --color-bg: #f8f6f2;
   --color-surface: #ffffff;
@@ -12,13 +13,59 @@
   --color-track: #e7e3db;
   --color-segment: #eeebe4;
   --color-subtle: #faf8f4;
-  --color-accent: #c0432a;
-  --color-accent-soft: #dcaa9d;
-  --color-accent-wash: #f7e4de;
+  --color-brand: #c0432a;
+  --color-brand-soft: #dcaa9d;
+  --color-brand-wash: #f7e4de;
   --color-on-ink: #f8f6f2;
   --color-placeholder: #757575;
 
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: "Iowan Old Style", "Charter", "Palatino Linotype", Georgia, serif;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+/* shadcn/ui variables, mapped onto the Kinolog palette. Components in components/ui read these. */
+:root {
+  --background: #f8f6f2;
+  --foreground: #14130f;
+  --card: #ffffff;
+  --card-foreground: #14130f;
+  --popover: #ffffff;
+  --popover-foreground: #14130f;
+  --primary: #14130f;
+  --primary-foreground: #f8f6f2;
+  --secondary: #f7e4de;
+  --secondary-foreground: #14130f;
+  --muted: #eeebe4;
+  --muted-foreground: #6b665d;
+  --accent: #f7e4de;
+  --accent-foreground: #14130f;
+  --destructive: #c0432a;
+  --border: #e6e2da;
+  --input: #e6e2da;
+  --ring: #c0432a;
+  /* Radii stay at the Tailwind defaults (rounded-lg = 0.5rem, rounded-xl = 0.75rem) so views keep their look;
+     this is the base for the components that opt in. */
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 }

@@ -1,7 +1,7 @@
 import { ProgressBar } from '../../components/ProgressBar'
 import { fmtPct } from '../../format'
 import type { CompletionDelta } from '../../types'
-import { num } from '../../components/ui'
+import { num } from '../../components/styles'
 
 export function CompletionPanel({ delta: d }: { delta: CompletionDelta }) {
   return (
@@ -10,7 +10,7 @@ export function CompletionPanel({ delta: d }: { delta: CompletionDelta }) {
         <span>{d.name} Collection</span>
         <span className={num}>
           {d.seen}/{d.total} watched ({fmtPct(d.before_pct)} →{' '}
-          <strong className="text-accent">{fmtPct(d.after_pct)}</strong>)
+          <strong className="text-brand">{fmtPct(d.after_pct)}</strong>)
         </span>
       </div>
       <ProgressBar seen={d.seen} total={d.total} afterSeen={d.seen + 1} />

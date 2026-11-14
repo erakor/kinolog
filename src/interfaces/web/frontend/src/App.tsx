@@ -1,9 +1,10 @@
 import { lazy, Suspense, useEffect, useState, type ComponentType } from 'react'
-import { Button } from './components/Button'
+import { Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Toaster } from '@/components/ui/sonner'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { HealthProvider, healthNotes, useHealth } from './context/HealthContext'
 import { RefreshProvider, useRefresh } from './context/RefreshContext'
-import { ToastProvider } from './context/ToastContext'
 import { useHashRoute, type RouteName } from './hooks/useHashRoute'
 
 const AddFilmDialog = lazy(() =>
@@ -49,19 +50,19 @@ function Shell() {
                 key={name}
                 href={`#/${name}`}
                 aria-current={route.name === name ? 'page' : undefined}
-                className="text-ink-muted py-1.5 border-b-2 border-transparent whitespace-nowrap text-sm md:text-base hover:text-ink aria-[current=page]:text-ink aria-[current=page]:border-accent"
+                className="text-ink-muted py-1.5 border-b-2 border-transparent whitespace-nowrap text-sm md:text-base hover:text-ink aria-[current=page]:text-ink aria-[current=page]:border-brand"
               >
                 {label}
               </a>
             ))}
           </nav>
-          <Button variant="primary" onClick={() => setAddFilmOpen(true)}>
-            + Add Film
+          <Button onClick={() => setAddFilmOpen(true)}>
+            <Plus /> Add Film
           </Button>
         </div>
       </header>
       <div
-        className="bg-accent-wash text-ink text-center px-4 py-2 text-sm border-b border-rule"
+        className="bg-brand-wash text-ink text-center px-4 py-2 text-sm border-b border-rule"
         hidden={notes.length === 0}
       >
         {notes.join(' ')}
@@ -95,12 +96,11 @@ function Shell() {
 
 export function App() {
   return (
-    <ToastProvider>
-      <HealthProvider>
-        <RefreshProvider>
-          <Shell />
-        </RefreshProvider>
-      </HealthProvider>
-    </ToastProvider>
+    <HealthProvider>
+      <RefreshProvider>
+        <Shell />
+        <Toaster position="bottom-center" />
+      </RefreshProvider>
+    </HealthProvider>
   )
 }

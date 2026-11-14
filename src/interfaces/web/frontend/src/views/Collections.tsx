@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { api } from '../api'
 import { BannerArt } from '../components/BannerArt'
 import { EmptyState } from '../components/EmptyState'
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { FilmRow } from '../components/FilmRow'
 import { LogButton, QueueButton } from '../components/ItemActions'
 import { ProgressBar } from '../components/ProgressBar'
 import { SearchBox } from '../components/SearchBox'
 import { Segmented } from '../components/Segmented'
 import {
-  card,
   dirHead,
   dirMeta,
   eyebrow,
@@ -21,7 +21,7 @@ import {
   num,
   pct,
   toolbar,
-} from '../components/ui'
+} from '../components/styles'
 import { fmtPct, nextFromPrompt } from '../format'
 import { useAsync } from '../hooks/useAsync'
 import type { CollectionsResponse, DirectorCollection } from '../types'
@@ -37,16 +37,19 @@ function DirectorCard({ d, reload }: { d: DirectorCollection; reload: () => void
   const queued = d.films.filter((f) => !f.seen && f.on_watchlist).length
   const ask = nextFromPrompt(d.name)
   return (
-    <article className={card}>
-      <div className={dirHead}>
-        <h3 className="text-3xl">{d.name}</h3>
-        <span className={pct}>{fmtPct(d.pct)}</span>
-      </div>
-      <p className={dirMeta}>
-        {d.seen} / {d.total} watched{queued ? ` · ${queued} queued` : ''}
-      </p>
-      <ProgressBar seen={d.seen} total={d.total} afterSeen={d.seen + queued} />
-      <ul className="mt-4">
+    <Card>
+      <CardHeader>
+        <div className={dirHead}>
+          <h3 className="text-3xl">{d.name}</h3>
+          <span className={pct}>{fmtPct(d.pct)}</span>
+        </div>
+        <p className={dirMeta}>
+          {d.seen} / {d.total} watched{queued ? ` · ${queued} queued` : ''}
+        </p>
+      </CardHeader>
+      <CardContent>
+        <ProgressBar seen={d.seen} total={d.total} afterSeen={d.seen + queued} />
+        <ul className="mt-4">
         {d.films.map((f) => (
           <FilmRow
             key={f.item_id}
@@ -61,13 +64,14 @@ function DirectorCard({ d, reload }: { d: DirectorCollection; reload: () => void
             }
           />
         ))}
-      </ul>
-      <div className="mt-4 pt-4 border-t border-rule">
+        </ul>
+      </CardContent>
+      <CardFooter className="mt-4 border-t pt-4">
         <a className={link} href={`#/concierge?q=${encodeURIComponent(ask)}`}>
           Ask Concierge for next {d.name} pick →
         </a>
-      </div>
-    </article>
+      </CardFooter>
+    </Card>
   )
 }
 

@@ -1,11 +1,14 @@
-import { useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import { api } from '../api'
 import { today } from '../format'
 import { useAction } from '../hooks/useAction'
 import type { ItemRef } from './ItemActions'
-import { Button } from './Button'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { DialogFooter } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 import { Modal } from './Modal'
-import { dialogActions, fieldCheck, fieldCheckInput } from './ui'
+import { fieldCheck } from './styles'
 import { WatchFields } from './WatchFields'
 
 interface LogDialogProps {
@@ -21,6 +24,7 @@ export function LogDialog({ item, reload, onClose }: LogDialogProps) {
   const [keep, setKeep] = useState(false)
   const [busy, setBusy] = useState(false)
   const run = useAction(reload)
+  const id = useId()
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -37,20 +41,22 @@ export function LogDialog({ item, reload, onClose }: LogDialogProps) {
     <Modal title={`Log ${item.title}`} onClose={onClose}>
       <form onSubmit={submit}>
         <WatchFields date={date} onDate={setDate} rating={rating} onRating={setRating} max={today()} />
-        <label className={fieldCheck}>
-          <input className={fieldCheckInput} type="checkbox" checked={liked} onChange={(e) => setLiked(e.target.checked)} />
-          Add a heart
-        </label>
-        <label className={fieldCheck}>
-          <input className={fieldCheckInput} type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} />
-          Keep on Watch List
-        </label>
-        <div className={dialogActions}>
-          <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" type="submit" disabled={busy}>
+        <div className={fieldCheck}>
+          <Checkbox id={`${id}-liked`} checked={liked} onCheckedChange={(v) => setLiked(v === true)} />
+          <Label htmlFor={`${id}-liked`}>Add a heart</Label>
+        </div>
+        <div className={fieldCheck}>
+          <Checkbox id={`${id}-keep`} checked={keep} onCheckedChange={(v) => setKeep(v === true)} />
+          <Label htmlFor={`${id}-keep`}>Keep on Watch List</Label>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={busy}>
             Log as watched
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     </Modal>
   )

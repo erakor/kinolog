@@ -6,8 +6,10 @@ import { ImportButton } from '../components/ImportButton'
 import { RatingSelect } from '../components/RatingSelect'
 import { SearchBox } from '../components/SearchBox'
 import { Segmented } from '../components/Segmented'
-import { Button } from '../components/Button'
-import { eyebrow, heroLede, heroTitle, listBox, num, td, th, toolbar } from '../components/ui'
+import { Pencil, Star, Trash2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { eyebrow, heroLede, heroTitle, listBox, num, toolbar } from '../components/styles'
 import { directorNames, fmtHours } from '../format'
 import { useAction } from '../hooks/useAction'
 import { useAsync } from '../hooks/useAsync'
@@ -40,32 +42,30 @@ function LogRow({ entry: e, reload }: { entry: LogEntry; reload: () => void }) {
   }
 
   return (
-    <tr>
-      <td className={`${td} ${num}`}>{e.watched_on}</td>
-      <td className={td}>
+    <TableRow>
+      <TableCell className={num}>{e.watched_on}</TableCell>
+      <TableCell>
         {it.title} <span className={`${num} text-ink-muted`}>{it.year ? `(${it.year})` : ''}</span>
         {e.rewatch && <div className="text-ink-muted text-xs">Rewatch</div>}
-      </td>
-      <td className={`${td} text-ink-muted`}>{directorNames(it.directors)}</td>
-      <td className={`${td} ${num} text-ink-muted`}>{it.runtime_min ? `${it.runtime_min} min` : ''}</td>
-      <td className={td}>
-        {rating ? (
-          <span className="text-accent" aria-hidden="true">
-            ★{' '}
-          </span>
-        ) : null}
-        <RatingSelect className="font-mono text-sm" aria-label={`Rating for ${it.title}`} value={rating} onChange={rate} />
-      </td>
-      <td className={`${td} whitespace-nowrap`}>
-        <Button variant="icon" aria-label={`Edit ${it.title}`} title="Edit" onClick={() => setEditing(true)}>
-          ✎
+      </TableCell>
+      <TableCell className="text-ink-muted">{directorNames(it.directors)}</TableCell>
+      <TableCell className={`${num} text-ink-muted`}>{it.runtime_min ? `${it.runtime_min} min` : ''}</TableCell>
+      <TableCell>
+        <div className="flex items-center gap-1.5">
+          {rating ? <Star className="size-4 fill-brand text-brand" aria-hidden="true" /> : null}
+          <RatingSelect className="font-mono" aria-label={`Rating for ${it.title}`} value={rating} onChange={rate} />
+        </div>
+      </TableCell>
+      <TableCell className="whitespace-nowrap">
+        <Button variant="ghost" size="icon" aria-label={`Edit ${it.title}`} title="Edit" onClick={() => setEditing(true)}>
+          <Pencil />
         </Button>
-        <Button variant="icon" aria-label={`Delete ${it.title} entry`} title="Delete entry" onClick={remove}>
-          🗑
+        <Button variant="ghost" size="icon" aria-label={`Delete ${it.title} entry`} title="Delete entry" onClick={remove}>
+          <Trash2 />
         </Button>
         {editing && <EditLogDialog entry={{ ...e, rating }} reload={reload} onClose={() => setEditing(false)} />}
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   )
 }
 
@@ -127,27 +127,27 @@ export default function Log() {
       )}
       {data && !none && (
         <div className={`${listBox} overflow-x-auto`}>
-          <table className="w-full border-collapse min-w-2xl [&_tr:first-child_td]:border-t-0">
-            <thead>
-              <tr>
+          <Table className="min-w-2xl">
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
                 {['Date', 'Film', 'Director', 'Runtime', 'Rating', ''].map((t, i) => (
-                  <th key={i} scope="col" className={th}>
+                  <TableHead key={i} scope="col">
                     {t}
-                  </th>
+                  </TableHead>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {data.entries.map((e) => (
                 <LogRow key={`${e.entry_id}:${e.rating}`} entry={e} reload={reload} />
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
       <div className="text-center mt-4">
         {data && data.entries.length < data.total && (
-          <Button onClick={() => setPages((p) => p + 1)}>Show more</Button>
+          <Button variant="outline" onClick={() => setPages((p) => p + 1)}>Show more</Button>
         )}
       </div>
     </>

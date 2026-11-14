@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it } from 'vitest'
@@ -33,7 +33,10 @@ describe('Modal', () => {
     render(<Harness />)
     await userEvent.click(screen.getByText('open'))
     const dialog = screen.getByRole('dialog', { name: 'Hello' })
-    expect(dialog).toHaveAttribute('aria-modal', 'true')
+    expect(dialog).toBeInTheDocument()
+    // Radix marks the rest of the page aria-hidden instead of using aria-modal.
+    expect(screen.getByText('open')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'open' })).toBeNull()
     expect(screen.getByLabelText('first')).toHaveFocus()
   })
 
@@ -43,7 +46,8 @@ describe('Modal', () => {
     await userEvent.click(opener)
     await userEvent.keyboard('{Escape}')
     expect(screen.queryByRole('dialog')).toBeNull()
-    expect(opener).toHaveFocus()
+    // Radix restores focus in a timeout after unmount.
+    await waitFor(() => expect(opener).toHaveFocus())
   })
 
   it('closes on the close button and on backdrop click, not on dialog click', async () => {
@@ -55,7 +59,7 @@ describe('Modal', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
 
     await userEvent.click(screen.getByText('open'))
-    await userEvent.click(screen.getByRole('dialog').parentElement!)
+    await userEvent.click(screen.getByTestId('modal-backdrop'))
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 })

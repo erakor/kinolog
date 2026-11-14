@@ -7,8 +7,9 @@ import { LogButton, RemoveButton } from '../components/ItemActions'
 import { ListRow } from '../components/ListRow'
 import { SearchBox } from '../components/SearchBox'
 import { Segmented } from '../components/Segmented'
-import { Button } from '../components/Button'
-import { eyebrow, heroArt, heroLede, heroSplit, heroTitle, listBox, num, toolbar } from '../components/ui'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { eyebrow, heroArt, heroLede, heroSplit, heroTitle, listBox, num, toolbar } from '../components/styles'
 import { useToast } from '../context/ToastContext'
 import { useAsync } from '../hooks/useAsync'
 import type { WatchlistResponse, WatchlistSort } from '../types'
@@ -80,7 +81,7 @@ export default function Watchlist() {
           </p>
           <div className={`${toolbar} mt-6`}>
             <SearchBox placeholder="Filter by title or director…" onChange={setQ} />
-            <Button onClick={pickShort}>Pick 90m Film</Button>
+            <Button variant="outline" onClick={pickShort}>Pick 90m Film</Button>
             <ImportButton onDone={reload} />
           </div>
         </div>
@@ -92,15 +93,18 @@ export default function Watchlist() {
         <Segmented options={RUNTIME_OPTIONS} value={runtime} onChange={setRuntime} />
         <div className="flex gap-3 items-center">
           <span className={`${num} text-ink-muted`}>{data && `Showing ${data.total} of ${count}`}</span>
-          <select
-            className="bg-surface border border-rule rounded-lg px-3 py-2 min-h-10"
-            aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value as WatchlistSort)}>
-            {sorts.map(([v, label]) => (
-              <option key={v} value={v}>
-                {label}
-              </option>
-            ))}
-          </select>
+          <Select value={sort} onValueChange={(v) => setSort(v as WatchlistSort)}>
+            <SelectTrigger className="h-10" aria-label="Sort">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {sorts.map(([v, label]) => (
+                <SelectItem key={v} value={v}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <div className={listBox}>

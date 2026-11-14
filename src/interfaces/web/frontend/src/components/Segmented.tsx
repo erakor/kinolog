@@ -1,23 +1,29 @@
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+
 interface SegmentedProps<T extends string> {
   options: readonly (readonly [T, string])[]
   value: T
   onChange: (value: T) => void
 }
 
+// Radix treats '' as "nothing selected", but several filters use '' for "All". Map it to a sentinel.
+const ALL = '__all__'
+const enc = (v: string) => (v === '' ? ALL : v)
+const dec = (v: string) => (v === ALL ? '' : v)
+
 export function Segmented<T extends string>({ options, value, onChange }: SegmentedProps<T>) {
   return (
-    <div className="inline-flex bg-segment rounded-lg p-1 flex-wrap" role="group">
+    <ToggleGroup
+      type="single"
+      value={enc(value)}
+      // Clicking the active segment reports '' in Radix; a segmented control never deselects.
+      onValueChange={(v) => v && onChange(dec(v) as T)}
+    >
       {options.map(([v, label]) => (
-        <button
-          key={v}
-          type="button"
-          aria-pressed={v === value}
-          className="px-3 py-1.5 rounded-md text-sm text-ink-muted aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-xs"
-          onClick={() => onChange(v)}
-        >
+        <ToggleGroupItem key={v} value={enc(v)}>
           {label}
-        </button>
+        </ToggleGroupItem>
       ))}
-    </div>
+    </ToggleGroup>
   )
 }

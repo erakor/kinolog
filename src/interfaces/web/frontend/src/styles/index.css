@@ -1,8 +1,13 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 @import "./tokens.css";
 
 /* Only what Preflight does not already cover. */
 @layer base {
+  /* Tailwind v4 defaults borders to currentColor; shadcn components rely on the themed border color. */
+  * {
+    border-color: var(--border);
+  }
   body {
     background: var(--color-bg);
     color: var(--color-ink);
@@ -28,7 +33,7 @@
     opacity: 1;
   }
   :focus-visible {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-brand);
     outline-offset: 2px;
   }
 }
