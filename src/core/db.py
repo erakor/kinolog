@@ -38,6 +38,21 @@ CREATE TABLE IF NOT EXISTS user_status (
     source TEXT
 );
 
+CREATE TABLE IF NOT EXISTS watch_log (
+    id INTEGER PRIMARY KEY,
+    item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+    watched_on TEXT NOT NULL,
+    rating INTEGER,
+    liked INTEGER,
+    rewatch INTEGER DEFAULT 0,
+    source TEXT NOT NULL,
+    source_key TEXT,
+    deleted_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    UNIQUE (source, source_key)
+);
+
 CREATE TABLE IF NOT EXISTS raw_cache (
     source TEXT NOT NULL,
     external_id TEXT NOT NULL,
@@ -140,7 +155,20 @@ CREATE INDEX IF NOT EXISTS idx_chunks_doc ON chunks(document_id);
 CREATE INDEX IF NOT EXISTS idx_chunks_strategy ON chunks(strategy);
 CREATE INDEX IF NOT EXISTS idx_credits_item ON credits(item_id);
 CREATE INDEX IF NOT EXISTS idx_credits_person ON credits(person_id);
+CREATE INDEX IF NOT EXISTS idx_watch_log_item ON watch_log(item_id);
+CREATE INDEX IF NOT EXISTS idx_watch_log_date ON watch_log(watched_on);
 """
+
+
+# (table, column, declaration) added after the initial schema.
+_ADDED_COLUMNS = [
+    ("items", "runtime_min", "INTEGER"),
+    ("items", "is_tv", "INTEGER DEFAULT 0"),
+    ("user_status", "rating", "INTEGER"),
+    ("user_status", "watchlist_added_at", "TEXT"),
+    ("user_status", "watchlist_removed_at", "TEXT"),
+    ("user_status", "manual_updated_at", "TEXT"),
+]
 
 
 def content_hash(text: str) -> str:
@@ -186,10 +214,16 @@ class Database:
         """Create all tables, indexes, triggers, and FTS."""
         cur = self.conn.cursor()
         cur.executescript(_TABLES_SQL)
+        self._apply_additive_columns()
         cur.executescript(_FTS_SQL)
         cur.executescript(_FTS_TRIGGERS_SQL)
         cur.executescript(_INDEXES_SQL)
         self.conn.commit()
+
+    def _apply_additive_columns(self):
+        """Columns added after the first schema version (safe on existing DBs)."""
+        for table, column, decl in _ADDED_COLUMNS:
+            self._ensure_column(table, column, decl)
 
     def _ensure_column(self, table: str, column: str, decl: str) -> bool:
         """Add a column if missing (no migrations framework). Returns True if added."""
@@ -233,6 +267,7 @@ class Database:
         allowed = {
             "original_title", "tmdb_id", "wikidata_id", "isbn",
             "openlibrary_id", "match_confidence", "match_status",
+            "runtime_min", "is_tv",
         }
         filtered = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
 
@@ -256,7 +291,10 @@ class Database:
 
     def upsert_user_status(self, item_id: int, **kwargs: Any):
         """Insert or update user_status for an item."""
-        allowed = {"seen", "seen_date", "on_watchlist", "liked", "liked_date", "source"}
+        allowed = {
+            "seen", "seen_date", "on_watchlist", "liked", "liked_date", "source",
+            "rating", "watchlist_added_at", "watchlist_removed_at", "manual_updated_at",
+        }
         filtered = {k: v for k, v in kwargs.items() if k in allowed}
 
         row = self.conn.execute(
@@ -549,7 +587,7 @@ class Database:
 
     def stats(self) -> dict[str, int]:
         """Quick table row counts."""
-        tables = ["items", "user_status", "documents", "chunks", "people", "credits", "eval_runs"]
+        tables = ["items", "user_status", "documents", "chunks", "people", "credits", "eval_runs", "watch_log"]
         result = {}
         for t in tables:
             row = self.conn.execute(f"SELECT COUNT(*) as c FROM {t}").fetchone()
