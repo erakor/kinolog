@@ -154,3 +154,27 @@ def test_scoped_mention_check_and_citation_validation():
     out2 = agent.answer_query("ocean planet", generator_fn=gen2, mention_scope={ids["Solaris"]})
     assert out2["mentioned_item_ids"] == [ids["Solaris"]]
     assert out2["is_fully_grounded"] and out2["citations_valid"]
+
+
+def test_grounding_module_is_core_and_agent_reexports():
+    import src.core.grounding as g
+    from src.interfaces.chat import agent as agent_mod
+
+    assert agent_mod.assemble_context is g.assemble_context
+    from src.eval.metrics import groundedness
+
+    assert groundedness is g.groundedness
+
+
+def test_check_grounding_directly():
+    from src.core.grounding import assemble_context, check_grounding
+    from src.core.search import SearchResult
+
+    db, ids = _agent_db()
+    ctx = assemble_context([SearchResult(
+        item_id=ids["Solaris"], chunk_id=1, score=1.0, title="Solaris", year=1972,
+        chunk_text="An astronaut visits a space station.")])
+    ok = check_grounding(db, "Solaris [^1] fits.", ctx)
+    assert ok["is_fully_grounded"] and ok["citations_valid"]
+    bad = check_grounding(db, "Ran [^3] fits.", ctx, mention_scope={ids["Ran"]})
+    assert not bad["is_fully_grounded"] and bad["invalid_citations"] == [3]

@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+
+from src.core.grounding import groundedness as groundedness  # re-exported for eval users
 
 logger = logging.getLogger(__name__)
 
@@ -58,14 +59,3 @@ def ndcg_at_k(
     idcg = sum(rel / math.log2(i + 2) for i, rel in enumerate(ideal_rels))
 
     return dcg / idcg if idcg > 0 else 0.0
-
-
-def groundedness(
-    answer_items: list[int],
-    context_items: set[int],
-) -> float:
-    """Fraction of items mentioned in the answer that appear in the context."""
-    if not answer_items:
-        return 1.0  # vacuously true
-    grounded = len(set(answer_items) & context_items)
-    return grounded / len(answer_items)

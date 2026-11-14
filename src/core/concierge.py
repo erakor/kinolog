@@ -15,6 +15,7 @@ from typing import Any
 from src.core import collections as coll
 from src.core.db import Database
 from src.core.docfacts import item_facts, parse_tmdb_text
+from src.core.grounding import assemble_context, check_grounding
 from src.core.search import SearchFilters, SearchResult, search
 
 # --- lexicons ---------------------------------------------------------------------------
@@ -518,8 +519,6 @@ def pick(
     ``w_taste`` and ``w_comp`` default to 0 (pure retrieval order) until an eval justifies more.
     ``exclude_ids`` and ``rationales=False`` exist for evaluation (hold-out sets, no text).
     """
-    from src.interfaces.chat.agent import KinologChatAgent, assemble_context
-
     parsed = parse_constraints(query)
     degraded: list[str] = []
     if parsed.filters.get("item_type") == "book":
@@ -584,7 +583,6 @@ def pick(
         cards[item_id]["genres"] = f["genres"]
     deltas = coll.completion_deltas(db, top_ids, with_remaining=True)
     mention_scope = _mention_scope(db) if rationales else set()
-    agent = KinologChatAgent(db, model_embed=model)
 
     picks = []
     for item_id in top_ids:
@@ -610,38 +608,29 @@ def pick(
         }
         facts = _facts(card, deltas.get(item_id, []), hearts)
 
-        def template(_q: str, _ctx: str, card=card, item_id=item_id, assembled=assembled,
-                     hearts=hearts) -> str:
-            return _template_text(
-                card, parsed.filters, deltas.get(item_id, []), hearts, assembled.chunks
-            )
-
-        generator = "template"
-        out = agent.answer_query(
-            query, results=chunks, generator_fn=template, mention_scope=mention_scope
+        text = _template_text(
+            card, parsed.filters, deltas.get(item_id, []), hearts, assembled.chunks
         )
-        if generator_fn is not None:
+        check = check_grounding(db, text, assembled, mention_scope)
+        generator = "template"
+        if generator_fn is None:
+            degraded.append("no_llm: template rationale")
+        else:
             facts_block = "\n".join(f"Fact: {f['label']}: {f['value']}" for f in facts)
-
-            def llm(q: str, ctx: str, facts_block=facts_block) -> str:
-                return generator_fn(q, ctx + "\n" + facts_block)
-
             try:
-                llm_out = agent.answer_query(
-                    query, results=chunks, generator_fn=llm, mention_scope=mention_scope
-                )
+                llm_text = generator_fn(query, assembled.context_text + "\n" + facts_block)
+                llm_check = check_grounding(db, llm_text, assembled, mention_scope)
                 ok = (
-                    llm_out["is_fully_grounded"] and llm_out["citations_valid"]
-                    and (not assembled.chunks or "[^" in llm_out["answer"])
+                    bool(llm_text.strip()) and llm_check["is_fully_grounded"]
+                    and llm_check["citations_valid"]
+                    and (not assembled.chunks or "[^" in llm_text)
                 )
             except Exception:
                 ok = False
             if ok:
-                out, generator = llm_out, "llm"
+                text, check, generator = llm_text, llm_check, "llm"
             else:
                 degraded.append("llm_ungrounded: fell back to template rationale")
-        else:
-            degraded.append("no_llm: template rationale")
 
         meta = _chunk_meta(db, [c.chunk_id for c in assembled.chunks])
         picks.append({
@@ -650,7 +639,7 @@ def pick(
             "score_parts": score_parts,
             "completion": [asdict(d) for d in deltas.get(item_id, [])],
             "rationale": {
-                "text": out["answer"],
+                "text": text,
                 "generator": generator,
                 "citations": [
                     {
@@ -662,7 +651,7 @@ def pick(
                     }
                     for c in assembled.chunks
                 ],
-                "groundedness": out["groundedness"],
+                "groundedness": check["groundedness"],
                 "facts": facts,
             },
         })

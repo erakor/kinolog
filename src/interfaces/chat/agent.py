@@ -3,86 +3,21 @@
 from __future__ import annotations
 
 import logging
-import re
 from collections.abc import Callable
-from dataclasses import dataclass
 from typing import Any
 
 from src.core.db import Database
+from src.core.grounding import (
+    AssembledContext,
+    RetrievedChunkContext,
+    assemble_context,
+    check_grounding,
+)
 from src.core.search import SearchFilters, SearchResult, search
-from src.eval.metrics import groundedness
 
 logger = logging.getLogger(__name__)
 
-CITATION_RE = re.compile(r"\[\^(\d+)\]")
-
-
-@dataclass
-class RetrievedChunkContext:
-    item_id: int
-    title: str
-    year: int | None
-    chunk_id: int | None
-    text: str
-    score: float
-    citation_id: int
-
-
-@dataclass
-class AssembledContext:
-    chunks: list[RetrievedChunkContext]
-    total_tokens: int
-    context_text: str
-    referenced_item_ids: set[int]
-
-
-def assemble_context(
-    results: list[SearchResult],
-    token_budget: int = 1500,
-) -> AssembledContext:
-    """
-    Assemble context from search results under a token budget.
-    Deduplicates and formats citations as [^citation_id: Title (Year)].
-    """
-    selected_chunks: list[RetrievedChunkContext] = []
-    total_tokens = 0
-    ref_ids: set[int] = set()
-
-    for idx, r in enumerate(results):
-        # Estimate tokens (~3 chars/token)
-        text_snippet = r.chunk_text.strip()
-        tokens = max(1, len(text_snippet) // 3)
-
-        if total_tokens + tokens > token_budget and selected_chunks:
-            break
-
-        total_tokens += tokens
-        ref_ids.add(r.item_id)
-        selected_chunks.append(RetrievedChunkContext(
-            item_id=r.item_id,
-            title=r.title,
-            year=r.year,
-            chunk_id=r.chunk_id,
-            text=text_snippet,
-            score=r.score,
-            citation_id=len(selected_chunks) + 1,
-        ))
-
-    # Build prompt context text
-    lines = ["=== RETRIEVED CONTEXT ==="]
-    for c in selected_chunks:
-        year_str = f" ({c.year})" if c.year else ""
-        lines.append(f"\nSource [^{c.citation_id}]: {c.title}{year_str}")
-        lines.append(f"{c.text}")
-    lines.append("\n=========================")
-
-    return AssembledContext(
-        chunks=selected_chunks,
-        total_tokens=total_tokens,
-        context_text="\n".join(lines),
-        referenced_item_ids=ref_ids,
-    )
-
+__all__ = ["AssembledContext", "KinologChatAgent", "RetrievedChunkContext", "assemble_context"]
 
 class KinologChatAgent:
     """Chat agent that retrieves context and generates grounded answers with citations."""
@@ -146,23 +81,7 @@ class KinologChatAgent:
         else:
             answer = generator_fn(question, assembled.context_text)
 
-        # Extract mentioned item titles to check grounding
-        mentioned_item_ids = []
-        if mention_scope is None:
-            candidates = self.db.get_items()
-        else:
-            candidates = [it for it in (self.db.get_item(i) for i in mention_scope) if it]
-        for item in candidates:
-            pattern = r"\b" + re.escape(item["title"]) + r"\b"
-            if re.search(pattern, answer, re.IGNORECASE):
-                mentioned_item_ids.append(item["id"])
-
-        valid_ids = {c.citation_id for c in assembled.chunks}
-        invalid_citations = sorted(
-            {int(n) for n in CITATION_RE.findall(answer) if int(n) not in valid_ids}
-        )
-
-        grounded_score = groundedness(mentioned_item_ids, assembled.referenced_item_ids)
+        check = check_grounding(self.db, answer, assembled, mention_scope)
 
         return {
             "question": question,
@@ -175,10 +94,6 @@ class KinologChatAgent:
                 }
                 for c in assembled.chunks
             ],
-            "mentioned_item_ids": mentioned_item_ids,
             "context_item_ids": list(assembled.referenced_item_ids),
-            "groundedness": grounded_score,
-            "is_fully_grounded": grounded_score == 1.0,
-            "invalid_citations": invalid_citations,
-            "citations_valid": not invalid_citations,
+            **check,
         }
