@@ -40,11 +40,29 @@ def _parse_year(raw: str | None) -> int | None:
         return None
 
 
+def _parse_rating(raw: str | None) -> int | None:
+    """Letterboxd star rating (0.5-5) to half-star integer 1..10."""
+    if not raw or not raw.strip():
+        return None
+    try:
+        value = round(float(raw.strip()) * 2)
+    except ValueError:
+        return None
+    return value if 1 <= value <= 10 else None
+
+
 def _parse_date(raw: str | None) -> str | None:
     """Parse a date string, return ISO format or None."""
     if not raw or not raw.strip():
         return None
     return raw.strip()
+
+
+def _has_live_log(db: Database, item_id: int) -> bool:
+    row = db.execute(
+        "SELECT 1 FROM watch_log WHERE item_id = ? AND deleted_at IS NULL LIMIT 1", (item_id,)
+    ).fetchone()
+    return row is not None
 
 
 def find_csvs(export_dir: Path) -> dict[str, Path]:
@@ -75,10 +93,11 @@ def find_csvs(export_dir: Path) -> dict[str, Path]:
     if likes_path.exists():
         result["likes"] = likes_path
 
-    # Also check for diary.csv (richer data)
-    diary_path = export_dir / "diary.csv"
-    if diary_path.exists():
-        result["diary"] = diary_path
+    # Also check for diary.csv (richer data) and ratings.csv
+    for name in ("diary", "ratings"):
+        p = export_dir / f"{name}.csv"
+        if p.exists():
+            result[name] = p
 
     return result
 
@@ -111,7 +130,10 @@ def load_letterboxd(db: Database, export_dir: str | Path) -> dict:
         )
 
     logger.info("Found Letterboxd CSVs: %s", list(csvs.keys()))
-    stats = {"watched": 0, "watchlist": 0, "likes": 0, "first_heart_date": None}
+    stats = {
+        "watched": 0, "watchlist": 0, "likes": 0, "diary": 0, "ratings": 0,
+        "skipped_manual_override": 0, "first_heart_date": None,
+    }
 
     # --- Load watched ---
     if "watched" in csvs:
@@ -122,12 +144,10 @@ def load_letterboxd(db: Database, export_dir: str | Path) -> dict:
             if not title:
                 continue
             item_id = db.upsert_item("film", title, year)
-            db.upsert_user_status(
-                item_id,
-                seen=1,
-                seen_date=_parse_date(row.get("Date")),
-                source="letterboxd",
-            )
+            fields: dict = {"seen": 1, "source": "letterboxd"}
+            if not _has_live_log(db, item_id):
+                fields["seen_date"] = _parse_date(row.get("Date"))
+            db.upsert_user_status(item_id, **fields)
             stats["watched"] += 1
         logger.info("Loaded %d watched films", stats["watched"])
 
@@ -140,10 +160,8 @@ def load_letterboxd(db: Database, export_dir: str | Path) -> dict:
             if not title:
                 continue
             item_id = db.upsert_item("film", title, year)
-            db.upsert_user_status(
-                item_id,
-                on_watchlist=1,
-                source="letterboxd",
+            db.set_watchlist(
+                item_id, True, at=_parse_date(row.get("Date")), manual=False
             )
             stats["watchlist"] += 1
         logger.info("Loaded %d watchlist films", stats["watchlist"])
@@ -170,21 +188,43 @@ def load_letterboxd(db: Database, export_dir: str | Path) -> dict:
             stats["likes"] += 1
         logger.info("Loaded %d liked films", stats["likes"])
 
-    # --- Load diary if present (richer watched data with dates) ---
+    # --- Load diary (one watch_log entry per viewing) ---
     if "diary" in csvs:
-        diary_rows = _parse_csv(csvs["diary"])
-        for row in diary_rows:
+        touched: set[int] = set()
+        for row in _parse_csv(csvs["diary"]):
             title = row.get("Name", "").strip()
             year = _parse_year(row.get("Year"))
             if not title:
                 continue
+            watched_on = _parse_date(row.get("Watched Date")) or _parse_date(row.get("Date"))
+            if not watched_on:
+                continue
             item_id = db.upsert_item("film", title, year)
-            db.upsert_user_status(
+            uri = (row.get("Letterboxd URI") or title).strip()
+            db.log_watch(
                 item_id,
-                seen=1,
-                seen_date=_parse_date(row.get("Date")),
+                watched_on,
+                rating=_parse_rating(row.get("Rating")),
+                rewatch=(row.get("Rewatch") or "").strip().lower() in ("yes", "true", "1"),
                 source="letterboxd",
+                source_key=f"{uri}|{watched_on}",
             )
+            touched.add(item_id)
+            stats["diary"] += 1
+        for item_id in touched:
+            db.recompute_user_status(item_id)
+        logger.info("Loaded %d diary entries", stats["diary"])
+
+    # --- Load ratings (current rating per film) ---
+    if "ratings" in csvs:
+        for row in _parse_csv(csvs["ratings"]):
+            title = row.get("Name", "").strip()
+            rating = _parse_rating(row.get("Rating"))
+            if not title or rating is None:
+                continue
+            item_id = db.upsert_item("film", title, _parse_year(row.get("Year")))
+            db.upsert_user_status(item_id, rating=rating)
+            stats["ratings"] += 1
 
     db.conn.commit()
     return stats

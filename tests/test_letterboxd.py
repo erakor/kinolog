@@ -89,3 +89,57 @@ def test_idempotent_load(db, export_dir):
     # Should not duplicate items
     items = db.get_items(item_type="film")
     assert len(items) == 4
+
+
+def _write(path, fields, rows):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=fields)
+        w.writeheader()
+        for r in rows:
+            w.writerow(r)
+
+
+@pytest.fixture
+def diary_dir(tmp_path):
+    _write(tmp_path / "watched.csv", ["Date", "Name", "Year", "Letterboxd URI"], [
+        {"Date": "2024-01-20", "Name": "Solaris", "Year": "1972", "Letterboxd URI": "u/solaris"},
+    ])
+    _write(tmp_path / "diary.csv",
+           ["Date", "Name", "Year", "Letterboxd URI", "Rating", "Rewatch", "Tags", "Watched Date"], [
+        {"Date": "2024-01-21", "Name": "Solaris", "Year": "1972", "Letterboxd URI": "u/solaris",
+         "Rating": "4.5", "Rewatch": "", "Tags": "", "Watched Date": "2024-01-20"},
+        {"Date": "2024-03-01", "Name": "Solaris", "Year": "1972", "Letterboxd URI": "u/solaris",
+         "Rating": "5", "Rewatch": "Yes", "Tags": "", "Watched Date": "2024-02-28"},
+    ])
+    _write(tmp_path / "ratings.csv", ["Date", "Name", "Year", "Letterboxd URI", "Rating"], [
+        {"Date": "2024-03-01", "Name": "Solaris", "Year": "1972", "Letterboxd URI": "u/solaris",
+         "Rating": "5"},
+    ])
+    _write(tmp_path / "watchlist.csv", ["Date", "Name", "Year", "Letterboxd URI"], [
+        {"Date": "2023-02-11", "Name": "Stalker", "Year": "1979", "Letterboxd URI": "u/stalker"},
+    ])
+    return tmp_path
+
+
+def test_diary_rating_rewatch_and_added_date(db, diary_dir):
+    stats = load_letterboxd(db, diary_dir)
+    assert stats["diary"] == 2 and stats["ratings"] == 1
+    total, entries, _ = db.get_watch_log()
+    assert total == 2
+    by_date = {e["watched_on"]: e for e in entries}
+    assert by_date["2024-01-20"]["rating"] == 9 and not by_date["2024-01-20"]["rewatch"]
+    assert by_date["2024-02-28"]["rating"] == 10 and by_date["2024-02-28"]["rewatch"]
+    card = entries[0]["item"]
+    assert card["status"]["rating"] == 10
+    # seen_date is the latest viewing, not the last row processed
+    row = db.execute("SELECT seen_date FROM user_status WHERE item_id = ?", (card["item_id"],)).fetchone()
+    assert row["seen_date"] == "2024-02-28"
+    stalker = db.find_items_by_title("Stalker")[0]
+    assert stalker["added_at"] == "2023-02-11"
+
+
+def test_reimport_is_idempotent_for_log(db, diary_dir):
+    load_letterboxd(db, diary_dir)
+    load_letterboxd(db, diary_dir)
+    assert db.get_watch_log()[0] == 2
