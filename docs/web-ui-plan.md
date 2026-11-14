@@ -1,6 +1,6 @@
 # Kinolog web UI: implementation plan (DRAFT, not implemented)
 
-Status: draft for review. Nothing in `src/` has been changed. Open questions are in section 9;
+Status: reviewed; decisions recorded in section 9 (Q4 still open). Nothing in `src/` has changed;
 items marked **[BLOCKER]** or **[DEP]** need an answer or a separate piece of work first.
 
 ---
@@ -27,7 +27,7 @@ Findings that shape the plan (each one becomes a commit or an open question):
 | F9 | `_format_fts_query` ORs every token. "under 90 minutes" would match the literal `"Runtime: 90 minutes"` text in TMDB docs. | Constraint phrases must be stripped from the residual query before BM25. |
 | F10 | `KinologServer._rank_watchlist` has inline SQL for watchlist/heart ids; `mcp_server.py` has no `--db` flag and duplicated imports. | Move id lookups into `Database` (`get_watchlist_ids`, `get_heart_ids`) and reuse from both interfaces. Don't fix unrelated lint in passing. |
 | F11 | No `.venv` and no `pytest` in this container, so I could not confirm the suite is green today. | First implementation step: create venv, `pip install -e .[dev]`, record baseline. |
-| F12 | Branch: this session was set up on `claude/epic-thompson-8k7g72`; you asked for `claude/optimistic-dirac-912huk`. | See question Q1. |
+| F12 | Branch question resolved. | Work happens on `claude/optimistic-dirac-912huk`, based on `main`. |
 
 ---
 
@@ -411,7 +411,6 @@ derived from your description and will be re-sampled from the screenshots once r
   --shadow-card: 0 1px 0 var(--color-rule);
   --progress-h: 6px;
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { /* if wanted, Q7 */ } }
 ```
 Components (`components.css`): `.card`, `.btn` (black primary: `--color-ink` bg, `--color-on-ink`
 text), `.btn--ghost`, `.chip`, `.progress` (track `--color-accent-soft`, fill `--color-accent`),
@@ -601,22 +600,23 @@ Run `python3 -m src.interfaces.web --db data/index.db`, open `http://127.0.0.1:8
 
 ---
 
-## 9. Open questions
+## 9. Decisions (answered 2026-11-14)
 
-- **Q1. Branch.** This session is set up to push to `claude/epic-thompson-8k7g72`; you asked for
-  `claude/optimistic-dirac-912huk`. Which should I use? (I have not committed anything.)
-- **Q2. Screenshots.** They did not attach. Can you re-send them? Section 4 values and screen
-  layouts are provisional until then.
-- **Q3. "Delete" meaning.** On which screens, and what does it delete: a log entry (soft), the item
-  from the watchlist, or the item from the index entirely? I assumed log entry + watchlist removal,
-  never deleting `items`.
-- **Q4. Completion denominator.** "Films in my index" (works today) or the director's full TMDB
-  filmography (needs backend fetch)? Should shorts/TV count?
-- **Q5. Unknown runtime** under a runtime constraint: exclude (my default) or include with a flag?
-- **Q6. LLM.** Do you want the optional LLM rationale at all in v1, or template-only first? If yes,
-  is sending chunk text to the Anthropic API acceptable for your data?
-- **Q7. Dark mode** and **books**: in scope for v1? I assumed films only and light theme only.
-- **Q8. Rating scale**: half-stars stored as 1..10 (my default), matching Letterboxd.
+- **Q1. Branch.** `claude/optimistic-dirac-912huk`, based on `main`.
+- **Q2. Screenshots.** Will be supplied next session. Section 4 values and layouts stay provisional
+  until then; re-sample tokens before commit 10 (`tokens.css`).
+- **Q3. Delete.** Agreed: soft-delete a log entry, or remove a film from the watchlist. `items`
+  rows are never deleted from the UI.
+- **Q4. Completion denominator.** STILL OPEN: the answer "yes" did not pick between "films in my
+  index" and "full TMDB filmography", or say whether shorts/TV count. Needed before commit 11.
+- **Q5. Unknown runtime.** Agreed: excluded under a runtime constraint, with the excluded count
+  reported.
+- **Q6. LLM.** Yes: optional LLM rationale ships in v1 (commit 21 is in scope), and sending
+  retrieved chunk text to the Anthropic API is acceptable. Still opt-in via flag/env, template
+  remains the default and the fallback.
+- **Q7. Scope.** Agreed: films only, light theme only for v1. The dark-mode block in `tokens.css`
+  is left out.
+- **Q8. Rating scale.** Yes: half-stars stored as integers 1..10.
 
 ---
 
@@ -644,7 +644,7 @@ Run `python3 -m src.interfaces.web --db data/index.db`, open `http://127.0.0.1:8
 18. `core: concierge pick pipeline with template rationale` + tests.
 19. `web: Concierge endpoints and views` + tests.
 20. `eval: concierge suite, dataset scaffold, eval concierge CLI` + tests.
-21. `web: optional LLM rationale generator (llm extra)` + tests with fake client. (Only if Q6 = yes.)
+21. `web: optional LLM rationale generator (llm extra)` + tests with fake client.
 22. `docs: update CLAUDE.md and README for the web UI` (incl. correcting the agent path).
 
 Each commit passes `pytest` and `ruff check src tests` (E,F,I,N,W,UP, line length 100, py311) on
