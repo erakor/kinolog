@@ -58,6 +58,15 @@ def main(argv: list[str] | None = None) -> int:
         if generator is None:
             print("--llm requested but no usable Anthropic setup; using templates", file=sys.stderr)
 
+    from src.interfaces.web.app import BUILD_HINT, DIST_DIR
+
+    if not (DIST_DIR / "index.html").is_file():
+        print(
+            "Web UI is not built; the API works but / will return 503. "
+            f"Build it with:\n  {BUILD_HINT}",
+            file=sys.stderr,
+        )
+
     app = create_app(
         args.db, load_model=not args.no_model, generator=generator,
         allowed_hosts={"*"} if args.allow_remote else None,

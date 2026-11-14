@@ -19,7 +19,8 @@ def db():
 
 
 @pytest.fixture
-def client(db):
-    app = create_app(db, load_model=False)
+def client(db, tmp_path):
+    (tmp_path / "index.html").write_text("<!doctype html><title>Kinolog</title>")
+    app = create_app(db, load_model=False, dist_dir=tmp_path)
     with TestClient(app, base_url="http://localhost") as c:
         yield c

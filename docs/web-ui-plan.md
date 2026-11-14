@@ -1,7 +1,11 @@
 # Kinolog web UI plan (condensed)
 
 Local, single-user web UI over the existing index: Concierge, Watch List, Watching Log,
-Collections. FastAPI + vanilla JS, no build step, bound to loopback.
+Collections. FastAPI + a Vite/React/TypeScript frontend, bound to loopback.
+
+> Note: the frontend originally shipped as vanilla ES modules under `static/` with no build step.
+> It now lives in `src/interfaces/web/frontend/` and builds to `src/interfaces/web/dist/`; the JSON
+> API and visual design are unchanged. Mentions of vanilla JS below describe the original design.
 
 ## Decisions
 

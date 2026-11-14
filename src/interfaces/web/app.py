@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException
 
@@ -18,7 +18,12 @@ from src.interfaces.web.state import AppState
 
 logger = logging.getLogger(__name__)
 
-STATIC_DIR = Path(__file__).parent / "static"
+FRONTEND_DIR = Path(__file__).parent / "frontend"
+DIST_DIR = Path(__file__).parent / "dist"
+BUILD_HINT = (
+    "npm --prefix src/interfaces/web/frontend ci && "
+    "npm --prefix src/interfaces/web/frontend run build"
+)
 MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
 LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 
@@ -43,9 +48,12 @@ def create_app(
     w_taste: float = 0.0,
     w_comp: float = 0.0,
     allowed_hosts: frozenset[str] | set[str] | None = None,
+    dist_dir: Path | None = None,
 ) -> FastAPI:
     """``allowed_hosts`` are the Host header names accepted (default: loopback names only);
-    {"*"} accepts any. Rejecting unknown Hosts stops DNS-rebinding pages from reaching the API."""
+    {"*"} accepts any. Rejecting unknown Hosts stops DNS-rebinding pages from reaching the API.
+    ``dist_dir`` is the built frontend (default: ``web/dist``)."""
+    dist = DIST_DIR if dist_dir is None else Path(dist_dir)
     allowed = LOOPBACK_HOSTS if allowed_hosts is None else frozenset(allowed_hosts)
     if isinstance(db, str):
         db = Database(db, check_same_thread=False)
@@ -110,10 +118,20 @@ def create_app(
     app.include_router(imports.router)
     app.include_router(concierge.router)
 
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+    # check_dir=False: the build may appear after the server starts
+    app.mount("/assets", StaticFiles(directory=dist / "assets", check_dir=False), name="assets")
 
     @app.get("/", include_in_schema=False)
     def index():
-        return FileResponse(STATIC_DIR / "index.html")
+        page = dist / "index.html"
+        if page.is_file():
+            return FileResponse(page)
+        return HTMLResponse(
+            "<!doctype html><title>Kinolog: UI not built</title>"
+            "<h1>The web UI has not been built</h1>"
+            "<p>Build it once (needs Node), then reload:</p>"
+            f"<pre>{BUILD_HINT}</pre>",
+            status_code=503,
+        )
 
     return app
