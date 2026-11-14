@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import sqlite3
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -42,7 +43,11 @@ class VectorStoreBenchmark:
             return None
 
         vec_table = f"vec_{model_name}"
-        rows = self.db.execute(f"SELECT chunk_id, embedding FROM {vec_table}").fetchall()
+        try:
+            rows = self.db.execute(f"SELECT chunk_id, embedding FROM {vec_table}").fetchall()
+        except sqlite3.OperationalError:
+            logger.info("%s does not exist (no embeddings yet)", vec_table)
+            return None
         if not rows:
             return None
 

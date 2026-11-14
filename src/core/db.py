@@ -246,7 +246,12 @@ class Database:
         try:
             import sqlite_vec
 
-            sqlite_vec.load(self.conn)
+            # sqlite-vec >= 0.1.9 no longer enables extension loading itself.
+            self.conn.enable_load_extension(True)
+            try:
+                sqlite_vec.load(self.conn)
+            finally:
+                self.conn.enable_load_extension(False)
             logger.info("sqlite-vec loaded successfully")
             return True
         except (ImportError, Exception) as e:
