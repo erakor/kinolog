@@ -3,30 +3,26 @@
 from __future__ import annotations
 
 import argparse
-import json
 import logging
-import sys
-from pathlib import Path
-from typing import Any
 
 from src.core.db import Database
 
 logger = logging.getLogger(__name__)
 
 try:
-    import click
     from rich.console import Console
     from rich.table import Table
-    USE_CLICK = True
+
+    USE_RICH = True
     console = Console()
 except ImportError:
-    USE_CLICK = False
+    USE_RICH = False
     console = None
 
 
 def print_table(title: str, headers: list[str], rows: list[list[str]]):
     """Render a table with Rich if available, else plain ASCII."""
-    if USE_CLICK and console:
+    if USE_RICH and console:
         tbl = Table(title=title)
         for h in headers:
             tbl.add_column(h)
@@ -45,19 +41,25 @@ def print_table(title: str, headers: list[str], rows: list[list[str]]):
         sep = "+-" + "-+-".join("-" * w for w in col_widths) + "-+"
         print(f"\n=== {title} ===")
         print(sep)
-        header_line = "| " + " | ".join(h.ljust(col_widths[i]) for i, h in enumerate(headers)) + " |"
+        header_line = (
+            "| " + " | ".join(h.ljust(col_widths[i]) for i, h in enumerate(headers)) + " |"
+        )
         print(header_line)
         print(sep)
         for row in rows:
-            line = "| " + " | ".join(str(val).ljust(col_widths[i]) for i, val in enumerate(row)) + " |"
+            line = (
+                "| " + " | ".join(str(val).ljust(col_widths[i]) for i, val in enumerate(row)) + " |"
+            )
             print(line)
         print(sep + "\n")
 
 
 # --- Core command handlers ---
 
+
 def handle_ingest_letterboxd(db_path: str, export_dir: str):
     from src.ingest.letterboxd import load_letterboxd
+
     db = Database(db_path)
     stats = load_letterboxd(db, export_dir)
     rows = [[k, str(v)] for k, v in stats.items()]
@@ -67,6 +69,7 @@ def handle_ingest_letterboxd(db_path: str, export_dir: str):
 
 def handle_ingest_goodreads(db_path: str, csv_path: str):
     from src.ingest.goodreads import load_goodreads
+
     db = Database(db_path)
     stats = load_goodreads(db, csv_path)
     rows = [[k, str(v)] for k, v in stats.items()]
@@ -76,6 +79,7 @@ def handle_ingest_goodreads(db_path: str, csv_path: str):
 
 def handle_ingest_resolve(db_path: str, item_type: str = "film"):
     from src.ingest.resolvers.tmdb import TMDBResolver
+
     db = Database(db_path)
     resolver = TMDBResolver()
     stats = resolver.resolve_all(db, item_type=item_type)
@@ -88,6 +92,7 @@ def handle_ingest_resolve(db_path: str, item_type: str = "film"):
 def handle_ingest_enrich(db_path: str, item_type: str = "film"):
     from src.ingest.enrichers.tmdb import enrich_all
     from src.ingest.resolvers.tmdb import TMDBResolver
+
     db = Database(db_path)
     resolver = TMDBResolver()
     stats = enrich_all(db, resolver, item_type=item_type)
@@ -99,19 +104,24 @@ def handle_ingest_enrich(db_path: str, item_type: str = "film"):
 
 def handle_ingest_review(db_path: str):
     from src.ingest.review_cli import review_queue
+
     review_queue(db_path)
 
 
 def handle_ingest_chunk(db_path: str, strategy: str = "whole", item_type: str | None = None):
     from src.core.chunkers import chunk_all_documents
+
     db = Database(db_path)
     stats = chunk_all_documents(db, strategy=strategy, item_type=item_type)
     print(f"Chunked {stats['total']} documents -> {stats['chunks_created']} chunks")
     db.close()
 
 
-def handle_ingest_embed(db_path: str, model: str = "bge_m3", strategy: str = "whole", device: str | None = None):
+def handle_ingest_embed(
+    db_path: str, model: str = "bge_m3", strategy: str = "whole", device: str | None = None
+):
     from src.core.embed import BGE_M3, MultilingualE5, embed_chunks
+
     db = Database(db_path)
     if model == "bge_m3":
         embed_model = BGE_M3(device=device)
@@ -125,22 +135,33 @@ def handle_ingest_embed(db_path: str, model: str = "bge_m3", strategy: str = "wh
     db.close()
 
 
-def handle_search(db_path: str, query: str, mode: str = "bm25", limit: int = 10,
-                  item_type: str | None = None, seen: bool | None = None):
-    from src.core.search import SearchFilters, search as do_search
+def handle_search(
+    db_path: str,
+    query: str,
+    mode: str = "bm25",
+    limit: int = 10,
+    item_type: str | None = None,
+    seen: bool | None = None,
+):
+    from src.core.search import SearchFilters
+    from src.core.search import search as do_search
+
     db = Database(db_path)
     filters = SearchFilters(item_type=item_type, seen=seen)
     model = None
     if mode in ("vector", "rrf"):
         try:
             from src.core.embed import BGE_M3
+
             model = BGE_M3()
         except Exception as e:
             print(f"Vector model not available ({e}), falling back to BM25")
             mode = "bm25"
     results = do_search(db, query, model=model, mode=mode, limit=limit, filters=filters)
-    rows = [[str(i + 1), r.title, str(r.year or ""), f"{r.score:.4f}", r.source]
-            for i, r in enumerate(results)]
+    rows = [
+        [str(i + 1), r.title, str(r.year or ""), f"{r.score:.4f}", r.source]
+        for i, r in enumerate(results)
+    ]
     print_table(f"Search: {query} ({mode})", ["#", "Title", "Year", "Score", "Source"], rows)
     db.close()
 
@@ -159,6 +180,7 @@ def handle_stats(db_path: str):
 
 def handle_filmography(db_path: str, name: str, role: str | None = None):
     from src.core.crew import filmography as get_filmography
+
     db = Database(db_path)
     entries = get_filmography(db, person_name=name, role=role)
     for entry in entries:
@@ -171,6 +193,7 @@ def handle_filmography(db_path: str, name: str, role: str | None = None):
 
 def handle_crew_overlap(db_path: str, role: str = "Director", min_overlap: int = 2):
     from src.core.crew import crew_overlap_with_hearts
+
     db = Database(db_path)
     results = crew_overlap_with_hearts(db, role=role, min_overlap=min_overlap)
     rows = []
@@ -179,17 +202,21 @@ def handle_crew_overlap(db_path: str, role: str = "Director", min_overlap: int =
         if len(r.films) > 5:
             films_str += f" (+{len(r.films) - 5})"
         rows.append([r.person_name, str(r.overlap_count), str(r.total_seen), films_str])
-    print_table(f"Crew Overlap — {role}s in hearted films", ["Name", "Hearts", "Seen", "Films"], rows)
+    print_table(
+        f"Crew Overlap — {role}s in hearted films", ["Name", "Hearts", "Seen", "Films"], rows
+    )
     db.close()
 
 
 def handle_eval_known_items(db_path: str, mode: str = "bm25"):
     from src.core.search import search as do_search
     from src.eval.harness import eval_known_items, log_results
+
     db = Database(db_path)
     model = None
     if mode in ("vector", "rrf"):
         from src.core.embed import BGE_M3
+
         model = BGE_M3()
 
     def search_fn(query):
@@ -205,6 +232,7 @@ def handle_eval_known_items(db_path: str, mode: str = "bm25"):
 def handle_eval_hearts(db_path: str, ranker: str = "mean_heart", splits: int = 10):
     from src.core.taste import RANKERS
     from src.eval.harness import eval_hearts_recall, log_results
+
     db = Database(db_path)
     if ranker not in RANKERS:
         print(f"Unknown ranker: {ranker}. Available: {list(RANKERS.keys())}")
@@ -219,31 +247,46 @@ def handle_eval_hearts(db_path: str, ranker: str = "mean_heart", splits: int = 1
 
 # --- Argparse CLI (universal, zero external dependency) ---
 
+
 def run_argparse_cli():
     base_parser = argparse.ArgumentParser(add_help=False)
     base_parser.add_argument("--db", default="data/index.db", help="Path to SQLite index database")
     base_parser.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
 
-    parser = argparse.ArgumentParser(prog="kinolog", description="Personal Film & Book Index", parents=[base_parser])
+    parser = argparse.ArgumentParser(
+        prog="kinolog", description="Personal Film & Book Index", parents=[base_parser]
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # Ingest
-    ingest_parser = subparsers.add_parser("ingest", help="Ingestion commands", parents=[base_parser])
+    ingest_parser = subparsers.add_parser(
+        "ingest", help="Ingestion commands", parents=[base_parser]
+    )
     ingest_subs = ingest_parser.add_subparsers(dest="ingest_cmd", required=True)
 
-    lb_parser = ingest_subs.add_parser("letterboxd", help="Load Letterboxd export CSVs", parents=[base_parser])
+    lb_parser = ingest_subs.add_parser(
+        "letterboxd", help="Load Letterboxd export CSVs", parents=[base_parser]
+    )
     lb_parser.add_argument("export_dir", help="Path to directory containing Letterboxd CSVs or zip")
 
-    gr_parser = ingest_subs.add_parser("goodreads", help="Load Goodreads export CSV", parents=[base_parser])
+    gr_parser = ingest_subs.add_parser(
+        "goodreads", help="Load Goodreads export CSV", parents=[base_parser]
+    )
     gr_parser.add_argument("csv_path", help="Path to Goodreads CSV file")
 
-    res_parser = ingest_subs.add_parser("resolve", help="Resolve items to TMDB IDs", parents=[base_parser])
+    res_parser = ingest_subs.add_parser(
+        "resolve", help="Resolve items to TMDB IDs", parents=[base_parser]
+    )
     res_parser.add_argument("--type", default="film", help="Item type (film/book)")
 
-    enr_parser = ingest_subs.add_parser("enrich", help="Enrich items with TMDB metadata", parents=[base_parser])
+    enr_parser = ingest_subs.add_parser(
+        "enrich", help="Enrich items with TMDB metadata", parents=[base_parser]
+    )
     enr_parser.add_argument("--type", default="film", help="Item type (film/book)")
 
-    ingest_subs.add_parser("review", help="Review and clear the match review queue", parents=[base_parser])
+    ingest_subs.add_parser(
+        "review", help="Review and clear the match review queue", parents=[base_parser]
+    )
 
     chk_parser = ingest_subs.add_parser("chunk", help="Chunk documents", parents=[base_parser])
     chk_parser.add_argument("--strategy", default="whole", help="Chunk strategy")
@@ -266,12 +309,16 @@ def run_argparse_cli():
     subparsers.add_parser("stats", help="Show database statistics", parents=[base_parser])
 
     # Filmography
-    film_parser = subparsers.add_parser("filmography", help="Show person's filmography", parents=[base_parser])
+    film_parser = subparsers.add_parser(
+        "filmography", help="Show person's filmography", parents=[base_parser]
+    )
     film_parser.add_argument("name", help="Person name")
     film_parser.add_argument("--role", default=None, help="Filter by role")
 
     # Crew overlap
-    crew_parser = subparsers.add_parser("crew-overlap", help="Find crew in hearted films", parents=[base_parser])
+    crew_parser = subparsers.add_parser(
+        "crew-overlap", help="Find crew in hearted films", parents=[base_parser]
+    )
     crew_parser.add_argument("--role", default="Director", help="Role")
     crew_parser.add_argument("--min-overlap", type=int, default=2)
 
@@ -279,10 +326,14 @@ def run_argparse_cli():
     eval_parser = subparsers.add_parser("eval", help="Evaluation commands", parents=[base_parser])
     eval_subs = eval_parser.add_subparsers(dest="eval_cmd", required=True)
 
-    ki_parser = eval_subs.add_parser("known-items", help="Run known-item retrieval eval", parents=[base_parser])
+    ki_parser = eval_subs.add_parser(
+        "known-items", help="Run known-item retrieval eval", parents=[base_parser]
+    )
     ki_parser.add_argument("--mode", default="bm25", choices=["bm25", "vector", "rrf"])
 
-    hearts_parser = eval_subs.add_parser("hearts", help="Run hearts recall eval", parents=[base_parser])
+    hearts_parser = eval_subs.add_parser(
+        "hearts", help="Run hearts recall eval", parents=[base_parser]
+    )
     hearts_parser.add_argument("--ranker", default="mean_heart", help="Taste ranker")
     hearts_parser.add_argument("--splits", type=int, default=10)
 
@@ -307,8 +358,14 @@ def run_argparse_cli():
         elif args.ingest_cmd == "embed":
             handle_ingest_embed(args.db, args.model, args.strategy, args.device)
     elif args.command == "search":
-        handle_search(args.db, args.query, mode=args.mode, limit=args.limit,
-                      item_type=args.type, seen=args.seen)
+        handle_search(
+            args.db,
+            args.query,
+            mode=args.mode,
+            limit=args.limit,
+            item_type=args.type,
+            seen=args.seen,
+        )
     elif args.command == "stats":
         handle_stats(args.db)
     elif args.command == "filmography":

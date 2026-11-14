@@ -12,7 +12,11 @@ logger = logging.getLogger(__name__)
 TOOLS = [
     {
         "name": "search",
-        "description": "Search the film and book index. Supports BM25 (keyword), vector (semantic), and RRF (hybrid) search modes. Returns ranked results with titles, years, scores, and text snippets.",
+        "description": (
+            "Search the film and book index. Supports BM25 (keyword), vector (semantic), "
+            "and RRF (hybrid) search modes. Returns ranked results with titles, years, "
+            "scores, and text snippets."
+        ),
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -50,7 +54,10 @@ TOOLS = [
     },
     {
         "name": "rank_watchlist",
-        "description": "Rank watchlist films by taste affinity based on hearted films. Uses embedding-based taste rankers.",
+        "description": (
+            "Rank watchlist films by taste affinity based on hearted films. "
+            "Uses embedding-based taste rankers."
+        ),
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -112,7 +119,10 @@ TOOLS = [
     },
     {
         "name": "crew_overlap",
-        "description": "Find crew members who appear in multiple hearted films. Useful for discovering auteur patterns.",
+        "description": (
+            "Find crew members who appear in multiple hearted films. "
+            "Useful for discovering auteur patterns."
+        ),
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -145,6 +155,7 @@ class KinologServer:
 
     def __init__(self, db_path: str = "data/index.db"):
         from src.core.db import Database
+
         self.db = Database(db_path)
         self._model = None  # Lazy-loaded embedding model
 
@@ -152,6 +163,7 @@ class KinologServer:
         if self._model is None:
             try:
                 from src.core.embed import BGE_M3
+
                 self._model = BGE_M3()
             except Exception as e:
                 logger.warning("Embedding model not available: %s", e)
@@ -221,11 +233,11 @@ class KinologServer:
 
         # Get watchlist and heart IDs
         watchlist = self.db.execute(
-            "SELECT i.id FROM items i JOIN user_status us ON i.id = us.item_id WHERE us.on_watchlist = 1"
+            """SELECT i.id FROM items i
+               JOIN user_status us ON i.id = us.item_id
+               WHERE us.on_watchlist = 1"""
         ).fetchall()
-        hearts = self.db.execute(
-            "SELECT item_id FROM user_status WHERE liked = 1"
-        ).fetchall()
+        hearts = self.db.execute("SELECT item_id FROM user_status WHERE liked = 1").fetchall()
 
         candidate_ids = [r["id"] for r in watchlist]
         heart_ids = [r["item_id"] for r in hearts]
@@ -238,12 +250,14 @@ class KinologServer:
         for s in scores[:limit]:
             item = self.db.get_item(s.item_id)
             if item:
-                results.append({
-                    "title": item["title"],
-                    "year": item["year"],
-                    "score": round(s.score, 4),
-                    "method": s.method,
-                })
+                results.append(
+                    {
+                        "title": item["title"],
+                        "year": item["year"],
+                        "score": round(s.score, 4),
+                        "method": s.method,
+                    }
+                )
 
         return results
 
@@ -276,14 +290,18 @@ class KinologServer:
 
         try:
             import numpy as np
+
             query_embedding = np.frombuffer(row["embedding"], dtype=np.float32)
         except ImportError:
             return [{"error": "numpy is required for vector operations"}]
 
         filters = SearchFilters(item_type=args.get("item_type"))
         results = search_vector(
-            self.db, query_embedding, model.name,
-            limit=args.get("limit", 10) + 1, filters=filters,
+            self.db,
+            query_embedding,
+            model.name,
+            limit=args.get("limit", 10) + 1,
+            filters=filters,
         )
 
         # Exclude the query item itself
@@ -293,8 +311,9 @@ class KinologServer:
                 "year": r.year,
                 "score": round(r.score, 4),
             }
-            for r in results if r.item_id != item["id"]
-        ][:args.get("limit", 10)]
+            for r in results
+            if r.item_id != item["id"]
+        ][: args.get("limit", 10)]
 
     def _filmography(self, args: dict) -> list[dict]:
         from src.core.crew import filmography
@@ -302,16 +321,18 @@ class KinologServer:
         entries = filmography(self.db, person_name=args["name"], role=args.get("role"))
         results = []
         for entry in entries:
-            results.append({
-                "person": entry.person_name,
-                "role": entry.role,
-                "seen": entry.total_seen,
-                "total": entry.total_in_db,
-                "films": [
-                    {"title": f["title"], "year": f.get("year"), "seen": bool(f["seen"])}
-                    for f in entry.films
-                ],
-            })
+            results.append(
+                {
+                    "person": entry.person_name,
+                    "role": entry.role,
+                    "seen": entry.total_seen,
+                    "total": entry.total_in_db,
+                    "films": [
+                        {"title": f["title"], "year": f.get("year"), "seen": bool(f["seen"])}
+                        for f in entry.films
+                    ],
+                }
+            )
         return results
 
     def _crew_overlap(self, args: dict) -> list[dict]:
@@ -349,7 +370,7 @@ def create_mcp_app(db_path: str = "data/index.db"):
     """Create an MCP-compatible server application."""
     try:
         from mcp.server import Server
-        from mcp.types import Tool, TextContent
+        from mcp.types import TextContent, Tool
     except ImportError:
         logger.error("MCP library not installed. Install with: pip install 'kinolog[mcp]'")
         raise
@@ -371,6 +392,7 @@ def create_mcp_app(db_path: str = "data/index.db"):
 
 if __name__ == "__main__":
     import asyncio
+
     from mcp.server.stdio import stdio_server
 
     async def main():

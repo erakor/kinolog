@@ -1,8 +1,9 @@
 """Tests for crew queries."""
 
 import pytest
+
+from src.core.crew import crew_overlap_with_hearts, directors_by_heart_count, filmography
 from src.core.db import Database
-from src.core.crew import filmography, crew_overlap_with_hearts, directors_by_heart_count
 
 
 @pytest.fixture

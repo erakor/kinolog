@@ -1,9 +1,10 @@
 """Tests for MCP server tool handling."""
 
 import pytest
-from src.core.db import Database
+
 from src.core.chunkers import chunk_document
-from src.interfaces.mcp_server import KinologServer, TOOLS
+from src.core.db import Database
+from src.interfaces.mcp_server import TOOLS, KinologServer
 
 
 @pytest.fixture
@@ -17,13 +18,17 @@ def mcp_server(tmp_path):
     fellini = db.upsert_person("Federico Fellini", tmdb_person_id=4415)
     db.upsert_credit(id1, fellini, "Director", "Directing")
 
-    doc1 = db.upsert_document(id1, "tmdb", "en", "A journalist in Rome experiencing decadence and modern society.")
+    doc1 = db.upsert_document(
+        id1, "tmdb", "en", "A journalist in Rome experiencing decadence and modern society."
+    )
     chunk_document(db, doc1, strategy="whole")
 
     id2 = db.upsert_item("film", "8½", 1963)
     db.upsert_user_status(id2, seen=1, liked=1, on_watchlist=0)
     db.upsert_credit(id2, fellini, "Director", "Directing")
-    doc2 = db.upsert_document(id2, "tmdb", "en", "A film director suffers from creative blockage and artistic crisis.")
+    doc2 = db.upsert_document(
+        id2, "tmdb", "en", "A film director suffers from creative blockage and artistic crisis."
+    )
     chunk_document(db, doc2, strategy="whole")
 
     id3 = db.upsert_item("film", "Solaris", 1972)

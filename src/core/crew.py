@@ -42,9 +42,7 @@ def filmography(
     Search by name (partial match) or person_id.
     """
     if person_id:
-        people = db.execute(
-            "SELECT id, name FROM people WHERE id = ?", (person_id,)
-        ).fetchall()
+        people = db.execute("SELECT id, name FROM people WHERE id = ?", (person_id,)).fetchall()
     elif person_name:
         people = db.execute(
             "SELECT id, name FROM people WHERE name LIKE ?",
@@ -74,14 +72,16 @@ def filmography(
         films = [dict(r) for r in db.execute(sql, tuple(params)).fetchall()]
         total_seen = sum(1 for f in films if f["seen"])
 
-        results.append(FilmographyEntry(
-            person_id=person["id"],
-            person_name=person["name"],
-            role=role or "all",
-            total_in_db=len(films),
-            total_seen=total_seen,
-            films=films,
-        ))
+        results.append(
+            FilmographyEntry(
+                person_id=person["id"],
+                person_name=person["name"],
+                role=role or "all",
+                total_in_db=len(films),
+                total_seen=total_seen,
+                films=films,
+            )
+        )
 
     return results
 
@@ -141,14 +141,16 @@ def crew_overlap_with_hearts(
             (row["person_id"], row["role"]),
         ).fetchone()
 
-        results.append(CrewOverlap(
-            person_id=row["person_id"],
-            person_name=row["person_name"],
-            role=row["role"],
-            overlap_count=row["overlap_count"],
-            total_seen=total_seen_row["cnt"] if total_seen_row else 0,
-            films=[dict(f) for f in films],
-        ))
+        results.append(
+            CrewOverlap(
+                person_id=row["person_id"],
+                person_name=row["person_name"],
+                role=row["role"],
+                overlap_count=row["overlap_count"],
+                total_seen=total_seen_row["cnt"] if total_seen_row else 0,
+                films=[dict(f) for f in films],
+            )
+        )
 
     return results
 
@@ -160,7 +162,8 @@ def directors_by_heart_count(db: Database, limit: int = 20) -> list[dict]:
                   COUNT(DISTINCT cr.item_id) as heart_count,
                   (SELECT COUNT(DISTINCT cr2.item_id) FROM credits cr2
                    JOIN user_status us2 ON cr2.item_id = us2.item_id
-                   WHERE cr2.person_id = p.id AND cr2.role = 'Director' AND us2.seen = 1) as seen_count,
+                   WHERE cr2.person_id = p.id AND cr2.role = 'Director'
+                     AND us2.seen = 1) as seen_count,
                   (SELECT COUNT(DISTINCT cr3.item_id) FROM credits cr3
                    WHERE cr3.person_id = p.id AND cr3.role = 'Director') as total_in_db
            FROM credits cr
