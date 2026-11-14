@@ -1,0 +1,242 @@
+"""TMDB enricher: fetch details and build documents from TMDB data."""
+
+from __future__ import annotations
+
+import json
+import logging
+from pathlib import Path
+
+from src.core.db import Database, content_hash
+from src.ingest.resolvers.tmdb import TMDBResolver
+
+logger = logging.getLogger(__name__)
+
+CACHE_DIR = Path("data/cache/tmdb")
+
+# Key crew roles to extract
+KEY_ROLES = {
+    "Directing": ["Director"],
+    "Writing": ["Writer", "Screenplay", "Story"],
+    "Camera": ["Director of Photography"],
+    "Sound": ["Original Music Composer", "Music"],
+    "Production": ["Producer"],
+    "Editing": ["Editor"],
+}
+
+
+def _extract_crew(credits: dict) -> list[dict]:
+    """Extract key crew members from TMDB credits."""
+    crew = []
+    for member in credits.get("crew", []):
+        dept = member.get("department", "")
+        job = member.get("job", "")
+        if dept in KEY_ROLES and job in KEY_ROLES[dept]:
+            crew.append({
+                "tmdb_person_id": member["id"],
+                "name": member["name"],
+                "role": job,
+                "department": dept,
+            })
+    return crew
+
+
+def _extract_cast(credits: dict, limit: int = 10) -> list[dict]:
+    """Extract top cast from TMDB credits."""
+    cast = []
+    for member in credits.get("cast", [])[:limit]:
+        cast.append({
+            "tmdb_person_id": member["id"],
+            "name": member["name"],
+            "role": member.get("character", ""),
+            "department": "Acting",
+        })
+    return cast
+
+
+def _build_document_text(details: dict, lang: str = "en") -> str:
+    """Build a searchable document from TMDB details for a given language."""
+    parts = []
+
+    # Title
+    title = details.get("title", "")
+    orig_title = details.get("original_title", "")
+    if orig_title and orig_title != title:
+        parts.append(f"{title} ({orig_title})")
+    else:
+        parts.append(title)
+
+    # Year
+    release = details.get("release_date", "")
+    if release:
+        parts.append(f"({release[:4]})")
+
+    # Genres
+    genres = [g["name"] for g in details.get("genres", [])]
+    if genres:
+        parts.append(f"Genres: {', '.join(genres)}")
+
+    # Countries
+    countries = [c["name"] for c in details.get("production_countries", [])]
+    if countries:
+        parts.append(f"Countries: {', '.join(countries)}")
+
+    # Languages
+    langs = [la["english_name"] for la in details.get("spoken_languages", [])]
+    if langs:
+        parts.append(f"Languages: {', '.join(langs)}")
+
+    # Runtime
+    runtime = details.get("runtime")
+    if runtime:
+        parts.append(f"Runtime: {runtime} minutes")
+
+    # Director(s)
+    credits = details.get("credits", {})
+    directors = [m["name"] for m in credits.get("crew", []) if m.get("job") == "Director"]
+    if directors:
+        parts.append(f"Directed by: {', '.join(directors)}")
+
+    # Key crew
+    dps = [m["name"] for m in credits.get("crew", []) if m.get("job") == "Director of Photography"]
+    if dps:
+        parts.append(f"Cinematography: {', '.join(dps)}")
+
+    writers = [m["name"] for m in credits.get("crew", [])
+               if m.get("job") in ("Writer", "Screenplay")]
+    if writers:
+        parts.append(f"Written by: {', '.join(writers)}")
+
+    composers = [m["name"] for m in credits.get("crew", [])
+                 if m.get("job") in ("Original Music Composer", "Music")]
+    if composers:
+        parts.append(f"Music: {', '.join(composers)}")
+
+    # Top cast
+    cast = credits.get("cast", [])[:8]
+    if cast:
+        cast_strs = [f"{m['name']} as {m.get('character', '?')}" for m in cast]
+        parts.append(f"Cast: {', '.join(cast_strs)}")
+
+    # Keywords
+    keywords = [k["name"] for k in details.get("keywords", {}).get("keywords", [])]
+    if keywords:
+        parts.append(f"Keywords: {', '.join(keywords)}")
+
+    # Overview — use translation if available
+    overview = details.get("overview", "")
+    if lang != "en":
+        translations = details.get("translations", {}).get("translations", [])
+        for t in translations:
+            if t.get("iso_639_1") == lang:
+                translated = t.get("data", {}).get("overview", "")
+                if translated:
+                    overview = translated
+                    break
+    if overview:
+        parts.append(f"\n{overview}")
+
+    return "\n".join(parts)
+
+
+def enrich_item(
+    db: Database,
+    resolver: TMDBResolver,
+    item_id: int,
+    languages: tuple[str, ...] = ("en", "fr", "it"),
+) -> dict:
+    """
+    Fetch TMDB details for an item, store credits, and build documents.
+
+    Returns stats about what was created/updated.
+    """
+    item = db.get_item(item_id)
+    if not item or not item.get("tmdb_id"):
+        return {"status": "skipped", "reason": "no_tmdb_id"}
+
+    tmdb_id = item["tmdb_id"]
+    stats = {"tmdb_id": tmdb_id, "credits": 0, "documents": 0}
+
+    # Fetch details (cached on disk)
+    try:
+        details = resolver.get_details(tmdb_id)
+    except Exception as e:
+        logger.error("Failed to fetch TMDB details for %d: %s", tmdb_id, e)
+        return {"status": "error", "error": str(e)}
+
+    # Update item with original title
+    orig_title = details.get("original_title")
+    if orig_title and orig_title != item["title"]:
+        db.execute(
+            "UPDATE items SET original_title = ? WHERE id = ?",
+            (orig_title, item_id),
+        )
+
+    # Store wikidata ID from external_ids if available
+    ext_ids = details.get("external_ids", {})
+    wikidata_id = ext_ids.get("wikidata_id")
+    if wikidata_id:
+        db.execute(
+            "UPDATE items SET wikidata_id = ? WHERE id = ? AND wikidata_id IS NULL",
+            (wikidata_id, item_id),
+        )
+
+    # Register in raw_cache
+    cache_path = f"data/cache/tmdb/movie_{tmdb_id}.json"
+    db.cache_put("tmdb", str(tmdb_id), cache_path)
+
+    # --- Credits ---
+    credits = details.get("credits", {})
+    crew = _extract_crew(credits)
+    cast = _extract_cast(credits)
+
+    for member in crew + cast:
+        person_id = db.upsert_person(member["name"], member["tmdb_person_id"])
+        db.upsert_credit(item_id, person_id, member["role"], member["department"])
+        stats["credits"] += 1
+
+    # --- Documents (one per language) ---
+    for lang in languages:
+        text = _build_document_text(details, lang=lang)
+        if text.strip():
+            db.upsert_document(item_id, source="tmdb", lang=lang, text=text)
+            stats["documents"] += 1
+
+    db.conn.commit()
+    return stats
+
+
+def enrich_all(
+    db: Database,
+    resolver: TMDBResolver,
+    item_type: str = "film",
+    languages: tuple[str, ...] = ("en", "fr", "it"),
+) -> dict:
+    """Enrich all resolved items. Returns aggregate stats."""
+    items = db.execute(
+        """SELECT id, tmdb_id FROM items
+           WHERE item_type = ? AND tmdb_id IS NOT NULL
+           AND match_status IN ('auto', 'manual')""",
+        (item_type,),
+    ).fetchall()
+
+    total_stats = {"total": len(items), "enriched": 0, "credits": 0, "documents": 0, "errors": 0}
+    logger.info("Enriching %d %ss with TMDB data...", len(items), item_type)
+
+    for i, item in enumerate(items):
+        try:
+            stats = enrich_item(db, resolver, item["id"], languages=languages)
+            if stats.get("status") != "error":
+                total_stats["enriched"] += 1
+                total_stats["credits"] += stats.get("credits", 0)
+                total_stats["documents"] += stats.get("documents", 0)
+            else:
+                total_stats["errors"] += 1
+        except Exception as e:
+            logger.error("Error enriching item %d: %s", item["id"], e)
+            total_stats["errors"] += 1
+
+        if (i + 1) % 50 == 0:
+            logger.info("Enrichment progress: %d/%d", i + 1, len(items))
+
+    logger.info("Enrichment complete: %s", total_stats)
+    return total_stats

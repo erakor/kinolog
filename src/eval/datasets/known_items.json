@@ -1,0 +1,62 @@
+[
+  {
+    "query": "film shot at Cinecittà with natural light",
+    "target_title": "La Dolce Vita",
+    "target_year": 1960,
+    "category": "factual"
+  },
+  {
+    "query": "Mastroianni as a journalist in Rome",
+    "target_title": "La Dolce Vita",
+    "target_year": 1960,
+    "category": "named_entity"
+  },
+  {
+    "query": "a woman wanders through a barren volcanic island looking for her vanished friend",
+    "target_title": "L'Avventura",
+    "target_year": 1960,
+    "category": "thematic"
+  },
+  {
+    "query": "French New Wave couple arguing in an apartment, long tracking shots",
+    "target_title": "Le Mépris",
+    "target_year": 1963,
+    "category": "thematic"
+  },
+  {
+    "query": "Belmondo imitating Bogart, jump cuts through Paris",
+    "target_title": "À bout de souffle",
+    "target_year": 1960,
+    "category": "named_entity"
+  },
+  {
+    "query": "Italian neorealist film about a man searching for his stolen bicycle",
+    "target_title": "Bicycle Thieves",
+    "target_year": 1948,
+    "category": "factual"
+  },
+  {
+    "query": "Bergman film about a knight playing chess with Death during the plague",
+    "target_title": "The Seventh Seal",
+    "target_year": 1957,
+    "category": "thematic"
+  },
+  {
+    "query": "surrealist dinner party that never ends, Buñuel",
+    "target_title": "The Exterminating Angel",
+    "target_year": 1962,
+    "category": "named_entity"
+  },
+  {
+    "query": "Tarkovsky film about a space station orbiting a sentient ocean",
+    "target_title": "Solaris",
+    "target_year": 1972,
+    "category": "thematic"
+  },
+  {
+    "query": "black and white film about a filmmaker's creative crisis and memories, Fellini",
+    "target_title": "8½",
+    "target_year": 1963,
+    "category": "thematic"
+  }
+]
