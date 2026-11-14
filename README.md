@@ -119,7 +119,7 @@ To expose the Kinolog index tools to Claude or Antigravity via Model Context Pro
     "kinolog": {
       "command": "python3",
       "args": ["-m", "src.interfaces.mcp_server"],
-      "cwd": "/Users/amaurymouldron/Sites/Me/kinolog",
+      "cwd": "/path/to/kinolog",
       "env": {
         "PYTHONPATH": "."
       }
