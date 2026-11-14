@@ -80,6 +80,17 @@ class TMDBResolver:
         cache_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
         return data
 
+    def get_person_movie_credits(self, tmdb_person_id: int, *, refresh: bool = False) -> dict:
+        """Get person movie credits from TMDB."""
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        cache_path = CACHE_DIR / f"person_{tmdb_person_id}_movie_credits.json"
+        if not refresh and cache_path.exists():
+            return json.loads(cache_path.read_text(encoding="utf-8"))
+
+        data = self._get(f"/person/{tmdb_person_id}/movie_credits")
+        cache_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        return data
+
     def _score_candidate(
         self,
         candidate: dict,
@@ -204,7 +215,8 @@ class TMDBResolver:
         if best_score >= 0.7 and (len(scored) == 1 or scored[0][0] - scored[1][0] > 0.2):
             # Auto-accept
             db.execute(
-                "UPDATE items SET tmdb_id = ?, match_status = 'auto', match_confidence = ? WHERE id = ?",
+                """UPDATE items SET tmdb_id = ?, match_status = 'auto',
+                   match_confidence = ? WHERE id = ?""",
                 (best["id"], best_score, item_id),
             )
             db.conn.commit()
@@ -237,7 +249,8 @@ class TMDBResolver:
     def resolve_all(self, db: Database, item_type: str = "film") -> dict:
         """Resolve all unresolved items of a given type. Returns stats."""
         items = db.execute(
-            "SELECT id, title, year FROM items WHERE item_type = ? AND tmdb_id IS NULL AND match_status IS NULL",
+            """SELECT id, title, year FROM items
+               WHERE item_type = ? AND tmdb_id IS NULL AND match_status IS NULL""",
             (item_type,),
         ).fetchall()
 
