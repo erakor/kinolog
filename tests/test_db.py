@@ -205,3 +205,30 @@ class TestContentHash:
 
     def test_different_texts(self):
         assert content_hash("hello") != content_hash("world")
+
+
+def test_ensure_column_idempotent_on_reopened_file(tmp_path):
+    path = tmp_path / "x.db"
+    d = Database(path)
+    assert d._ensure_column("items", "extra_col", "INTEGER") is True
+    assert d._ensure_column("items", "extra_col", "INTEGER") is False
+    d.close()
+    d2 = Database(path)
+    assert d2._ensure_column("items", "extra_col", "INTEGER") is False
+    d2.close()
+
+
+def test_check_same_thread_false_allows_cross_thread_use():
+    import threading
+
+    d = Database(":memory:", check_same_thread=False)
+    out = []
+
+    def work():
+        out.append(d.upsert_item("film", "Thread", 2000))
+
+    t = threading.Thread(target=work)
+    t.start()
+    t.join()
+    assert len(out) == 1
+    d.close()

@@ -151,13 +151,13 @@ def content_hash(text: str) -> str:
 class Database:
     """SQLite database with FTS5 and optional sqlite-vec support."""
 
-    def __init__(self, db_path: str | Path = "data/index.db"):
+    def __init__(self, db_path: str | Path = "data/index.db", check_same_thread: bool = True):
         if str(db_path) != ":memory:":
             db_path = Path(db_path)
             db_path.parent.mkdir(parents=True, exist_ok=True)
 
         self.db_path = db_path
-        self.conn = sqlite3.connect(str(db_path))
+        self.conn = sqlite3.connect(str(db_path), check_same_thread=check_same_thread)
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.conn.execute("PRAGMA foreign_keys=ON")
@@ -190,6 +190,15 @@ class Database:
         cur.executescript(_FTS_TRIGGERS_SQL)
         cur.executescript(_INDEXES_SQL)
         self.conn.commit()
+
+    def _ensure_column(self, table: str, column: str, decl: str) -> bool:
+        """Add a column if missing (no migrations framework). Returns True if added."""
+        cols = {r["name"] for r in self.conn.execute(f"PRAGMA table_info({table})")}
+        if column in cols:
+            return False
+        self.conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
+        self.conn.commit()
+        return True
 
     # --- Vector tables ---
 
