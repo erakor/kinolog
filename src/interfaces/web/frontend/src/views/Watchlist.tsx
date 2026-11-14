@@ -84,7 +84,7 @@ export default function Watchlist() {
             <ImportButton onDone={reload} />
           </div>
         </div>
-        <div className={`${heroArt} min-h-[180px]`}>
+        <div className={`${heroArt} min-h-44`}>
           <BannerArt seed="watchlist" />
         </div>
       </section>
@@ -93,7 +93,7 @@ export default function Watchlist() {
         <div className="flex gap-3 items-center">
           <span className={`${num} text-ink-muted`}>{data && `Showing ${data.total} of ${count}`}</span>
           <select
-            className="bg-surface border border-rule rounded-btn px-3 py-2 min-h-10"
+            className="bg-surface border border-rule rounded-lg px-3 py-2 min-h-10"
             aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value as WatchlistSort)}>
             {sorts.map(([v, label]) => (
               <option key={v} value={v}>

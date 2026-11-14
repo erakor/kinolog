@@ -13,7 +13,7 @@ export function Radar({ radar, onAsk }: RadarProps) {
   return (
     <div>
       <div className="flex justify-between items-baseline flex-wrap gap-2">
-        <h2 className="text-[1.6rem]">Collection Completion Radar</h2>
+        <h2 className="text-2xl">Collection Completion Radar</h2>
         <a className={link} href="#/collections">
           View all collections
         </a>
@@ -25,15 +25,15 @@ export function Radar({ radar, onAsk }: RadarProps) {
         {radar.map((d) => (
           <article className={card} key={d.person_id}>
             <div className="flex justify-between items-baseline gap-3">
-              <h3 className="text-lg">{d.name}</h3>
-              <span className="font-display tabular-nums text-accent font-bold text-lg">{fmtPct(d.pct)}</span>
+              <h3 className="text-xl">{d.name}</h3>
+              <span className="font-display tabular-nums text-accent font-bold text-xl">{fmtPct(d.pct)}</span>
             </div>
             <p className="font-mono text-xs text-ink-muted mt-0.5 mb-3">
               {d.seen} of {d.total} features seen
             </p>
             <ProgressBar seen={d.seen} total={d.total} />
             {d.quickest && (
-              <p className="text-ink-muted text-[.85rem] my-3">
+              <p className="text-ink-muted text-sm my-3">
                 Quickest step: <strong className="text-ink font-semibold">{d.quickest.title}</strong>
                 {d.quickest.runtime_min ? ` (${d.quickest.runtime_min} min)` : ''}
                 {d.quickest.on_watchlist ? ', in Watch List' : ''}. Brings you to {fmtPct(d.quickest.after_pct)}.

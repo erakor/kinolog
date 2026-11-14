@@ -24,7 +24,7 @@ export function Modal({ title, onClose, children }: ModalProps) {
   return createPortal(
     <div
       data-testid="modal-backdrop"
-      className="fixed inset-0 bg-ink/40 grid items-start justify-items-center pt-[10vh] px-(--gutter) pb-(--gutter) z-30 overflow-y-auto"
+      className="fixed inset-0 bg-ink/40 grid items-start justify-items-center pt-24 px-4 pb-4 z-30 overflow-y-auto"
       onKeyDown={(e) => {
         if (e.key === 'Escape') {
           e.stopPropagation() // React events bubble through portals: don't close the modal underneath
@@ -37,14 +37,14 @@ export function Modal({ title, onClose, children }: ModalProps) {
     >
       <div
         ref={modalRef}
-        className="bg-surface rounded-card w-[min(560px,100%)] p-6 border border-rule"
+        className="bg-surface rounded-xl w-full max-w-lg p-6 border border-rule"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
       >
         <div className="flex justify-between items-center mb-4">
-          <h2 id={titleId} className="text-[1.5em]">
+          <h2 id={titleId} className="text-2xl">
             {title}
           </h2>
           <Button variant="icon" aria-label="Close" onClick={onClose}>

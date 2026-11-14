@@ -5,7 +5,7 @@ import { num } from '../../components/ui'
 
 export function CompletionPanel({ delta: d }: { delta: CompletionDelta }) {
   return (
-    <div className="bg-subtle border border-rule rounded-btn px-4 py-3 mt-3">
+    <div className="bg-subtle border border-rule rounded-lg px-4 py-3 mt-3">
       <div className="flex justify-between text-sm mb-2">
         <span>{d.name} Collection</span>
         <span className={num}>
@@ -14,7 +14,7 @@ export function CompletionPanel({ delta: d }: { delta: CompletionDelta }) {
         </span>
       </div>
       <ProgressBar seen={d.seen} total={d.total} afterSeen={d.seen + 1} />
-      <p className="text-ink-muted text-[.8rem] mt-2">
+      <p className="text-ink-muted text-xs mt-2">
         {d.remaining.length
           ? `Remaining after this: ${d.remaining.map((r) => `${r.title}${r.year ? ` (${r.year})` : ''}`).join(', ')}`
           : 'This would complete the filmography.'}

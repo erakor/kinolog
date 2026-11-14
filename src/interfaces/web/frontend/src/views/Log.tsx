@@ -126,8 +126,8 @@ export default function Log() {
         />
       )}
       {data && !none && (
-        <div className="overflow-x-auto bg-surface border border-rule rounded-card">
-          <table className="w-full border-collapse min-w-[640px] [&_tr:first-child_td]:border-t-0">
+        <div className="overflow-x-auto bg-surface border border-rule rounded-xl">
+          <table className="w-full border-collapse min-w-2xl [&_tr:first-child_td]:border-t-0">
             <thead>
               <tr>
                 {['Date', 'Film', 'Director', 'Runtime', 'Rating', ''].map((t, i) => (

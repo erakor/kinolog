@@ -28,7 +28,7 @@ function Stat({ label, value, sub, accent = false }: { label: string; value: str
   return (
     <div>
       <div className="text-sm text-ink-muted">{label}</div>
-      <div className={`font-mono text-xl font-bold${accent ? ' text-accent' : ''}`}>{value}</div>
+      <div className={`font-mono text-3xl font-bold${accent ? ' text-accent' : ''}`}>{value}</div>
       <div className="font-mono text-xs text-ink-muted">{sub}</div>
     </div>
   )
@@ -55,7 +55,7 @@ function Results({ data, onChanged }: { data: ConciergeResponse; onChanged: (ite
         ))}
       </div>
       {notes.length > 0 && (
-        <p className="text-ink-muted text-[.8rem] mb-3">
+        <p className="text-ink-muted text-xs mb-3">
           {notes.map(formatNote).join(' · ')}
         </p>
       )}
@@ -168,7 +168,7 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
           </p>
           <div className="mt-5">
             <form
-              className="flex gap-2 bg-surface border border-rule rounded-card py-1.5 pr-1.5 pl-3.5 items-center"
+              className="flex gap-2 bg-surface border border-rule rounded-xl py-1.5 pr-1.5 pl-3.5 items-center"
               onSubmit={onSubmit}
             >
               <span aria-hidden="true" className="text-ink-muted">
@@ -190,7 +190,7 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
           </div>
           <div className={`${toolbar} my-3`}>
             <Segmented options={SCOPE_OPTIONS} value={scope} onChange={setScope} />
-            <span className={`${num} text-ink-muted text-[.8rem]`}>
+            <span className={`${num} text-ink-muted text-xs`}>
               {overview && `${overview.watchlist.short_count} queued ≤ 90 min`}
             </span>
           </div>
@@ -207,17 +207,17 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
             </div>
           </div>
         </div>
-        <div className={`${heroArt} relative min-h-[260px]`}>
+        <div className={`${heroArt} relative min-h-64`}>
           <BannerArt seed="concierge" />
           {overview && (
-            <div className="absolute inset-x-0 bottom-0 p-4 bg-[linear-gradient(transparent,rgba(20,19,15,.78))] text-white">
-              <div className={`${num} text-[.8rem] opacity-85`}>
+            <div className="absolute inset-x-0 bottom-0 p-4 bg-linear-to-b from-transparent to-ink/80 text-white">
+              <div className={`${num} text-xs opacity-80`}>
                 {c ? `Nearest director milestone · ${c.seen}/${c.total} (${fmtPct(c.pct)})` : 'Director milestones'}
               </div>
-              <div className="font-display text-[1.5rem] font-bold">
+              <div className="font-display text-2xl font-bold">
                 {c ? c.name : 'No collections yet'}
               </div>
-              <div className="text-[.85rem] opacity-90">
+              <div className="text-sm opacity-90">
                 {c?.quickest
                   ? `Next up: ${c.quickest.title}${c.quickest.runtime_min ? ` (${c.quickest.runtime_min} min)` : ''}${
                       c.quickest.on_watchlist ? ' is in your watch list' : ''
@@ -237,7 +237,7 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
 
       {overview && (
         <>
-          <div className="grid grid-cols-[repeat(2,1fr)] gap-4 border-y border-rule py-5 my-8 md:grid-cols-[repeat(4,1fr)]">
+          <div className="grid grid-cols-2 gap-4 border-y border-rule py-5 my-8 md:grid-cols-4">
             <Stat label="Watch List" value={`${overview.watchlist.count} films`} sub={`${fmtHours(overview.watchlist.total_minutes)} hrs queued`} />
             <Stat
               label="Watching Log"

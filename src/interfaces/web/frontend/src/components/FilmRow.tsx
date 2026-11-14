@@ -20,7 +20,7 @@ export function FilmRow({ film: f, actions }: { film: DirectorFilm; actions?: Re
     <li className="flex items-center gap-3 py-2.5 border-t border-rule first:border-t-0">
       <span
         className={cx(
-          'inline-grid place-items-center shrink-0 size-4 rounded-[4px] border-[1.5px] text-[11px] leading-none',
+          'inline-grid place-items-center shrink-0 size-4 rounded-sm border-2 text-xs leading-none',
           checkTone,
         )}
         role="img"

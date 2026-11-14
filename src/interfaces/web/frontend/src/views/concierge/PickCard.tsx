@@ -27,7 +27,7 @@ export function PickCard({ pick: p, primary, onChanged }: PickCardProps) {
           {it.year ?? ''}
         </span>
       </div>
-      <h3 className="text-xl my-2">{it.title}</h3>
+      <h3 className="text-3xl my-2">{it.title}</h3>
       <p className="text-ink-muted">
         Directed by <strong className="text-ink font-semibold">{directorNames(it.directors) || 'unknown'}</strong>
         {it.genres?.length ? ` · ${it.genres.join(' / ')}` : ''}

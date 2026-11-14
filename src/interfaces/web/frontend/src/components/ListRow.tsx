@@ -19,7 +19,7 @@ export function ListRow({ row, actions, highlighted = false, rowRef }: ListRowPr
   return (
     <div className={cx(listRow, highlighted && 'bg-accent-wash')} data-item={row.item_id} ref={rowRef}>
       <div className="flex-1 min-w-0">
-        <div className="font-display text-lg font-bold">
+        <div className="font-display text-xl font-bold">
           {row.title}
           <span className={cx(num, meta)}>{row.year ?? ''}</span>
           {row.runtime_min ? <span className={cx(num, meta)}>{row.runtime_min} min</span> : null}

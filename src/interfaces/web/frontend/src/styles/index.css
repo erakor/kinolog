@@ -7,15 +7,12 @@
     background: var(--color-bg);
     color: var(--color-ink);
     font-family: var(--font-sans);
-    font-size: var(--text-md);
-    line-height: 1.5;
   }
   h1,
   h2,
   h3 {
     font-family: var(--font-display);
     font-weight: 700;
-    line-height: 1.15;
   }
   /* Tailwind v4 Preflight uses the default cursor on buttons. */
   button:not(:disabled),

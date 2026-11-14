@@ -1,5 +1,6 @@
 /* Design tokens. Light theme only (v1). Values sampled from the reference screens.
-   Each token in @theme is both a CSS variable and a Tailwind utility (bg-surface, text-ink-muted, ...). */
+   Only colors and fonts are customized; spacing, type scale, radii and breakpoints are Tailwind defaults.
+   Each token is both a CSS variable and a utility (bg-surface, text-ink-muted, font-display, ...). */
 @theme {
   --color-bg: #f8f6f2;
   --color-surface: #ffffff;
@@ -19,28 +20,4 @@
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: "Iowan Old Style", "Charter", "Palatino Linotype", Georgia, serif;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-
-  /* Replace Tailwind's type scale. No bundled line-heights: text inherits the body's 1.5. */
-  --text-*: initial;
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-md: 1rem;
-  --text-lg: 1.25rem;
-  --text-xl: 1.75rem;
-  --text-display: clamp(2rem, 4vw, 2.75rem);
-
-  --radius-card: 12px;
-  --radius-btn: 8px;
-  --radius-pill: 999px;
-
-  --container-page: 1152px;
-
-  --breakpoint-nav: 720px;
-  --breakpoint-md: 760px;
-  --breakpoint-hero: 860px;
-}
-
-:root {
-  --gutter: 16px;
-  --progress-h: 6px;
 }

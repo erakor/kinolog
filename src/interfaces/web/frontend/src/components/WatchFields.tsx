@@ -1,7 +1,7 @@
 import { RatingSelect } from './RatingSelect'
 import { cx, field, fieldInput, fieldRow } from './ui'
 
-const fieldLabel = cx(field, 'flex-[1_1_140px]')
+const fieldLabel = cx(field, 'flex-auto basis-36')
 
 interface WatchFieldsProps {
   date: string

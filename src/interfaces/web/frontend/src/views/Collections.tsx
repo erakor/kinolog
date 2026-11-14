@@ -25,8 +25,8 @@ function DirectorCard({ d, reload }: { d: DirectorCollection; reload: () => void
   return (
     <article className={card}>
       <div className="flex justify-between items-baseline gap-3">
-        <h3 className="text-xl">{d.name}</h3>
-        <span className="font-display tabular-nums text-accent font-bold text-lg">{fmtPct(d.pct)}</span>
+        <h3 className="text-3xl">{d.name}</h3>
+        <span className="font-display tabular-nums text-accent font-bold text-xl">{fmtPct(d.pct)}</span>
       </div>
       <p className="font-mono text-xs text-ink-muted mt-0.5 mb-3">
         {d.seen} / {d.total} watched{queued ? ` · ${queued} queued` : ''}
@@ -98,7 +98,7 @@ export default function Collections() {
             )}
           </div>
         </div>
-        <div className={`${heroArt} min-h-[180px]`}>
+        <div className={`${heroArt} min-h-44`}>
           <BannerArt seed="collections" />
         </div>
       </section>

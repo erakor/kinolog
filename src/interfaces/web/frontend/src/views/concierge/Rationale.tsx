@@ -15,7 +15,7 @@ export function Rationale({ rationale }: { rationale: RationaleData }) {
           return (
             <button
               key={i}
-              className="text-accent bg-transparent border-0 px-px text-[.75em] align-super"
+              className="text-accent bg-transparent border-0 px-px text-xs align-super"
               type="button"
               aria-label={`Source ${seg.n}`}
               onClick={() => setOpenN((cur) => (cur === seg.n ? null : seg.n))}
