@@ -143,3 +143,68 @@ def test_reimport_is_idempotent_for_log(db, diary_dir):
     load_letterboxd(db, diary_dir)
     load_letterboxd(db, diary_dir)
     assert db.get_watch_log()[0] == 2
+
+
+def test_reimport_does_not_resurrect_deleted_entry(db, diary_dir):
+    load_letterboxd(db, diary_dir)
+    _, entries, _ = db.get_watch_log()
+    for e in entries:
+        db.delete_watch(e["entry_id"])
+    stats = load_letterboxd(db, diary_dir)
+    assert db.get_watch_log()[0] == 0
+    sol = db.find_items_by_title("Solaris")[0]
+    assert sol["status"]["seen"] is False  # watched.csv row skipped too
+    assert stats["skipped_manual_override"] >= 1
+
+
+def test_reimport_keeps_manual_dequeue(db, diary_dir):
+    load_letterboxd(db, diary_dir)
+    stalker = db.find_items_by_title("Stalker")[0]["item_id"]
+    db.set_watchlist(stalker, False)
+    stats = load_letterboxd(db, diary_dir)
+    assert db.get_watchlist_ids() == []
+    assert stats["skipped_manual_override"] >= 1
+
+
+def test_newer_letterboxd_add_requeues(db, diary_dir):
+    load_letterboxd(db, diary_dir)
+    stalker = db.find_items_by_title("Stalker")[0]["item_id"]
+    db.set_watchlist(stalker, False, at="2023-06-01T00:00:00+00:00")
+    _write(diary_dir / "watchlist.csv", ["Date", "Name", "Year", "Letterboxd URI"], [
+        {"Date": "2024-09-01", "Name": "Stalker", "Year": "1979", "Letterboxd URI": "u/stalker"},
+    ])
+    load_letterboxd(db, diary_dir)
+    assert db.get_watchlist_ids() == [stalker]
+
+
+def test_manual_rating_and_like_survive_reimport(db, diary_dir):
+    _write(diary_dir / "likes" / "films.csv", ["Date", "Name", "Year", "Letterboxd URI"], [
+        {"Date": "2000-01-01", "Name": "Solaris", "Year": "1972", "Letterboxd URI": "u/solaris"},
+    ])
+    load_letterboxd(db, diary_dir)
+    sol = db.find_items_by_title("Solaris")[0]["item_id"]
+    # manual edits dated after the export rows (manual_updated_at is "now")
+    db.set_rating(sol, 3)
+    db.set_liked(sol, False)
+    load_letterboxd(db, diary_dir)
+    card = db.get_item_card(sol)
+    assert card["status"]["rating"] == 3 and card["status"]["liked"] is False
+
+
+def test_edited_entry_survives_reimport(db, diary_dir):
+    load_letterboxd(db, diary_dir)
+    _, entries, _ = db.get_watch_log()
+    target = next(e for e in entries if e["watched_on"] == "2024-01-20")
+    db.update_watch(target["entry_id"], rating=2)
+    load_letterboxd(db, diary_dir)
+    assert db.get_watch_entry(target["entry_id"])["rating"] == 2
+
+
+def test_zip_with_traversal_rejected(db, tmp_path):
+    import zipfile
+
+    z = tmp_path / "letterboxd-evil.zip"
+    with zipfile.ZipFile(z, "w") as zf:
+        zf.writestr("../evil.csv", "x")
+    with pytest.raises(ValueError):
+        load_letterboxd(db, tmp_path)

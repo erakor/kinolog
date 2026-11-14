@@ -65,6 +65,39 @@ def _has_live_log(db: Database, item_id: int) -> bool:
     return row is not None
 
 
+def _status(db: Database, item_id: int):
+    return db.execute("SELECT * FROM user_status WHERE item_id = ?", (item_id,)).fetchone()
+
+
+def _manual_wins(status, row_date: str | None) -> bool:
+    """True if a UI edit is at least as recent as the export row (day granularity)."""
+    manual = status["manual_updated_at"] if status else None
+    return bool(manual) and (not row_date or manual[:10] >= row_date)
+
+
+def _source_field(status) -> dict:
+    """Only stamp source when unset, so manual provenance is not overwritten."""
+    return {} if status and status["source"] else {"source": "letterboxd"}
+
+
+def _has_tombstone_only(db: Database, item_id: int) -> bool:
+    """User deleted every logged viewing of this item."""
+    dead = db.execute(
+        "SELECT 1 FROM watch_log WHERE item_id = ? AND deleted_at IS NOT NULL LIMIT 1", (item_id,)
+    ).fetchone()
+    return dead is not None and not _has_live_log(db, item_id)
+
+
+def _safe_extract(zf: zipfile.ZipFile, dest: Path) -> None:
+    """Extract a zip, refusing absolute paths and path traversal."""
+    root = dest.resolve()
+    for name in zf.namelist():
+        target = (dest / name).resolve()
+        if name.startswith(("/", "\\")) or not target.is_relative_to(root):
+            raise ValueError(f"Unsafe path in zip: {name!r}")
+    zf.extractall(dest)
+
+
 def find_csvs(export_dir: Path) -> dict[str, Path]:
     """Find Letterboxd CSV files. Handles both flat dir and zip."""
     result = {}
@@ -77,7 +110,7 @@ def find_csvs(export_dir: Path) -> dict[str, Path]:
         extract_dir = export_dir / "letterboxd"
         if not extract_dir.exists():
             with zipfile.ZipFile(zip_path, "r") as zf:
-                zf.extractall(extract_dir)
+                _safe_extract(zf, extract_dir)
         export_dir = extract_dir
 
     # Look for CSVs
@@ -144,7 +177,10 @@ def load_letterboxd(db: Database, export_dir: str | Path) -> dict:
             if not title:
                 continue
             item_id = db.upsert_item("film", title, year)
-            fields: dict = {"seen": 1, "source": "letterboxd"}
+            if _has_tombstone_only(db, item_id):
+                stats["skipped_manual_override"] += 1
+                continue
+            fields: dict = {"seen": 1, **_source_field(_status(db, item_id))}
             if not _has_live_log(db, item_id):
                 fields["seen_date"] = _parse_date(row.get("Date"))
             db.upsert_user_status(item_id, **fields)
@@ -160,9 +196,14 @@ def load_letterboxd(db: Database, export_dir: str | Path) -> dict:
             if not title:
                 continue
             item_id = db.upsert_item("film", title, year)
-            db.set_watchlist(
-                item_id, True, at=_parse_date(row.get("Date")), manual=False
-            )
+            added = _parse_date(row.get("Date"))
+            st = _status(db, item_id)
+            removed = st["watchlist_removed_at"] if st else None
+            if removed and (not added or removed[:10] >= added):
+                # dequeued in the UI more recently than Letterboxd added it
+                stats["skipped_manual_override"] += 1
+                continue
+            db.set_watchlist(item_id, True, at=added, manual=False)
             stats["watchlist"] += 1
         logger.info("Loaded %d watchlist films", stats["watchlist"])
 
@@ -179,11 +220,13 @@ def load_letterboxd(db: Database, export_dir: str | Path) -> dict:
             if not title:
                 continue
             item_id = db.upsert_item("film", title, year)
+            st = _status(db, item_id)
+            liked_on = _parse_date(row.get("Date"))
+            if _manual_wins(st, liked_on):
+                stats["skipped_manual_override"] += 1
+                continue
             db.upsert_user_status(
-                item_id,
-                liked=1,
-                liked_date=_parse_date(row.get("Date")),
-                source="letterboxd",
+                item_id, liked=1, liked_date=liked_on, **_source_field(st)
             )
             stats["likes"] += 1
         logger.info("Loaded %d liked films", stats["likes"])
@@ -223,6 +266,9 @@ def load_letterboxd(db: Database, export_dir: str | Path) -> dict:
             if not title or rating is None:
                 continue
             item_id = db.upsert_item("film", title, _parse_year(row.get("Year")))
+            if _manual_wins(_status(db, item_id), _parse_date(row.get("Date"))):
+                stats["skipped_manual_override"] += 1
+                continue
             db.upsert_user_status(item_id, rating=rating)
             stats["ratings"] += 1
 
