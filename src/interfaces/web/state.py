@@ -7,6 +7,7 @@ import threading
 from collections.abc import Callable
 from typing import Any
 
+from src.core import taste as taste_core
 from src.core.db import Database
 
 logger = logging.getLogger(__name__)
@@ -55,14 +56,8 @@ class AppState:
     def model_loaded(self) -> bool:
         return self._model is not None
 
-    def taste_available(self, model_name: str = "bge_m3") -> bool:
-        """Taste rankers read stored embeddings, so they need the vec table, not the model."""
-        if not self.db.vec_available:
-            return False
-        row = self.db.execute(
-            "SELECT 1 FROM sqlite_master WHERE name = ?", (f"vec_{model_name}",)
-        ).fetchone()
-        return row is not None
+    def taste_available(self) -> bool:
+        return taste_core.taste_available(self.db)
 
     def invalidate(self) -> None:
         """Call after any mutation that can change taste inputs."""

@@ -8,7 +8,7 @@ from src.core.db import Database
 from src.interfaces.web.deps import get_db, get_state
 from src.interfaces.web.schemas import ConciergeBody, ParseBody
 from src.interfaces.web.state import AppState
-from src.interfaces.web.taste import taste_scores
+from src.interfaces.web.taste import cached_taste_scores
 
 router = APIRouter(prefix="/api/concierge")
 
@@ -86,7 +86,7 @@ def concierge(body: ConciergeBody, state: AppState = Depends(get_state)):
             scope=body.scope,
             limit=body.limit,
             generator_fn=state.generator,
-            taste_fn=lambda ids: taste_scores(state, ids),
+            taste_fn=lambda ids: cached_taste_scores(state, ids),
             w_taste=state.w_taste,
             w_comp=state.w_comp,
         )

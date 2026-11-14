@@ -229,7 +229,7 @@ def handle_eval_concierge(
     db_path: str, mode: str = "bm25", ranker: str = "nearest_exemplar",
     w_taste: float = 0.0, w_comp: float = 0.0, hearts: bool = False, splits: int = 5,
 ):
-    from src.core.taste import RANKERS
+    from src.core.taste import RANKERS, taste_scores
     from src.eval.concierge import eval_concierge, eval_concierge_hearts
     from src.eval.harness import log_results
     db = Database(db_path)
@@ -242,7 +242,7 @@ def handle_eval_concierge(
         model = BGE_M3()
 
     def taste_fn(ids):
-        return {s.item_id: s.score for s in RANKERS[ranker](db, ids, db.get_heart_ids())}
+        return taste_scores(db, ids, ranker)
 
     results = eval_concierge(
         db, model=model, taste_fn=taste_fn if w_taste else None, w_taste=w_taste, w_comp=w_comp,

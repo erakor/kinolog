@@ -8,10 +8,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from src.core import collections as coll
 from src.core.db import Database
 from src.core.docfacts import item_facts
+from src.core.taste import TasteUnavailableError
 from src.interfaces.web.deps import card_or_404, get_db, get_state
 from src.interfaces.web.schemas import ItemRef, WatchedBody
 from src.interfaces.web.state import AppState
-from src.interfaces.web.taste import TasteUnavailableError, taste_scores
+from src.interfaces.web.taste import cached_taste_scores
 
 router = APIRouter(prefix="/api/watchlist")
 
@@ -54,7 +55,7 @@ def list_watchlist(
     taste = None
     if sort == "taste":
         try:
-            taste = taste_scores(state, [r["item_id"] for r in rows], ranker)
+            taste = cached_taste_scores(state, [r["item_id"] for r in rows], ranker)
         except TasteUnavailableError as e:
             raise HTTPException(409, {"code": "taste_unavailable", "message": str(e)}) from e
         rows.sort(key=lambda r: -taste.get(r["item_id"], -1.0))
