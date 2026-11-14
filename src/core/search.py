@@ -37,6 +37,10 @@ class SearchFilters:
     country: str | None = None
     language: str | None = None
     decade: int | None = None
+    runtime_min: int | None = None
+    runtime_max: int | None = None
+    item_ids: list[int] | None = None
+    exclude_ids: list[int] | None = None
 
     def to_sql_conditions(self) -> tuple[str, list]:
         """Returns (WHERE clause fragments, params) for items table alias 'i'."""
@@ -55,6 +59,22 @@ class SearchFilters:
         if self.decade:
             conditions.append("i.year >= ? AND i.year < ?")
             params.extend([self.decade, self.decade + 10])
+        # Items with unknown runtime never satisfy a runtime constraint.
+        if self.runtime_min is not None:
+            conditions.append("i.runtime_min IS NOT NULL AND i.runtime_min >= ?")
+            params.append(self.runtime_min)
+        if self.runtime_max is not None:
+            conditions.append("i.runtime_min IS NOT NULL AND i.runtime_min <= ?")
+            params.append(self.runtime_max)
+        if self.item_ids is not None:
+            if self.item_ids:
+                conditions.append(f"i.id IN ({','.join('?' for _ in self.item_ids)})")
+                params.extend(self.item_ids)
+            else:
+                conditions.append("0 = 1")
+        if self.exclude_ids:
+            conditions.append(f"i.id NOT IN ({','.join('?' for _ in self.exclude_ids)})")
+            params.extend(self.exclude_ids)
 
         return " AND ".join(conditions), params
 
