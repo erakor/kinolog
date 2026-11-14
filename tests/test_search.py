@@ -58,3 +58,38 @@ def test_bm25_search_director(db_with_data):
     titles = {r.title for r in results}
     assert "Le Mépris" in titles
     assert "À bout de souffle" in titles
+
+
+def test_runtime_and_id_filters(db_with_data):
+    db = db_with_data
+    runtimes = {"La Dolce Vita": 174, "8½": 138, "Le Mépris": 103, "À bout de souffle": 90}
+    for title, rt in runtimes.items():
+        db.execute("UPDATE items SET runtime_min = ? WHERE title = ?", (rt, title))
+    # Bicycle Thieves keeps unknown runtime
+    q = "Fellini Godard Rome film"
+    all_titles = {r.title for r in search_bm25(db, q, limit=20)}
+    assert "Bicycle Thieves" in all_titles
+
+    short = search_bm25(db, q, limit=20, filters=SearchFilters(runtime_max=110))
+    assert {r.title for r in short} == {"Le Mépris", "À bout de souffle"}  # unknown excluded
+
+    long = search_bm25(db, q, limit=20, filters=SearchFilters(runtime_min=130))
+    assert {r.title for r in long} == {"La Dolce Vita", "8½"}
+
+    ids = [r.item_id for r in search_bm25(db, q, limit=20) if r.title == "8½"]
+    only = search_bm25(db, q, limit=20, filters=SearchFilters(item_ids=ids))
+    assert {r.title for r in only} == {"8½"}
+    assert search_bm25(db, q, filters=SearchFilters(item_ids=[])) == []
+    excl = search_bm25(db, q, limit=20, filters=SearchFilters(exclude_ids=ids))
+    assert "8½" not in {r.title for r in excl}
+
+
+def test_features_only_filter(db_with_data):
+    db = db_with_data
+    db.execute("UPDATE items SET runtime_min = 12 WHERE title = '8½'")
+    db.execute("UPDATE items SET is_tv = 1 WHERE title = 'Bicycle Thieves'")
+    q = "Fellini Godard Rome film"
+    flt = SearchFilters(features_only=True)
+    titles = {r.title for r in search_bm25(db, q, limit=20, filters=flt)}
+    assert "8½" not in titles and "Bicycle Thieves" not in titles
+    assert "La Dolce Vita" in titles

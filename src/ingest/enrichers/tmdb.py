@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from pathlib import Path
 
 from src.core.db import Database, content_hash
@@ -22,6 +23,37 @@ KEY_ROLES = {
     "Production": ["Producer"],
     "Editing": ["Editor"],
 }
+
+
+def is_tv_movie(genre_names: list[str]) -> bool:
+    return any(g.strip().lower() == "tv movie" for g in genre_names)
+
+
+def backfill_runtime_and_tv(db: Database) -> dict:
+    """Set items.runtime_min / is_tv from existing TMDB documents (no network).
+
+    Parses the "Runtime: N minutes" and "Genres: ..." lines written by _build_document_text.
+    Items that already have a runtime are left alone.
+    """
+    stats = {"runtime": 0, "tv": 0, "scanned": 0}
+    rows = db.execute(
+        """SELECT i.id, i.runtime_min, d.text FROM items i
+           JOIN documents d ON d.item_id = i.id AND d.source = 'tmdb'
+           GROUP BY i.id"""
+    ).fetchall()
+    for r in rows:
+        stats["scanned"] += 1
+        text = r["text"] or ""
+        m = re.search(r"^Runtime:\s*(\d+)\s*minutes", text, re.MULTILINE)
+        if m and r["runtime_min"] is None:
+            db.execute("UPDATE items SET runtime_min = ? WHERE id = ?", (int(m.group(1)), r["id"]))
+            stats["runtime"] += 1
+        g = re.search(r"^Genres:\s*(.+)$", text, re.MULTILINE)
+        if g and is_tv_movie(g.group(1).split(",")):
+            db.execute("UPDATE items SET is_tv = 1 WHERE id = ?", (r["id"],))
+            stats["tv"] += 1
+    db.conn.commit()
+    return stats
 
 
 def _extract_crew(credits: dict) -> list[dict]:
@@ -179,6 +211,13 @@ def enrich_item(
             "UPDATE items SET wikidata_id = ? WHERE id = ? AND wikidata_id IS NULL",
             (wikidata_id, item_id),
         )
+
+    # Structured runtime / TV flag (used for filters and collection completion)
+    runtime = details.get("runtime")
+    if runtime:
+        db.execute("UPDATE items SET runtime_min = ? WHERE id = ?", (int(runtime), item_id))
+    if is_tv_movie([g.get("name", "") for g in details.get("genres", [])]):
+        db.execute("UPDATE items SET is_tv = 1 WHERE id = ?", (item_id,))
 
     # Register in raw_cache
     cache_path = f"data/cache/tmdb/movie_{tmdb_id}.json"

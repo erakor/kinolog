@@ -59,3 +59,16 @@ def test_cli_crew_overlap(populated_db):
                          capture_output=True, text=True)
     assert res.returncode == 0
     assert "Federico Fellini" in res.stdout
+
+
+def test_cli_eval_concierge_runs_and_logs(populated_db):
+    res = subprocess.run(
+        [sys.executable, "-m", "src.interfaces.cli", "eval", "concierge", "--db", populated_db],
+        capture_output=True, text=True,
+    )
+    assert res.returncode == 0, res.stderr
+    assert "parser_exact_match" in res.stdout
+    db = Database(populated_db)
+    suites = [r["suite"] for r in db.execute("SELECT DISTINCT suite FROM eval_runs")]
+    db.close()
+    assert suites == ["concierge"]

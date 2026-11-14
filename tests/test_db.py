@@ -205,3 +205,66 @@ class TestContentHash:
 
     def test_different_texts(self):
         assert content_hash("hello") != content_hash("world")
+
+
+def test_ensure_column_idempotent_on_reopened_file(tmp_path):
+    path = tmp_path / "x.db"
+    d = Database(path)
+    assert d._ensure_column("items", "extra_col", "INTEGER") is True
+    assert d._ensure_column("items", "extra_col", "INTEGER") is False
+    d.close()
+    d2 = Database(path)
+    assert d2._ensure_column("items", "extra_col", "INTEGER") is False
+    d2.close()
+
+
+def test_check_same_thread_false_allows_cross_thread_use():
+    import threading
+
+    d = Database(":memory:", check_same_thread=False)
+    out = []
+
+    def work():
+        out.append(d.upsert_item("film", "Thread", 2000))
+
+    t = threading.Thread(target=work)
+    t.start()
+    t.join()
+    assert len(out) == 1
+    d.close()
+
+
+def test_new_columns_and_watch_log_exist():
+    d = Database(":memory:")
+    item = d.upsert_item("film", "Short", 2000, runtime_min=12, is_tv=0)
+    assert d.get_item(item)["runtime_min"] == 12
+    d.upsert_user_status(item, rating=8, watchlist_added_at="2024-01-01")
+    row = d.execute("SELECT rating, watchlist_added_at FROM user_status").fetchone()
+    assert row["rating"] == 8 and row["watchlist_added_at"] == "2024-01-01"
+    d.execute(
+        "INSERT INTO watch_log (item_id, watched_on, source, created_at, updated_at)"
+        " VALUES (?, '2024-01-01', 'manual', 'x', 'x')",
+        (item,),
+    )
+    assert d.stats()["watch_log"] == 1
+
+
+def test_old_db_gains_columns(tmp_path):
+    import sqlite3
+
+    path = tmp_path / "old.db"
+    c = sqlite3.connect(path)
+    c.executescript(
+        "CREATE TABLE items (id INTEGER PRIMARY KEY, item_type TEXT NOT NULL, title TEXT NOT NULL,"
+        " original_title TEXT, year INTEGER, tmdb_id INTEGER UNIQUE, wikidata_id TEXT UNIQUE,"
+        " isbn TEXT, openlibrary_id TEXT, match_confidence REAL, match_status TEXT);"
+        "CREATE TABLE user_status (item_id INTEGER PRIMARY KEY, seen INTEGER DEFAULT 0,"
+        " seen_date TEXT, on_watchlist INTEGER DEFAULT 0, liked INTEGER DEFAULT 0,"
+        " liked_date TEXT, source TEXT);"
+    )
+    c.commit()
+    c.close()
+    d = Database(path)
+    cols = {r["name"] for r in d.execute("PRAGMA table_info(items)")}
+    assert {"runtime_min", "is_tv"} <= cols
+    d.close()

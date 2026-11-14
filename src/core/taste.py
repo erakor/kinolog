@@ -241,3 +241,45 @@ RANKERS = {
     "prototypes_5": lambda db, cands, hearts, **kw: rank_prototypes(db, cands, hearts, n_clusters=5, **kw),
     "prototypes_6": lambda db, cands, hearts, **kw: rank_prototypes(db, cands, hearts, n_clusters=6, **kw),
 }
+
+
+class TasteUnavailableError(Exception):
+    """Taste scoring cannot run (no vectors, no hearts, no embeddings)."""
+
+
+def taste_available(db: Database, model_name: str = "bge_m3") -> bool:
+    """Rankers read stored embeddings, so they need the vec table, not the model."""
+    if not db.vec_available:
+        return False
+    table = f"vec_{model_name}"
+    row = db.execute("SELECT 1 FROM sqlite_master WHERE name = ?", (table,)).fetchone()
+    return row is not None
+
+
+def taste_scores(
+    db: Database,
+    candidate_ids: list[int],
+    ranker: str = "nearest_exemplar",
+    heart_ids: list[int] | None = None,
+) -> dict[int, float]:
+    """Taste score per candidate (only those with embeddings), trained on hearted films.
+
+    Raises TasteUnavailableError with a human-readable reason instead of returning garbage,
+    so callers (web, CLI, eval) can degrade consistently.
+    """
+    fn = RANKERS.get(ranker)
+    if fn is None:
+        raise TasteUnavailableError(f"Unknown ranker: {ranker}")
+    if not taste_available(db):
+        raise TasteUnavailableError("Vector search or embeddings are not available")
+    hearts = db.get_heart_ids() if heart_ids is None else heart_ids
+    if not hearts:
+        raise TasteUnavailableError("No hearted films yet")
+    try:
+        scores = fn(db, list(candidate_ids), hearts)
+    except Exception as e:  # missing vec table, numpy, etc.
+        logger.warning("Taste ranking failed: %s", e)
+        raise TasteUnavailableError("Taste ranking failed (are embeddings built?)") from e
+    if not scores and candidate_ids:
+        raise TasteUnavailableError("No embeddings for hearted films")
+    return {s.item_id: s.score for s in scores}

@@ -78,3 +78,19 @@ def test_crew_overlap_tool(mcp_server):
 def test_unknown_tool(mcp_server):
     result = mcp_server.handle_tool("nonexistent_tool", {})
     assert "error" in result
+
+
+def test_rank_watchlist_uses_db_id_helpers(mcp_server, monkeypatch):
+    from src.core import taste
+
+    seen_args = {}
+
+    def fake_ranker(db, candidate_ids, heart_ids, **kw):
+        seen_args["c"], seen_args["h"] = candidate_ids, heart_ids
+        return [taste.TasteScore(item_id=i, score=1.0, method="fake") for i in candidate_ids]
+
+    monkeypatch.setitem(taste.RANKERS, "nearest_exemplar", fake_ranker)
+    out = mcp_server.handle_tool("rank_watchlist", {})
+    assert seen_args["c"] == mcp_server.db.get_watchlist_ids()
+    assert seen_args["h"] == mcp_server.db.get_heart_ids()
+    assert out and out[0]["title"] == "Solaris"

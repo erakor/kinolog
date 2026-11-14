@@ -89,6 +89,26 @@ python3 -m src.interfaces.cli eval hearts --ranker nearest_exemplar --splits 10
 
 ---
 
+## Web UI
+
+A local, single-user web UI (Concierge, Watch List, Watching Log, Director Collections) runs on top of
+the same index. It binds to `127.0.0.1` only and makes no external requests from the browser.
+
+```bash
+pip install -e '.[web]'
+python3 -m src.interfaces.web --db data/index.db          # http://127.0.0.1:8765
+python3 -m src.interfaces.web --no-model                  # keyword search only, no embedding model
+python3 -m src.interfaces.web --llm                       # optional LLM rationales (pip install '.[llm]')
+python3 -m src.interfaces.cli ingest backfill-runtime     # fill runtime/TV flags from existing TMDB docs
+python3 -m src.interfaces.cli eval concierge --hearts     # measure the Concierge
+```
+
+`--llm` sends the query and retrieved chunk text to the Anthropic API, so it is opt-in; the
+deterministic template rationale is the default and the fallback whenever model output is not
+grounded in the cited text. Back up `data/index.db` before the first run: new columns
+(`runtime_min`, `is_tv`, rating and watchlist dates) and the `watch_log` table are added in place.
+See `docs/web-ui-plan.md`.
+
 ## MCP Server Configuration
 
 To expose the Kinolog index tools to Claude or Antigravity via Model Context Protocol:

@@ -1,0 +1,45 @@
+[
+  {
+    "id": "c01",
+    "query": "I have 90 minutes. Give me a movie.",
+    "expected_filters": {"runtime_max": 90},
+    "relevant": [],
+    "acceptable": [],
+    "_note": "SCAFFOLD: edit 'relevant'/'acceptable' against your own index. Parser and constraint checks work without them."
+  },
+  {
+    "id": "c02",
+    "query": "a slow drama from the 60s I haven't seen",
+    "expected_filters": {"decade": 1960, "seen": false},
+    "relevant": [{"title": "L'Avventura", "year": 1960}],
+    "acceptable": [{"title": "La Dolce Vita", "year": 1960}]
+  },
+  {
+    "id": "c03",
+    "query": "something under 2 hours about a journalist in Rome",
+    "expected_filters": {"runtime_max": 120},
+    "relevant": [],
+    "acceptable": []
+  },
+  {
+    "id": "c04",
+    "query": "French New Wave after 1960 under 100 minutes",
+    "expected_filters": {"year_min": 1961, "runtime_max": 100},
+    "relevant": [{"title": "À bout de souffle", "year": 1960}],
+    "acceptable": []
+  },
+  {
+    "id": "c05",
+    "query": "a film from my watchlist at least 2 hours",
+    "expected_filters": {"on_watchlist": true, "runtime_min": 120},
+    "relevant": [],
+    "acceptable": []
+  },
+  {
+    "id": "c06",
+    "query": "neorealist film before 1950",
+    "expected_filters": {"year_max": 1949},
+    "relevant": [{"title": "Bicycle Thieves", "year": 1948}],
+    "acceptable": []
+  }
+]

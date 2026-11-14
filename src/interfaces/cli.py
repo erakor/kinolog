@@ -97,6 +97,14 @@ def handle_ingest_enrich(db_path: str, item_type: str = "film"):
     db.close()
 
 
+def handle_ingest_backfill_runtime(db_path: str):
+    from src.ingest.enrichers.tmdb import backfill_runtime_and_tv
+    db = Database(db_path)
+    stats = backfill_runtime_and_tv(db)
+    print_table("Runtime backfill", ["Metric", "Count"], [[k, str(v)] for k, v in stats.items()])
+    db.close()
+
+
 def handle_ingest_review(db_path: str):
     from src.ingest.review_cli import review_queue
     review_queue(db_path)
@@ -217,6 +225,39 @@ def handle_eval_hearts(db_path: str, ranker: str = "mean_heart", splits: int = 1
     db.close()
 
 
+def handle_eval_concierge(
+    db_path: str, mode: str = "bm25", ranker: str = "nearest_exemplar",
+    w_taste: float = 0.0, w_comp: float = 0.0, hearts: bool = False, splits: int = 5,
+):
+    from src.core.taste import RANKERS, taste_scores
+    from src.eval.concierge import eval_concierge, eval_concierge_hearts
+    from src.eval.harness import log_results
+    db = Database(db_path)
+    if ranker not in RANKERS:
+        print(f"Unknown ranker: {ranker}. Available: {list(RANKERS.keys())}")
+        return
+    model = None
+    if mode in ("vector", "rrf"):
+        from src.core.embed import BGE_M3
+        model = BGE_M3()
+
+    def taste_fn(ids):
+        return taste_scores(db, ids, ranker)
+
+    results = eval_concierge(
+        db, model=model, taste_fn=taste_fn if w_taste else None, w_taste=w_taste, w_comp=w_comp,
+        config={"mode": mode, "ranker": ranker},
+    )
+    if hearts:
+        results += eval_concierge_hearts(
+            db, RANKERS[ranker], model=model, w_taste=w_taste or 0.5, n_splits=splits
+        )
+    log_results(db, results)
+    rows = [[r.metric, f"{r.value:.4f}", f"{r.stdev:.4f}" if r.stdev else "—"] for r in results]
+    print_table(f"Concierge Eval ({mode}, {ranker})", ["Metric", "Value", "Stdev"], rows)
+    db.close()
+
+
 # --- Argparse CLI (universal, zero external dependency) ---
 
 def run_argparse_cli():
@@ -242,6 +283,11 @@ def run_argparse_cli():
 
     enr_parser = ingest_subs.add_parser("enrich", help="Enrich items with TMDB metadata", parents=[base_parser])
     enr_parser.add_argument("--type", default="film", help="Item type (film/book)")
+
+    ingest_subs.add_parser(
+        "backfill-runtime", help="Set runtime/TV flag from existing TMDB documents",
+        parents=[base_parser],
+    )
 
     ingest_subs.add_parser("review", help="Review and clear the match review queue", parents=[base_parser])
 
@@ -282,6 +328,14 @@ def run_argparse_cli():
     ki_parser = eval_subs.add_parser("known-items", help="Run known-item retrieval eval", parents=[base_parser])
     ki_parser.add_argument("--mode", default="bm25", choices=["bm25", "vector", "rrf"])
 
+    con_parser = eval_subs.add_parser("concierge", help="Run concierge eval", parents=[base_parser])
+    con_parser.add_argument("--mode", default="bm25", choices=["bm25", "rrf"])
+    con_parser.add_argument("--ranker", default="nearest_exemplar", help="Taste ranker")
+    con_parser.add_argument("--w-taste", type=float, default=0.0)
+    con_parser.add_argument("--w-comp", type=float, default=0.0)
+    con_parser.add_argument("--hearts", action="store_true", help="Also run held-out hearts check")
+    con_parser.add_argument("--splits", type=int, default=5)
+
     hearts_parser = eval_subs.add_parser("hearts", help="Run hearts recall eval", parents=[base_parser])
     hearts_parser.add_argument("--ranker", default="mean_heart", help="Taste ranker")
     hearts_parser.add_argument("--splits", type=int, default=10)
@@ -300,6 +354,8 @@ def run_argparse_cli():
             handle_ingest_resolve(args.db, args.type)
         elif args.ingest_cmd == "enrich":
             handle_ingest_enrich(args.db, args.type)
+        elif args.ingest_cmd == "backfill-runtime":
+            handle_ingest_backfill_runtime(args.db)
         elif args.ingest_cmd == "review":
             handle_ingest_review(args.db)
         elif args.ingest_cmd == "chunk":
@@ -316,7 +372,10 @@ def run_argparse_cli():
     elif args.command == "crew-overlap":
         handle_crew_overlap(args.db, role=args.role, min_overlap=args.min_overlap)
     elif args.command == "eval":
-        if args.eval_cmd == "known-items":
+        if args.eval_cmd == "concierge":
+            handle_eval_concierge(args.db, args.mode, args.ranker, args.w_taste, args.w_comp,
+                                  args.hearts, args.splits)
+        elif args.eval_cmd == "known-items":
             handle_eval_known_items(args.db, mode=args.mode)
         elif args.eval_cmd == "hearts":
             handle_eval_hearts(args.db, ranker=args.ranker, splits=args.splits)

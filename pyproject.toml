@@ -21,6 +21,14 @@ dev = [
 mcp = [
     "mcp>=1.0",
 ]
+web = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "python-multipart>=0.0.9",
+]
+llm = [
+    "anthropic>=1.0",
+]
 
 [project.scripts]
 kinolog = "src.interfaces.cli:cli"

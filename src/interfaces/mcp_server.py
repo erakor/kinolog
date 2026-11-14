@@ -219,16 +219,8 @@ class KinologServer:
         if not rank_fn:
             return [{"error": f"Unknown ranker: {ranker_name}"}]
 
-        # Get watchlist and heart IDs
-        watchlist = self.db.execute(
-            "SELECT i.id FROM items i JOIN user_status us ON i.id = us.item_id WHERE us.on_watchlist = 1"
-        ).fetchall()
-        hearts = self.db.execute(
-            "SELECT item_id FROM user_status WHERE liked = 1"
-        ).fetchall()
-
-        candidate_ids = [r["id"] for r in watchlist]
-        heart_ids = [r["item_id"] for r in hearts]
+        candidate_ids = self.db.get_watchlist_ids()
+        heart_ids = self.db.get_heart_ids()
 
         scores = rank_fn(self.db, candidate_ids, heart_ids)
         limit = args.get("limit", 20)

@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     import numpy as np
 
+from src.core.collections import SHORT_MAX_MIN
 from src.core.db import Database
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,11 @@ class SearchFilters:
     country: str | None = None
     language: str | None = None
     decade: int | None = None
+    runtime_min: int | None = None
+    runtime_max: int | None = None
+    item_ids: list[int] | None = None
+    exclude_ids: list[int] | None = None
+    features_only: bool = False  # drop shorts and TV movies (see collections.SHORT_MAX_MIN)
 
     def to_sql_conditions(self) -> tuple[str, list]:
         """Returns (WHERE clause fragments, params) for items table alias 'i'."""
@@ -55,6 +61,27 @@ class SearchFilters:
         if self.decade:
             conditions.append("i.year >= ? AND i.year < ?")
             params.extend([self.decade, self.decade + 10])
+        # Items with unknown runtime never satisfy a runtime constraint.
+        if self.runtime_min is not None:
+            conditions.append("i.runtime_min IS NOT NULL AND i.runtime_min >= ?")
+            params.append(self.runtime_min)
+        if self.runtime_max is not None:
+            conditions.append("i.runtime_min IS NOT NULL AND i.runtime_min <= ?")
+            params.append(self.runtime_max)
+        if self.item_ids is not None:
+            if self.item_ids:
+                conditions.append(f"i.id IN ({','.join('?' for _ in self.item_ids)})")
+                params.extend(self.item_ids)
+            else:
+                conditions.append("0 = 1")
+        if self.features_only:
+            conditions.append(
+                "COALESCE(i.is_tv, 0) = 0 "
+                f"AND (i.runtime_min IS NULL OR i.runtime_min > {SHORT_MAX_MIN})"
+            )
+        if self.exclude_ids:
+            conditions.append(f"i.id NOT IN ({','.join('?' for _ in self.exclude_ids)})")
+            params.extend(self.exclude_ids)
 
         return " AND ".join(conditions), params
 
@@ -165,7 +192,7 @@ def search_vector(
         JOIN items i ON c.item_id = i.id
     """
     params: list[Any] = []
-    where_parts = [f"v.embedding MATCH ? AND k = ?"]
+    where_parts = ["v.embedding MATCH ? AND k = ?"]
     params.append(query_embedding.tobytes())
     params.append(limit * 3)  # fetch more, then filter
 
@@ -182,7 +209,7 @@ def search_vector(
             params.extend(status_params)
 
     sql += " WHERE " + " AND ".join(where_parts)
-    sql += f" ORDER BY v.distance LIMIT ?"
+    sql += " ORDER BY v.distance LIMIT ?"
     params.append(limit)
 
     try:
