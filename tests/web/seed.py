@@ -29,7 +29,7 @@ def seed(db):
         if seen:
             db.log_watch(i, f"{year + 20}-05-01", rating=8 if liked else 7, source="letterboxd",
                          source_key=f"k-{i}")
-        doc = db.upsert_document(i, "tmdb", "en", f"{title} ({year})\nRuntime: {rt} minutes\n{text}")
+        doc = db.upsert_document(i, "tmdb", "en", f"{title} ({year})\nRuntime: {rt} minutes\n\n{text}")
         chunk_document(db, doc, strategy="whole")
         ids[title] = i
     return ids

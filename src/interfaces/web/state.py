@@ -58,6 +58,15 @@ class AppState:
     def model_loaded(self) -> bool:
         return self._model is not None
 
+    def taste_available(self, db: Database, model_name: str = "bge_m3") -> bool:
+        """Taste rankers read stored embeddings, so they need the vec table, not the model."""
+        if not db.vec_available:
+            return False
+        row = db.execute(
+            "SELECT 1 FROM sqlite_master WHERE name = ?", (f"vec_{model_name}",)
+        ).fetchone()
+        return row is not None
+
     def invalidate(self) -> None:
         """Call after any mutation that can change taste inputs."""
         self.taste_cache.clear()
