@@ -11,11 +11,15 @@ from src.core.completion import (
     aggregate_impact,
     completion_deltas,
     compute_completion,
+    director_completions,
     director_impact_key,
     format_pct,
     is_feature,
+    load_director_films,
     passes_runtime,
+    watchlist_by_director_impact,
 )
+from src.core.db import Database
 
 FIXED_TODAY = date(2025, 1, 1)
 
@@ -310,3 +314,190 @@ def test_director_impact_key_ordering():
     fi_a = FilmImpact(film=film_tie_a, deltas=(), impact=0.2)
     fi_b = FilmImpact(film=film_tie_b, deltas=(), impact=0.2)
     assert director_impact_key(fi_a) < director_impact_key(fi_b)
+
+
+# --- DB Loader Tests (13 to 18) ---
+
+
+@pytest.fixture
+def mem_db():
+    db = Database(":memory:")
+    yield db
+    db.close()
+
+
+# 13. No person_filmography rows: index_only, Director credits used, Writer/Acting ignored.
+def test_loader_index_only_role_filtering(mem_db):
+    fellini = mem_db.upsert_person("Federico Fellini")
+    id1 = mem_db.upsert_item("film", "La Dolce Vita", 1960)
+    id2 = mem_db.upsert_item("film", "Paisan", 1946)
+    id3 = mem_db.upsert_item("film", "Rome, Open City", 1945)
+
+    mem_db.upsert_credit(id1, fellini, "Director", "Directing")
+    mem_db.upsert_credit(id2, fellini, "Screenplay", "Writing")
+    mem_db.upsert_credit(id3, fellini, "Actor", "Acting")
+
+    films, coverage = load_director_films(mem_db, fellini)
+    assert coverage == "index_only"
+    assert len(films) == 1
+    assert films[0].title == "La Dolce Vita"
+    assert films[0].item_id == id1
+
+
+# 14. With person_filmography + tmdb_movies: coverage tmdb;
+#     non-indexed film has item_id=None and is unseen.
+def test_loader_tmdb_non_indexed_film(mem_db):
+    godard = mem_db.upsert_person("Jean-Luc Godard", tmdb_person_id=3776)
+    mem_db.execute(
+        """INSERT INTO tmdb_movies (tmdb_id, title, release_date, year, runtime, status)
+           VALUES (500, 'Breathless', '1960-03-16', 1960, 90, 'Released')"""
+    )
+    mem_db.execute(
+        """INSERT INTO person_filmography (person_id, tmdb_id, job)
+           VALUES (?, 500, 'Director')""",
+        (godard,),
+    )
+
+    films, coverage = load_director_films(mem_db, godard)
+    assert coverage == "tmdb"
+    assert len(films) == 1
+    f = films[0]
+    assert f.title == "Breathless"
+    assert f.item_id is None
+    assert not f.seen
+    assert not f.on_watchlist
+
+
+# 15. Indexed item joined by tmdb_id takes status from user_status;
+#     no user_status row means unseen.
+def test_loader_joined_user_status(mem_db):
+    fellini = mem_db.upsert_person("Federico Fellini")
+    mem_db.execute(
+        """INSERT INTO tmdb_movies (tmdb_id, title, release_date, year, runtime, status)
+           VALUES (600, '8½', '1963-02-14', 1963, 138, 'Released')"""
+    )
+    mem_db.execute(
+        """INSERT INTO person_filmography (person_id, tmdb_id, job)
+           VALUES (?, 600, 'Director')""",
+        (fellini,),
+    )
+    item_id = mem_db.upsert_item("film", "8½", 1963, tmdb_id=600)
+
+    # Without user_status row: unseen
+    films, _ = load_director_films(mem_db, fellini)
+    assert len(films) == 1
+    assert films[0].item_id == item_id
+    assert not films[0].seen
+
+    # With user_status row: seen
+    mem_db.upsert_user_status(item_id, seen=1, liked=1, on_watchlist=0)
+    films, _ = load_director_films(mem_db, fellini)
+    assert films[0].seen
+
+
+# 16. Union: indexed, seen Director credit missing from person_filmography still counts.
+def test_loader_union_counts_missing_from_tmdb(mem_db):
+    fellini = mem_db.upsert_person("Federico Fellini")
+    # In person_filmography: only 8½ (600)
+    mem_db.execute(
+        """INSERT INTO tmdb_movies (tmdb_id, title, release_date, year, runtime, status)
+           VALUES (600, '8½', '1963-02-14', 1963, 138, 'Released')"""
+    )
+    mem_db.execute(
+        """INSERT INTO person_filmography (person_id, tmdb_id, job)
+           VALUES (?, 600, 'Director')""",
+        (fellini,),
+    )
+    id1 = mem_db.upsert_item("film", "8½", 1963, tmdb_id=600)
+    mem_db.upsert_credit(id1, fellini, "Director", "Directing")
+    mem_db.upsert_user_status(id1, seen=1)
+
+    # In index only (dropped by TMDB or missing from pf): La Dolce Vita (700)
+    id2 = mem_db.upsert_item("film", "La Dolce Vita", 1960, tmdb_id=700)
+    mem_db.upsert_credit(id2, fellini, "Director", "Directing")
+    mem_db.upsert_user_status(id2, seen=1)
+
+    films, coverage = load_director_films(mem_db, fellini)
+    assert coverage == "tmdb"
+    assert len(films) == 2
+    titles = {f.title for f in films}
+    assert "8½" in titles
+    assert "La Dolce Vita" in titles
+
+    c = compute_completion(fellini, "Fellini", films, coverage=coverage, today=FIXED_TODAY)
+    assert c.seen == 2
+    assert c.total == 2
+
+
+# 17. Name LIKE matching two people returns two completions.
+def test_director_completions_name_matching(mem_db):
+    francis = mem_db.upsert_person("Francis Ford Coppola")
+    sofia = mem_db.upsert_person("Sofia Coppola")
+
+    id_f = mem_db.upsert_item("film", "The Godfather", 1972)
+    mem_db.upsert_credit(id_f, francis, "Director", "Directing")
+
+    id_s = mem_db.upsert_item("film", "Lost in Translation", 2003)
+    mem_db.upsert_credit(id_s, sofia, "Director", "Directing")
+
+    comps = director_completions(mem_db, name="Coppola", today=FIXED_TODAY)
+    assert len(comps) == 2
+    names = {c.name for c in comps}
+    assert "Francis Ford Coppola" in names
+    assert "Sofia Coppola" in names
+
+
+# 18. watchlist_by_director_impact: watchlist only by default;
+#     include_unseen adds films outside the watchlist and the index.
+def test_watchlist_by_director_impact_loader(mem_db):
+    tarantino = mem_db.upsert_person("Quentin Tarantino")
+
+    # Film 1: Indexed, on watchlist, unseen
+    id1 = mem_db.upsert_item("film", "Pulp Fiction", 1994, tmdb_id=680)
+    mem_db.upsert_user_status(id1, seen=0, on_watchlist=1)
+    mem_db.upsert_credit(id1, tarantino, "Director", "Directing")
+
+    # Film 2: Indexed, seen (so Tarantino has seen count == 1 for impact >= 1)
+    id2 = mem_db.upsert_item("film", "Reservoir Dogs", 1992, tmdb_id=500)
+    mem_db.upsert_user_status(id2, seen=1, on_watchlist=0)
+    mem_db.upsert_credit(id2, tarantino, "Director", "Directing")
+
+    # Film 3: In tmdb_movies + pf, NOT in items (not on watchlist, not in index)
+    mem_db.execute(
+        """INSERT INTO tmdb_movies (tmdb_id, title, release_date, year, runtime, status)
+           VALUES (800, 'Jackie Brown', '1997-12-25', 1997, 154, 'Released')"""
+    )
+    mem_db.execute(
+        """INSERT INTO person_filmography (person_id, tmdb_id, job)
+           VALUES (?, 800, 'Director')""",
+        (tarantino,),
+    )
+    # Also add 680 and 500 to pf so coverage is tmdb
+    mem_db.execute(
+        "INSERT INTO person_filmography (person_id, tmdb_id, job) VALUES (?, 680, 'Director')",
+        (tarantino,),
+    )
+    mem_db.execute(
+        "INSERT INTO person_filmography (person_id, tmdb_id, job) VALUES (?, 500, 'Director')",
+        (tarantino,),
+    )
+    mem_db.execute(
+        """INSERT INTO tmdb_movies (tmdb_id, title, release_date, year, runtime, status)
+           VALUES (680, 'Pulp Fiction', '1994-10-14', 1994, 154, 'Released')"""
+    )
+    mem_db.execute(
+        """INSERT INTO tmdb_movies (tmdb_id, title, release_date, year, runtime, status)
+           VALUES (500, 'Reservoir Dogs', '1992-09-02', 1992, 99, 'Released')"""
+    )
+
+    # Watchlist only: only Pulp Fiction is returned
+    impacts_wl = watchlist_by_director_impact(mem_db, include_unseen=False, today=FIXED_TODAY)
+    assert len(impacts_wl) == 1
+    assert impacts_wl[0].film.title == "Pulp Fiction"
+
+    # With include_unseen=True: both Pulp Fiction and Jackie Brown are candidates
+    impacts_all = watchlist_by_director_impact(mem_db, include_unseen=True, today=FIXED_TODAY)
+    titles = {fi.film.title for fi in impacts_all}
+    assert "Pulp Fiction" in titles
+    assert "Jackie Brown" in titles
+

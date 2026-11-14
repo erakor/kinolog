@@ -7,10 +7,14 @@ with TMDB filmography and index-only fallback support.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date
 from typing import Literal
+
+from src.core.crew import find_people
+from src.core.db import Database
 
 RUNTIME_PRESETS: tuple[int, ...] = (90, 105, 120)
 MIN_FEATURE_RUNTIME = 40
@@ -242,3 +246,265 @@ def aggregate_impact(
 
     results.sort(key=director_impact_key)
     return results
+
+
+def load_director_films(
+    db: Database,
+    person_id: int,
+) -> tuple[list[DirectorFilm], Literal["tmdb", "index_only"]]:
+    """
+    Load all films for a director.
+    Returns (films, coverage) where coverage is 'tmdb' or 'index_only'.
+    """
+    has_pf = (
+        db.execute(
+            "SELECT 1 FROM person_filmography WHERE person_id = ? AND job = 'Director' LIMIT 1",
+            (person_id,),
+        ).fetchone()
+        is not None
+    )
+
+    if not has_pf:
+        # Fallback to indexed credits with role 'Director'
+        rows = db.execute(
+            """SELECT
+                i.id AS item_id,
+                i.tmdb_id,
+                i.title,
+                i.year,
+                COALESCE(us.seen, 0) AS seen,
+                COALESCE(us.on_watchlist, 0) AS on_watchlist,
+                tm.release_date,
+                tm.runtime,
+                tm.status,
+                tm.is_video,
+                tm.genre_ids
+            FROM credits c
+            JOIN items i ON c.item_id = i.id
+            LEFT JOIN user_status us ON i.id = us.item_id
+            LEFT JOIN tmdb_movies tm ON i.tmdb_id = tm.tmdb_id
+            WHERE c.person_id = ? AND c.role = 'Director'
+            ORDER BY i.year, i.title""",
+            (person_id,),
+        ).fetchall()
+
+        films: list[DirectorFilm] = []
+        seen_items: set[int] = set()
+        for r in rows:
+            item_id = r["item_id"]
+            if item_id in seen_items:
+                continue
+            seen_items.add(item_id)
+
+            status = r["status"] or "Released"
+            release_date = r["release_date"]
+            if not release_date and r["year"]:
+                release_date = f"{r['year']:04d}-01-01"
+
+            genre_ids = tuple(json.loads(r["genre_ids"])) if r["genre_ids"] else ()
+            is_video = bool(r["is_video"]) if r["is_video"] is not None else False
+
+            films.append(
+                DirectorFilm(
+                    tmdb_id=r["tmdb_id"],
+                    item_id=item_id,
+                    title=r["title"],
+                    year=r["year"],
+                    release_date=release_date,
+                    runtime=r["runtime"],
+                    status=status,
+                    is_video=is_video,
+                    genre_ids=genre_ids,
+                    seen=bool(r["seen"]),
+                    on_watchlist=bool(r["on_watchlist"]),
+                )
+            )
+        return films, "index_only"
+
+    # TMDB filmography coverage: union of person_filmography and indexed credits
+    pf_rows = db.execute(
+        """SELECT
+            pf.tmdb_id,
+            tm.title,
+            tm.original_title,
+            tm.release_date,
+            tm.year,
+            tm.runtime,
+            tm.status,
+            tm.is_video,
+            tm.genre_ids,
+            i.id AS item_id,
+            COALESCE(us.seen, 0) AS seen,
+            COALESCE(us.on_watchlist, 0) AS on_watchlist
+        FROM person_filmography pf
+        LEFT JOIN tmdb_movies tm ON pf.tmdb_id = tm.tmdb_id
+        LEFT JOIN items i ON pf.tmdb_id = i.tmdb_id
+        LEFT JOIN user_status us ON i.id = us.item_id
+        WHERE pf.person_id = ? AND pf.job = 'Director'
+        ORDER BY tm.year, tm.title""",
+        (person_id,),
+    ).fetchall()
+
+    films_by_tmdb: dict[int, DirectorFilm] = {}
+    films_by_item: dict[int, DirectorFilm] = {}
+    films_list: list[DirectorFilm] = []
+
+    for r in pf_rows:
+        tmdb_id = r["tmdb_id"]
+        title = r["title"] or f"TMDB {tmdb_id}"
+        genre_ids = tuple(json.loads(r["genre_ids"])) if r["genre_ids"] else ()
+        is_video = bool(r["is_video"]) if r["is_video"] is not None else False
+        item_id = r["item_id"]
+        seen = bool(r["seen"]) if item_id is not None else False
+        on_watchlist = bool(r["on_watchlist"]) if item_id is not None else False
+
+        film = DirectorFilm(
+            tmdb_id=tmdb_id,
+            item_id=item_id,
+            title=title,
+            year=r["year"],
+            release_date=r["release_date"],
+            runtime=r["runtime"],
+            status=r["status"],
+            is_video=is_video,
+            genre_ids=genre_ids,
+            seen=seen,
+            on_watchlist=on_watchlist,
+        )
+        films_by_tmdb[tmdb_id] = film
+        if item_id is not None:
+            films_by_item[item_id] = film
+        films_list.append(film)
+
+    # Union with indexed credits: seen films or indexed films dropped by TMDB
+    cr_rows = db.execute(
+        """SELECT
+            i.id AS item_id,
+            i.tmdb_id,
+            i.title,
+            i.year,
+            COALESCE(us.seen, 0) AS seen,
+            COALESCE(us.on_watchlist, 0) AS on_watchlist,
+            tm.release_date,
+            tm.runtime,
+            tm.status,
+            tm.is_video,
+            tm.genre_ids
+        FROM credits c
+        JOIN items i ON c.item_id = i.id
+        LEFT JOIN user_status us ON i.id = us.item_id
+        LEFT JOIN tmdb_movies tm ON i.tmdb_id = tm.tmdb_id
+        WHERE c.person_id = ? AND c.role = 'Director'""",
+        (person_id,),
+    ).fetchall()
+
+    for r in cr_rows:
+        tmdb_id = r["tmdb_id"]
+        item_id = r["item_id"]
+        if tmdb_id is not None and tmdb_id in films_by_tmdb:
+            continue
+        if item_id is not None and item_id in films_by_item:
+            continue
+
+        status = r["status"] or "Released"
+        release_date = r["release_date"]
+        if not release_date and r["year"]:
+            release_date = f"{r['year']:04d}-01-01"
+
+        genre_ids = tuple(json.loads(r["genre_ids"])) if r["genre_ids"] else ()
+        is_video = bool(r["is_video"]) if r["is_video"] is not None else False
+
+        film = DirectorFilm(
+            tmdb_id=tmdb_id,
+            item_id=item_id,
+            title=r["title"],
+            year=r["year"],
+            release_date=release_date,
+            runtime=r["runtime"],
+            status=status,
+            is_video=is_video,
+            genre_ids=genre_ids,
+            seen=bool(r["seen"]),
+            on_watchlist=bool(r["on_watchlist"]),
+        )
+        if tmdb_id is not None:
+            films_by_tmdb[tmdb_id] = film
+        if item_id is not None:
+            films_by_item[item_id] = film
+        films_list.append(film)
+
+    return films_list, "tmdb"
+
+
+def director_completions(
+    db: Database,
+    *,
+    name: str | None = None,
+    person_id: int | None = None,
+    min_seen: int = 0,
+    min_total: int = 1,
+    today: date | None = None,
+    **feature_kw,
+) -> list[DirectorCompletion]:
+    """Load director completions matching criteria, sorted by ratio and seen count."""
+    if today is None:
+        today = date.today()
+
+    if person_id is not None:
+        people = find_people(db, person_id=person_id)
+    elif name is not None:
+        people = find_people(db, name=name)
+    else:
+        people = db.execute(
+            """SELECT DISTINCT p.id, p.name FROM people p
+               WHERE p.id IN (SELECT person_id FROM credits WHERE role = 'Director')
+                  OR p.id IN (SELECT person_id FROM person_filmography WHERE job = 'Director')
+               ORDER BY p.name"""
+        ).fetchall()
+
+    results: list[DirectorCompletion] = []
+    for p in people:
+        films, coverage = load_director_films(db, p["id"])
+        comp = compute_completion(
+            p["id"],
+            p["name"],
+            films,
+            coverage=coverage,
+            today=today,
+            **feature_kw,
+        )
+        if comp.seen >= min_seen and comp.total >= min_total:
+            results.append(comp)
+
+    results.sort(key=lambda c: (-c.ratio, -c.seen, -c.total, c.name))
+    return results
+
+
+def watchlist_by_director_impact(
+    db: Database,
+    *,
+    max_runtime: int | None = None,
+    include_unknown_runtime: bool = False,
+    include_unseen: bool = False,
+    limit: int | None = None,
+    today: date | None = None,
+) -> list[FilmImpact]:
+    """Rank watchlist (or unseen) films by sum of director completion deltas."""
+    if today is None:
+        today = date.today()
+
+    completions = director_completions(db, min_seen=0, min_total=1, today=today)
+    all_deltas: list[CompletionDelta] = []
+    for c in completions:
+        deltas = completion_deltas(
+            c,
+            max_runtime=max_runtime,
+            include_unknown_runtime=include_unknown_runtime,
+            watchlist_only=not include_unseen,
+        )
+        all_deltas.extend(deltas)
+
+    impacts = aggregate_impact(all_deltas, min_seen_for_impact=1)
+    if limit is not None:
+        impacts = impacts[:limit]
+    return impacts
