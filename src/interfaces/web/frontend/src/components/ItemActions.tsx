@@ -42,12 +42,17 @@ export function RemoveButton({ item, reload }: ActionProps) {
   )
 }
 
-export function LogButton({ item, reload, small = false }: ActionProps & { small?: boolean }) {
+export function LogButton({
+  item,
+  reload,
+  small = false,
+  label,
+}: ActionProps & { small?: boolean; label?: string }) {
   const [open, setOpen] = useState(false)
   return (
     <>
       <button className={`btn btn--primary${small ? ' btn--sm' : ''}`} type="button" onClick={() => setOpen(true)}>
-        {small ? 'Log' : '✓ Log Watched'}
+        {label ?? (small ? 'Log' : '✓ Log Watched')}
       </button>
       {open && <LogDialog item={item} reload={reload} onClose={() => setOpen(false)} />}
     </>
