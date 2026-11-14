@@ -3,7 +3,9 @@ import { api } from '../api'
 import { today } from '../format'
 import { useAction } from '../hooks/useAction'
 import type { ItemRef } from './ItemActions'
+import { Button } from './Button'
 import { Modal } from './Modal'
+import { dialogActions, fieldCheck, fieldCheckInput } from './ui'
 import { WatchFields } from './WatchFields'
 
 interface LogDialogProps {
@@ -35,21 +37,19 @@ export function LogDialog({ item, reload, onClose }: LogDialogProps) {
     <Modal title={`Log ${item.title}`} onClose={onClose}>
       <form onSubmit={submit}>
         <WatchFields date={date} onDate={setDate} rating={rating} onRating={setRating} max={today()} />
-        <label className="field field--check">
-          <input type="checkbox" checked={liked} onChange={(e) => setLiked(e.target.checked)} />
+        <label className={fieldCheck}>
+          <input className={fieldCheckInput} type="checkbox" checked={liked} onChange={(e) => setLiked(e.target.checked)} />
           Add a heart
         </label>
-        <label className="field field--check">
-          <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} />
+        <label className={fieldCheck}>
+          <input className={fieldCheckInput} type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} />
           Keep on Watch List
         </label>
-        <div className="modal__actions">
-          <button className="btn" type="button" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="btn btn--primary" type="submit" disabled={busy}>
+        <div className={dialogActions}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="primary" type="submit" disabled={busy}>
             Log as watched
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>

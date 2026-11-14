@@ -3,6 +3,8 @@ import { api } from '../api'
 import { BannerArt } from '../components/BannerArt'
 import { EmptyState } from '../components/EmptyState'
 import { Segmented } from '../components/Segmented'
+import { Button } from '../components/Button'
+import { bareInput, chip, chipPlain, eyebrow, grid2, heroArt, heroLede, heroSplit, heroTitle, num, toolbar } from '../components/ui'
 import { useHealth } from '../context/HealthContext'
 import { fmtHours, fmtPct } from '../format'
 import { useAsync } from '../hooks/useAsync'
@@ -25,9 +27,9 @@ type Result =
 function Stat({ label, value, sub, accent = false }: { label: string; value: string; sub: string; accent?: boolean }) {
   return (
     <div>
-      <div className="stat__label">{label}</div>
-      <div className={`stat__value${accent ? ' stat__value--accent' : ''}`}>{value}</div>
-      <div className="stat__sub">{sub}</div>
+      <div className="text-sm text-ink-muted">{label}</div>
+      <div className={`${num} text-3xl font-bold${accent ? ' text-accent' : ''}`}>{value}</div>
+      <div className="font-mono text-xs text-ink-muted">{sub}</div>
     </div>
   )
 }
@@ -42,18 +44,18 @@ function Results({ data, onChanged }: { data: ConciergeResponse; onChanged: (ite
   const relax = data.empty?.relax ?? []
   return (
     <>
-      <p className="muted text-sm" style={{ margin: '8px 0' }}>
+      <p className="text-ink-muted text-sm my-2">
         Curated for “{data.query}”
       </p>
-      <div className="chips" style={{ marginBottom: 12 }}>
+      <div className="flex flex-wrap gap-2 mb-3">
         {data.parsed.chips.map((c, i) => (
-          <span className="chip" key={i}>
+          <span className={chip} key={i}>
             {c.label}
           </span>
         ))}
       </div>
       {notes.length > 0 && (
-        <p className="muted text-xs" style={{ marginBottom: 12 }}>
+        <p className="text-ink-muted text-xs mb-3">
           {notes.map(formatNote).join(' · ')}
         </p>
       )}
@@ -70,14 +72,14 @@ function Results({ data, onChanged }: { data: ConciergeResponse; onChanged: (ite
         <>
           <PickCard pick={first} primary onChanged={onChanged} />
           {rest.length > 0 && (
-            <div className="grid grid--2 pick-grid">
+            <div className={grid2}>
               {rest.map((p) => (
                 <PickCard key={p.item.item_id} pick={p} primary={false} onChanged={onChanged} />
               ))}
             </div>
           )}
           {tag && (
-            <p className="muted" style={{ fontSize: '.75rem', marginTop: 8 }}>
+            <p className="text-ink-muted text-xs mt-2">
               Rationales: {tag === 'llm' ? 'written by the model, checked against the cited text' : 'template built from your index'}.
             </p>
           )}
@@ -156,20 +158,24 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
   const c = overview?.closest ?? null
   return (
     <>
-      <section className="hero hero--split">
+      <section className={heroSplit}>
         <div>
-          <p className="eyebrow">Personal cinema concierge</p>
-          <h1>Tell me your window, mood, or the collection you want to finish.</h1>
-          <p className="hero__lede">
+          <p className={eyebrow}>Personal cinema concierge</p>
+          <h1 className={heroTitle}>Tell me your window, mood, or the collection you want to finish.</h1>
+          <p className={heroLede}>
             Kinolog weighs your watch list runtimes, past ratings, and director completion milestones to recommend the exact
             film for tonight.
           </p>
-          <div style={{ marginTop: 20 }}>
-            <form className="concierge-form" onSubmit={onSubmit}>
-              <span aria-hidden="true" className="muted">
+          <div className="mt-5">
+            <form
+              className="flex gap-2 bg-surface border border-rule rounded-xl py-1.5 pr-1.5 pl-3.5 items-center focus-within:border-ink-faint"
+              onSubmit={onSubmit}
+            >
+              <span aria-hidden="true" className="text-ink-muted">
                 ⌕
               </span>
               <input
+                className={`${bareInput} py-2.5`}
                 type="text"
                 placeholder="I have 90 minutes. Give me a movie."
                 aria-label="Ask the concierge"
@@ -177,51 +183,41 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
               />
-              <button className="btn btn--accent" type="submit" disabled={result.status === 'loading'}>
+              <Button variant="accent" type="submit" disabled={result.status === 'loading'}>
                 Find a Film →
-              </button>
+              </Button>
             </form>
           </div>
-          <div className="toolbar" style={{ margin: '12px 0' }}>
+          <div className={`${toolbar} my-3`}>
             <Segmented options={SCOPE_OPTIONS} value={scope} onChange={setScope} />
-            <span className="num muted" style={{ fontSize: '.8rem' }}>
+            <span className={`${num} text-ink-muted text-xs`}>
               {overview && `${overview.watchlist.short_count} queued ≤ 90 min`}
             </span>
           </div>
           <div>
-            <p className="muted text-sm" style={{ marginBottom: 8 }}>
+            <p className="text-ink-muted text-sm mb-2">
               Try asking
             </p>
-            <div className="chips">
+            <div className="flex flex-wrap gap-2">
               {home?.prompts.map((prompt) => (
-                <button key={prompt} className="chip chip--plain" type="button" onClick={() => void ask(prompt)}>
+                <button key={prompt} className={chipPlain} type="button" onClick={() => void ask(prompt)}>
                   {prompt}
                 </button>
               ))}
             </div>
           </div>
         </div>
-        <div className="hero__art" style={{ position: 'relative', minHeight: 260 }}>
+        <div className={`${heroArt} relative min-h-64`}>
           <BannerArt seed="concierge" />
           {overview && (
-            <div
-              style={{
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                bottom: 0,
-                padding: 16,
-                background: 'linear-gradient(transparent,rgba(20,19,15,.78))',
-                color: '#fff',
-              }}
-            >
-              <div className="num" style={{ fontSize: '.8rem', opacity: 0.85 }}>
+            <div className="absolute inset-x-0 bottom-0 p-4 bg-linear-to-b from-transparent to-ink/80 text-white">
+              <div className={`${num} text-xs opacity-80`}>
                 {c ? `Nearest director milestone · ${c.seen}/${c.total} (${fmtPct(c.pct)})` : 'Director milestones'}
               </div>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 700 }}>
+              <div className="font-display text-2xl font-bold">
                 {c ? c.name : 'No collections yet'}
               </div>
-              <div style={{ fontSize: '.85rem', opacity: 0.9 }}>
+              <div className="text-sm opacity-90">
                 {c?.quickest
                   ? `Next up: ${c.quickest.title}${c.quickest.runtime_min ? ` (${c.quickest.runtime_min} min)` : ''}${
                       c.quickest.on_watchlist ? ' is in your watch list' : ''
@@ -234,14 +230,14 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
       </section>
 
       <section aria-live="polite">
-        {result.status === 'loading' && <p className="loading">Searching your index…</p>}
+        {result.status === 'loading' && <p className="text-ink-muted py-8">Searching your index…</p>}
         {result.status === 'error' && <EmptyState title="Could not get a recommendation" text={result.message} />}
         {result.status === 'done' && <Results data={result.data} onChanged={(id) => void refreshPick(id)} />}
       </section>
 
       {overview && (
         <>
-          <div className="stats">
+          <div className="grid grid-cols-2 gap-4 border-y border-rule py-5 my-8 md:grid-cols-4">
             <Stat label="Watch List" value={`${overview.watchlist.count} films`} sub={`${fmtHours(overview.watchlist.total_minutes)} hrs queued`} />
             <Stat
               label="Watching Log"

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { bareInput } from './ui'
 
 interface SearchBoxProps {
   placeholder: string
@@ -25,9 +26,10 @@ export function SearchBox({ placeholder, onChange, initial = '' }: SearchBoxProp
   }, [text])
 
   return (
-    <label className="search">
+    <label className="flex items-center gap-2 bg-surface border border-rule rounded-lg px-3 min-h-10 flex-auto basis-64 max-w-lg focus-within:border-ink-faint">
       <span aria-hidden="true">⌕</span>
       <input
+        className={`${bareInput} py-2`}
         type="search"
         placeholder={placeholder}
         aria-label={placeholder}

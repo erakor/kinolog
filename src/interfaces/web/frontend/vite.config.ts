@@ -1,3 +1,4 @@
+import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 
@@ -5,7 +6,7 @@ import { defineConfig } from 'vitest/config'
 // explicitly: Vite 8 otherwise rewrites Host to the target, and the backend's same-origin check
 // (Origin netloc == Host) would reject every write from the dev server.
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   base: '/',
   build: { outDir: '../dist', emptyOutDir: true, assetsDir: 'assets' },
   server: { host: '127.0.0.1', proxy: { '/api': { target: 'http://127.0.0.1:8765', changeOrigin: false } } },

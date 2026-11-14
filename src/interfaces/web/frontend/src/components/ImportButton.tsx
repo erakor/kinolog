@@ -3,6 +3,7 @@ import { api } from '../api'
 import { useHealth } from '../context/HealthContext'
 import { useToast } from '../context/ToastContext'
 import type { ImportStats } from '../types'
+import { Button } from './Button'
 
 /** Opens a file picker and uploads a Letterboxd export (.zip or a single .csv). */
 export function ImportButton({ onDone }: { onDone?: () => void | Promise<void> }) {
@@ -32,9 +33,9 @@ export function ImportButton({ onDone }: { onDone?: () => void | Promise<void> }
 
   return (
     <span>
-      <button className="btn" type="button" disabled={busy} onClick={() => input.current?.click()}>
+      <Button disabled={busy} onClick={() => input.current?.click()}>
         ↑ Import CSV
-      </button>
+      </Button>
       <input ref={input} type="file" accept=".zip,.csv" className="sr-only" tabIndex={-1} onChange={onFile} />
     </span>
   )

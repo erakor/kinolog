@@ -7,6 +7,21 @@ import { LogButton, QueueButton } from '../components/ItemActions'
 import { ProgressBar } from '../components/ProgressBar'
 import { SearchBox } from '../components/SearchBox'
 import { Segmented } from '../components/Segmented'
+import {
+  card,
+  dirHead,
+  dirMeta,
+  eyebrow,
+  grid2,
+  heroArt,
+  heroLede,
+  heroSplit,
+  heroTitle,
+  link,
+  num,
+  pct,
+  toolbar,
+} from '../components/ui'
 import { fmtPct, nextFromPrompt } from '../format'
 import { useAsync } from '../hooks/useAsync'
 import type { CollectionsResponse, DirectorCollection } from '../types'
@@ -22,16 +37,16 @@ function DirectorCard({ d, reload }: { d: DirectorCollection; reload: () => void
   const queued = d.films.filter((f) => !f.seen && f.on_watchlist).length
   const ask = nextFromPrompt(d.name)
   return (
-    <article className="card dir-card">
-      <div className="dir-card__head">
-        <h3>{d.name}</h3>
-        <span className="pct num">{fmtPct(d.pct)}</span>
+    <article className={card}>
+      <div className={dirHead}>
+        <h3 className="text-3xl">{d.name}</h3>
+        <span className={pct}>{fmtPct(d.pct)}</span>
       </div>
-      <p className="dir-card__meta">
+      <p className={dirMeta}>
         {d.seen} / {d.total} watched{queued ? ` · ${queued} queued` : ''}
       </p>
       <ProgressBar seen={d.seen} total={d.total} afterSeen={d.seen + queued} />
-      <ul className="film-list">
+      <ul className="mt-4">
         {d.films.map((f) => (
           <FilmRow
             key={f.item_id}
@@ -47,8 +62,8 @@ function DirectorCard({ d, reload }: { d: DirectorCollection; reload: () => void
           />
         ))}
       </ul>
-      <div className="card__foot">
-        <a className="link" href={`#/concierge?q=${encodeURIComponent(ask)}`}>
+      <div className="mt-4 pt-4 border-t border-rule">
+        <a className={link} href={`#/concierge?q=${encodeURIComponent(ask)}`}>
           Ask Concierge for next {d.name} pick →
         </a>
       </div>
@@ -73,15 +88,15 @@ export default function Collections() {
   const s = data?.summary
   return (
     <>
-      <section className="hero hero--split">
+      <section className={heroSplit}>
         <div>
-          <p className="eyebrow">Filmography completion</p>
-          <h1>Director Collections</h1>
-          <p className="hero__lede">
+          <p className={eyebrow}>Filmography completion</p>
+          <h1 className={heroTitle}>Director Collections</h1>
+          <p className={heroLede}>
             Track every feature in a director's body of work. See how close you are to completing each
             filmography and queue or log the missing titles.
           </p>
-          <div className="num muted" style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginTop: 24 }}>
+          <div className={`${num} text-ink-muted flex gap-6 flex-wrap mt-6`}>
             {s && (
               <>
                 <span>
@@ -97,15 +112,15 @@ export default function Collections() {
             )}
           </div>
         </div>
-        <div className="hero__art">
+        <div className={`${heroArt} min-h-44`}>
           <BannerArt seed="collections" />
         </div>
       </section>
-      <div className="toolbar">
+      <div className={`${toolbar} my-6`}>
         <Segmented options={STATUS_OPTIONS} value={status} onChange={setStatus} />
         <SearchBox placeholder="Filter by director or title…" onChange={setQ} />
       </div>
-      <div className="grid grid--2">
+      <div className={grid2}>
         {data && !data.items.length && (
           <EmptyState
             title={s!.tracked ? 'No directors match' : 'No collections yet'}

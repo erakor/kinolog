@@ -1,42 +1,24 @@
-/* Design tokens. Light theme only (v1). Values sampled from the reference screens. */
-:root {
+/* Design tokens. Light theme only (v1). Values sampled from the reference screens.
+   Only colors and fonts are customized; spacing, type scale, radii and breakpoints are Tailwind defaults.
+   Each token is both a CSS variable and a utility (bg-surface, text-ink-muted, font-display, ...). */
+@theme {
   --color-bg: #f8f6f2;
   --color-surface: #ffffff;
   --color-ink: #14130f;
+  --color-ink-hover: #2a2822;
   --color-ink-muted: #6b665d;
   --color-ink-faint: #a29d93;
   --color-rule: #e6e2da;
   --color-track: #e7e3db;
+  --color-segment: #eeebe4;
+  --color-subtle: #faf8f4;
   --color-accent: #c0432a;
   --color-accent-soft: #dcaa9d;
   --color-accent-wash: #f7e4de;
   --color-on-ink: #f8f6f2;
+  --color-placeholder: #757575;
 
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: "Iowan Old Style", "Charter", "Palatino Linotype", Georgia, serif;
-  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-md: 1rem;
-  --text-lg: 1.25rem;
-  --text-xl: 1.75rem;
-  --text-display: clamp(2rem, 4vw, 2.75rem);
-
-  --radius-card: 12px;
-  --radius-btn: 8px;
-  --radius-pill: 999px;
-
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-12: 48px;
-
-  --page-max: 1152px;
-  --gutter: 16px;
-  --progress-h: 6px;
 }

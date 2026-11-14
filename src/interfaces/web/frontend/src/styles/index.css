@@ -1,0 +1,34 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Only what Preflight does not already cover. */
+@layer base {
+  body {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 700;
+  }
+  /* Tailwind v4 Preflight uses the default cursor on buttons. */
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+  /* Preflight drops the stock inner padding of date fields; keep it so inputs keep their height. */
+  input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+    padding: 1px 0;
+  }
+  /* Preflight fades placeholders to 50% of the text color; keep the browser's grey. */
+  ::placeholder {
+    color: var(--color-placeholder);
+    opacity: 1;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}

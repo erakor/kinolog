@@ -8,9 +8,10 @@ import type { Item } from '../types'
 import { LogButton, QueueButton } from './ItemActions'
 import { Modal } from './Modal'
 import { SearchBox } from './SearchBox'
+import { listBox, listRow } from './ui'
 
 function Note({ children }: { children: string }) {
-  return <span className="muted text-sm">{children}</span>
+  return <span className="text-ink-muted text-sm">{children}</span>
 }
 
 /** Find a film already in the index, then queue or log it. */
@@ -37,24 +38,24 @@ export function AddFilmDialog({ onClose }: { onClose: () => void }) {
   return (
     <Modal title="Add Film" onClose={onClose}>
       <div>
-        <p className="muted text-sm" style={{ marginBottom: 12 }}>
+        <p className="text-ink-muted text-sm mb-3">
           Find a film already in your index to queue or log it.
         </p>
         <SearchBox placeholder="Search by title…" onChange={setQ} />
-        <div className="list" style={{ marginTop: 12 }}>
+        <div className={`${listBox} mt-3`}>
           {q && items && !items.length && (
-            <p className="muted" style={{ padding: 16 }}>
+            <p className="text-ink-muted p-4">
               No match in your index. Import a Letterboxd export or run the ingest pipeline to add new films.
             </p>
           )}
           {q &&
             items?.map((it) => (
-              <div className="list-row" key={it.item_id}>
-                <div className="list-row__main">
-                  <div style={{ fontWeight: 600 }}>{it.title}</div>
-                  <div className="list-row__sub">{[it.year, directorNames(it.directors)].filter(Boolean).join(' · ')}</div>
+              <div className={listRow} key={it.item_id}>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold">{it.title}</div>
+                  <div className="text-sm text-ink-muted">{[it.year, directorNames(it.directors)].filter(Boolean).join(' · ')}</div>
                 </div>
-                <div className="list-row__actions">
+                <div className="flex items-center gap-2">
                   {it.status.seen ? (
                     <Note>Watched</Note>
                   ) : it.status.on_watchlist ? (

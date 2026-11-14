@@ -6,6 +6,8 @@ import { ImportButton } from '../components/ImportButton'
 import { RatingSelect } from '../components/RatingSelect'
 import { SearchBox } from '../components/SearchBox'
 import { Segmented } from '../components/Segmented'
+import { Button } from '../components/Button'
+import { eyebrow, heroLede, heroTitle, listBox, num, td, th, toolbar } from '../components/ui'
 import { directorNames, fmtHours } from '../format'
 import { useAction } from '../hooks/useAction'
 import { useAsync } from '../hooks/useAsync'
@@ -39,28 +41,28 @@ function LogRow({ entry: e, reload }: { entry: LogEntry; reload: () => void }) {
 
   return (
     <tr>
-      <td className="num">{e.watched_on}</td>
-      <td>
-        {it.title} <span className="num muted">{it.year ? `(${it.year})` : ''}</span>
-        {e.rewatch && <div className="note">Rewatch</div>}
+      <td className={`${td} ${num}`}>{e.watched_on}</td>
+      <td className={td}>
+        {it.title} <span className={`${num} text-ink-muted`}>{it.year ? `(${it.year})` : ''}</span>
+        {e.rewatch && <div className="text-ink-muted text-xs">Rewatch</div>}
       </td>
-      <td className="muted">{directorNames(it.directors)}</td>
-      <td className="num muted">{it.runtime_min ? `${it.runtime_min} min` : ''}</td>
-      <td>
+      <td className={`${td} text-ink-muted`}>{directorNames(it.directors)}</td>
+      <td className={`${td} ${num} text-ink-muted`}>{it.runtime_min ? `${it.runtime_min} min` : ''}</td>
+      <td className={td}>
         {rating ? (
-          <span className="star" aria-hidden="true">
+          <span className="text-accent" aria-hidden="true">
             ★{' '}
           </span>
         ) : null}
-        <RatingSelect className="rating-select" aria-label={`Rating for ${it.title}`} value={rating} onChange={rate} />
+        <RatingSelect className="font-mono text-sm" aria-label={`Rating for ${it.title}`} value={rating} onChange={rate} />
       </td>
-      <td style={{ whiteSpace: 'nowrap' }}>
-        <button className="btn btn--icon" type="button" aria-label={`Edit ${it.title}`} title="Edit" onClick={() => setEditing(true)}>
+      <td className={`${td} whitespace-nowrap`}>
+        <Button variant="icon" aria-label={`Edit ${it.title}`} title="Edit" onClick={() => setEditing(true)}>
           ✎
-        </button>
-        <button className="btn btn--icon" type="button" aria-label={`Delete ${it.title} entry`} title="Delete entry" onClick={remove}>
+        </Button>
+        <Button variant="icon" aria-label={`Delete ${it.title} entry`} title="Delete entry" onClick={remove}>
           🗑
-        </button>
+        </Button>
         {editing && <EditLogDialog entry={{ ...e, rating }} reload={reload} onClose={() => setEditing(false)} />}
       </td>
     </tr>
@@ -81,26 +83,26 @@ export default function Log() {
   const none = !!data && !data.entries.length
   return (
     <>
-      <section className="hero" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'end' }}>
+      <section className="grid gap-6 mb-4">
+        <div className="flex justify-between gap-4 flex-wrap items-end">
           <div>
-            <p className="eyebrow">Chronological diary</p>
-            <h1>Watching Log</h1>
-            <p className="hero__lede">
+            <p className={eyebrow}>Chronological diary</p>
+            <h1 className={heroTitle}>Watching Log</h1>
+            <p className={heroLede}>
               {s && (
                 <>
-                  <span className="num">{s.count}</span> films logged · <span className="num">{fmtHours(s.total_minutes)}</span> hrs
+                  <span className={num}>{s.count}</span> films logged · <span className={num}>{fmtHours(s.total_minutes)}</span> hrs
                   watched
                 </>
               )}
             </p>
           </div>
-          <div className="row-wrap">
+          <div className="flex gap-2 flex-wrap">
             <ImportButton onDone={reload} />
           </div>
         </div>
       </section>
-      <div className="toolbar">
+      <div className={`${toolbar} my-6`}>
         <SearchBox
           placeholder="Search watched films or directors…"
           onChange={(v) => {
@@ -124,12 +126,12 @@ export default function Log() {
         />
       )}
       {data && !none && (
-        <div className="table-wrap">
-          <table className="table">
+        <div className={`${listBox} overflow-x-auto`}>
+          <table className="w-full border-collapse min-w-2xl [&_tr:first-child_td]:border-t-0">
             <thead>
               <tr>
                 {['Date', 'Film', 'Director', 'Runtime', 'Rating', ''].map((t, i) => (
-                  <th key={i} scope="col">
+                  <th key={i} scope="col" className={th}>
                     {t}
                   </th>
                 ))}
@@ -143,11 +145,9 @@ export default function Log() {
           </table>
         </div>
       )}
-      <div style={{ textAlign: 'center', marginTop: 16 }}>
+      <div className="text-center mt-4">
         {data && data.entries.length < data.total && (
-          <button className="btn" type="button" onClick={() => setPages((p) => p + 1)}>
-            Show more
-          </button>
+          <Button onClick={() => setPages((p) => p + 1)}>Show more</Button>
         )}
       </div>
     </>
