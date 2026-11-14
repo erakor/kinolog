@@ -1,4 +1,3 @@
-# ruff: noqa: E501
 """Tests for the concierge eval suite (fixture DB, no model, no network)."""
 
 import pytest
@@ -22,7 +21,8 @@ def db():
     rows = [
         ("Quiet Harbor", 1962, 95, 0, "A fisherman endures a slow winter in a harbor town."),
         ("Paper Moon Rising", 1964, 110, 0, "A con artist and a child cross the plains."),
-        ("The Long Corridor", 1966, 150, 1, "Detectives chase a missing ledger through a hospital."),
+        ("The Long Corridor", 1966, 150, 1,
+         "Detectives chase a missing ledger through a hospital."),
         ("Brief Encounter Again", 1985, 80, 1, "Two strangers meet on a train platform each week."),
         ("Midnight Ferry", 2010, 100, 0, "A ferry crossing turns into a tense mystery."),
     ]
@@ -30,7 +30,8 @@ def db():
         i = d.upsert_item("film", title, year, runtime_min=rt)
         d.upsert_credit(i, ann, "Director", "Directing")
         d.upsert_user_status(i, seen=seen)
-        doc = d.upsert_document(i, "tmdb", "en", f"{title} ({year})\nGenres: Drama\nRuntime: {rt} minutes\n\n{text}")
+        body = f"{title} ({year})\nGenres: Drama\nRuntime: {rt} minutes\n\n{text}"
+        doc = d.upsert_document(i, "tmdb", "en", body)
         chunk_document(d, doc, strategy="whole")
     yield d
     d.close()
@@ -83,7 +84,8 @@ def test_violates_detects_each_constraint(db):
     assert violates(card, SearchFilters(runtime_max=90)) == ["runtime_max"]
     assert violates(card, SearchFilters(decade=1970)) == ["decade"]
     assert violates(card, SearchFilters(seen=False)) == ["seen"]
-    assert violates({**card, "runtime_min": None}, SearchFilters(runtime_max=90)) == ["runtime_unknown"]
+    unknown = {**card, "runtime_min": None}
+    assert violates(unknown, SearchFilters(runtime_max=90)) == ["runtime_unknown"]
     assert violates(card, SearchFilters(runtime_max=120, decade=1960, seen=True)) == []
 
 
@@ -103,7 +105,8 @@ def test_hearts_check_shows_taste_weight_lifts_heldout_hearts():
         liked = n >= 14  # ten hearts, created after the ten non-hearts
         i = d.upsert_item("film", f"Drama Number {n:02d}", 2000 + n % 10, runtime_min=100)
         d.upsert_user_status(i, seen=1 if liked else 0, liked=int(liked))
-        doc = d.upsert_document(i, "tmdb", "en", f"Drama Number {n:02d}\nGenres: Drama\n\nSame text.")
+        text = f"Drama Number {n:02d}\nGenres: Drama\n\nSame text."
+        doc = d.upsert_document(i, "tmdb", "en", text)
         chunk_document(d, doc, strategy="whole")
         if liked:
             liked_ids.add(i)

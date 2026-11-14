@@ -21,5 +21,5 @@ def db():
 @pytest.fixture
 def client(db):
     app = create_app(db, load_model=False)
-    with TestClient(app) as c:
+    with TestClient(app, base_url="http://localhost") as c:
         yield c

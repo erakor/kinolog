@@ -72,7 +72,7 @@ def test_llm_generator_is_used_when_valid(db):
 
     seed(db)
     app = create_app(db, load_model=False, generator=lambda q, ctx: "A tense ferry mystery [^1].")
-    with TestClient(app) as c:
+    with TestClient(app, base_url="http://localhost") as c:
         body = c.post("/api/concierge", json={"query": "ferry mystery"}).json()
     assert body["picks"][0]["rationale"]["generator"] == "llm"
     assert "no_llm: template rationale" not in body["degraded"]

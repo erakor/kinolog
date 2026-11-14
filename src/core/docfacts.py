@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from src.core.db import Database
+from src.core.db import Database, chunked
 
 
 def parse_tmdb_text(text: str) -> dict:
@@ -25,15 +25,16 @@ def item_facts(db: Database, item_ids: list[int]) -> dict[int, dict]:
     out: dict[int, dict] = {i: {"genres": [], "overview": ""} for i in item_ids}
     if not item_ids:
         return out
-    ph = ",".join("?" for _ in item_ids)
-    rows = db.execute(
-        f"""SELECT item_id, text FROM documents
-            WHERE source = 'tmdb' AND item_id IN ({ph})
-            ORDER BY (lang = 'en') ASC""",  # en last so it overwrites other languages
-        tuple(item_ids),
-    ).fetchall()
-    for r in rows:
-        facts = parse_tmdb_text(r["text"])
-        if facts["genres"] or facts["overview"]:
-            out[r["item_id"]] = facts
+    for part in chunked(list(item_ids)):
+        ph = ",".join("?" for _ in part)
+        rows = db.execute(
+            f"""SELECT item_id, text FROM documents
+                WHERE source = 'tmdb' AND item_id IN ({ph})
+                ORDER BY (lang = 'en') ASC""",  # en last so it overwrites other languages
+            tuple(part),
+        ).fetchall()
+        for r in rows:
+            facts = parse_tmdb_text(r["text"])
+            if facts["genres"] or facts["overview"]:
+                out[r["item_id"]] = facts
     return out

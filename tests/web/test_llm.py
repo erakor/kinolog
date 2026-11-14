@@ -51,7 +51,7 @@ def test_empty_output_triggers_template_fallback_end_to_end(db):
     seed(db)
     gen = build_generator(client=FakeClient(raises=OSError()))
     app = create_app(db, load_model=False, generator=gen)
-    with TestClient(app) as c:
+    with TestClient(app, base_url="http://localhost") as c:
         body = c.post("/api/concierge", json={"query": "ferry mystery"}).json()
     assert body["picks"][0]["rationale"]["generator"] == "template"
     assert any(d.startswith("llm_ungrounded") for d in body["degraded"])

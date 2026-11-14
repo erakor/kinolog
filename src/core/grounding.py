@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from src.core.db import Database
+from src.core.db import Database, chunked
 from src.core.search import SearchResult
 
 CITATION_RE = re.compile(r"\[\^(\d+)\]")
@@ -90,11 +90,45 @@ def groundedness(answer_items: list[int], context_items: set[int]) -> float:
     return grounded / len(answer_items)
 
 
+class MentionScope:
+    """Film titles to look for in answers, compiled once and reusable across checks.
+
+    ``item_ids=None`` means every item in the DB. Titles are matched case-insensitively on
+    word boundaries with one alternation (longest title first).
+    """
+
+    def __init__(self, db: Database, item_ids: set[int] | None = None):
+        if item_ids is None:
+            rows = db.execute("SELECT id, title FROM items").fetchall()
+        else:
+            rows = []
+            for part in chunked(sorted(item_ids)):
+                ph = ",".join("?" for _ in part)
+                rows += db.execute(
+                    f"SELECT id, title FROM items WHERE id IN ({ph})", tuple(part)
+                ).fetchall()
+        self._ids_by_title: dict[str, list[int]] = {}
+        for r in rows:
+            if r["title"]:
+                self._ids_by_title.setdefault(r["title"].lower(), []).append(r["id"])
+        titles = sorted(self._ids_by_title, key=len, reverse=True)
+        self._pattern = (
+            re.compile(r"\b(?:" + "|".join(re.escape(t) for t in titles) + r")\b", re.IGNORECASE)
+            if titles else None
+        )
+
+    def mentioned(self, answer: str) -> list[int]:
+        if self._pattern is None:
+            return []
+        found = {m.group(0).lower() for m in self._pattern.finditer(answer)}
+        return [i for t in found for i in self._ids_by_title.get(t, [])]
+
+
 def check_grounding(
     db: Database,
     answer: str,
     assembled: AssembledContext,
-    mention_scope: set[int] | None = None,
+    mention_scope: set[int] | MentionScope | None = None,
 ) -> dict:
     """Check an answer against the context it was written from.
 
@@ -102,14 +136,10 @@ def check_grounding(
     (``mention_scope`` limits which items' titles are looked for; None means every item in
     the DB), and every ``[^n]`` marker must refer to an assembled source.
     """
-    if mention_scope is None:
-        candidates = db.get_items()
-    else:
-        candidates = [it for it in (db.get_item(i) for i in mention_scope) if it]
-    mentioned = [
-        it["id"] for it in candidates
-        if re.search(r"\b" + re.escape(it["title"]) + r"\b", answer, re.IGNORECASE)
-    ]
+    scope = mention_scope if isinstance(mention_scope, MentionScope) else MentionScope(
+        db, mention_scope
+    )
+    mentioned = scope.mentioned(answer)
     valid = {c.citation_id for c in assembled.chunks}
     invalid = sorted({int(n) for n in CITATION_RE.findall(answer) if int(n) not in valid})
     score = groundedness(mentioned, assembled.referenced_item_ids)

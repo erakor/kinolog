@@ -15,18 +15,19 @@ from typing import Any
 from src.core import collections as coll
 from src.core.db import Database
 from src.core.docfacts import item_facts, parse_tmdb_text
-from src.core.grounding import assemble_context, check_grounding
+from src.core.grounding import MentionScope, assemble_context, check_grounding
 from src.core.search import SearchFilters, SearchResult, search
 
 # --- lexicons ---------------------------------------------------------------------------
 
+# Word qualifiers need \b on both sides: "discover" must not read as "over", "admin" as "min".
 _MAX_Q = (
-    r"under|below|less\s+than|fewer\s+than|at\s+most|no\s+more\s+than|not\s+more\s+than|up\s+to|"
-    r"within|in\s+less\s+than|shorter\s+than|max(?:imum)?(?:\s+of)?|<=|<|≤"
+    r"\b(?:under|below|less\s+than|fewer\s+than|at\s+most|no\s+more\s+than|not\s+more\s+than|"
+    r"up\s+to|within|in\s+less\s+than|shorter\s+than|max(?:imum)?(?:\s+of)?)\b|<=|<|≤"
 )
 _MIN_Q = (
-    r"over|above|more\s+than|at\s+least|no\s+less\s+than|longer\s+than|min(?:imum)?(?:\s+of)?|"
-    r">=|>|≥"
+    r"\b(?:over|above|more\s+than|at\s+least|no\s+less\s+than|longer\s+than|"
+    r"min(?:imum)?(?:\s+of)?)\b|>=|>|≥"
 )
 _WORD_NUM = {"one": 1, "two": 2, "three": 3, "four": 4}
 
@@ -50,7 +51,7 @@ _DECADE_LEAD = r"(?:(?:from|in|of|during)\s+(?:the\s+)?|the\s+)?"
 DECADE_RE = re.compile(
     rf"""{_DECADE_LEAD}(?:
         (?P<d4>(?:18|19|20)\d0)['’]?s
-      | ['’]?(?P<d2>\d0)['’]?s
+      | (?<!\d)['’]?(?P<d2>\d0)['’]?s
       | (?P<dw>{"|".join(_DECADE_WORDS)})
     )\b""",
     re.IGNORECASE | re.VERBOSE,
@@ -339,9 +340,7 @@ def _snippet(text: str, limit: int = 220) -> str:
     return cut.rstrip(",;:") + "…"
 
 
-def _filter_only_candidates(
-    db: Database, filters: SearchFilters, limit: int
-) -> list[int]:
+def _filter_only_candidates(db: Database, filters: SearchFilters) -> list[int]:
     """Candidate item ids from filters alone (no text query)."""
     item_cond, params = filters.to_sql_conditions()
     status_cond, sparams = filters.to_status_conditions()
@@ -390,7 +389,7 @@ def _director_item_ids(db: Database, query: str) -> tuple[str | None, list[int]]
     return best[1], [r["id"] for r in ids]
 
 
-def _mention_scope(db: Database) -> set[int]:
+def _mention_scope(db: Database) -> MentionScope:
     """Films whose titles are checked for mentions in a rationale.
 
     Every film in the index counts (so naming a film that is not in the cited context is
@@ -398,10 +397,10 @@ def _mention_scope(db: Database) -> set[int]:
     which would match ordinary prose.
     """
     rows = db.execute("SELECT id, title FROM items WHERE item_type = 'film'").fetchall()
-    return {
+    return MentionScope(db, {
         r["id"] for r in rows
         if len(r["title"]) >= 4 and r["title"].lower() not in STOPWORDS
-    }
+    })
 
 
 def _chunk_meta(db: Database, chunk_ids: list[int]) -> dict[int, dict]:
@@ -548,7 +547,7 @@ def pick(
         top = results[0].score if results and results[0].score else 1.0
         ranked = [(r.item_id, r.score / top) for r in results]
     else:
-        cand = _filter_only_candidates(db, filters, limit)
+        cand = _filter_only_candidates(db, filters)
         ranked = [(i, 0.0) for i in cand]
 
     cand_ids = [i for i, _ in ranked]
@@ -582,7 +581,7 @@ def pick(
     for item_id, f in item_facts(db, top_ids).items():
         cards[item_id]["genres"] = f["genres"]
     deltas = coll.completion_deltas(db, top_ids, with_remaining=True)
-    mention_scope = _mention_scope(db) if rationales else set()
+    mention_scope = _mention_scope(db) if rationales else None
 
     picks = []
     for item_id in top_ids:
@@ -690,7 +689,7 @@ def _explain_empty(
         if residual:
             n = len(search(db, residual, model=model, mode=mode, limit=5, filters=relaxed))
         else:
-            n = len(_filter_only_candidates(db, relaxed, 5))
+            n = len(_filter_only_candidates(db, relaxed))
         if n:
             relax.append({"filter": name, "would_match": n})
     return {"message": "Nothing in your index matches all of those constraints.", "relax": relax}

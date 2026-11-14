@@ -29,20 +29,20 @@ def _bad(message: str, status: int = 422) -> HTTPException:
     return HTTPException(status, {"code": "invalid_upload", "message": message})
 
 
-async def _read_capped(file: UploadFile) -> bytes:
-    data = await file.read(MAX_UPLOAD_BYTES + 1)
+def _read_capped(file: UploadFile) -> bytes:
+    data = file.file.read(MAX_UPLOAD_BYTES + 1)
     if len(data) > MAX_UPLOAD_BYTES:
         raise _bad("File is larger than 20 MB", 413)
     return data
 
 
 @router.post("/letterboxd")
-async def import_letterboxd(
+def import_letterboxd(  # sync: runs in the threadpool, so the import never blocks the event loop
     file: UploadFile,
     state: AppState = Depends(get_state),
 ):
     name = Path(file.filename or "").name.lower()
-    data = await _read_capped(file)
+    data = _read_capped(file)
 
     with tempfile.TemporaryDirectory(prefix="kinolog-import-") as tmp:
         root = Path(tmp)

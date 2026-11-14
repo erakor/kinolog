@@ -58,7 +58,10 @@ def main(argv: list[str] | None = None) -> int:
         if generator is None:
             print("--llm requested but no usable Anthropic setup; using templates", file=sys.stderr)
 
-    app = create_app(args.db, load_model=not args.no_model, generator=generator)
+    app = create_app(
+        args.db, load_model=not args.no_model, generator=generator,
+        allowed_hosts={"*"} if args.allow_remote else None,
+    )
     log_level = "debug" if args.verbose else "warning"  # access log carries concierge queries
     uvicorn.run(app, host=args.host, port=args.port, log_level=log_level)
     return 0

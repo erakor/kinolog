@@ -67,3 +67,13 @@ def test_rating_and_liked_put(client, db):
     assert cleared["status"]["rating"] is None
     assert client.put(f"/api/items/{iid}/liked", json={"liked": True}).json()["status"]["liked"]
     assert client.put("/api/items/9999/liked", json={"liked": True}).status_code == 404
+
+
+def test_dates_are_normalised_or_rejected(client, db):
+    ids = seed(db)
+    iid = ids["Midnight Ferry"]
+    r = client.post("/api/log", json={"item_id": iid, "watched_on": "20240101"})
+    assert r.status_code == 201 and r.json()["watched_on"] == "2024-01-01"
+    r = client.post("/api/log", json={"item_id": iid, "watched_on": "2024-W01-1"})
+    assert r.status_code == 201 and r.json()["watched_on"] == "2024-01-01"
+    assert client.post("/api/log", json={"item_id": iid, "watched_on": "nope"}).status_code == 422

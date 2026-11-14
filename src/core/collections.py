@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from src.core.db import Database
+from src.core.db import Database, InvalidInputError, chunked
 
 SHORT_MAX_MIN = 40
 SORTS = ("pct", "hearted", "name", "remaining")
@@ -80,19 +80,20 @@ def pct(seen: int, total: int) -> float:
 
 
 def _films_for(db: Database, person_ids: list[int], role: str) -> dict[int, list[DirectorFilm]]:
-    if not person_ids:
-        return {}
-    ph = ",".join("?" for _ in person_ids)
-    rows = db.execute(
-        f"""SELECT DISTINCT c.person_id, i.id, i.title, i.year, i.runtime_min,
-                   COALESCE(us.seen, 0) AS seen, COALESCE(us.liked, 0) AS liked,
-                   COALESCE(us.on_watchlist, 0) AS on_watchlist, us.rating
-            FROM credits c JOIN items i ON i.id = c.item_id
-            LEFT JOIN user_status us ON us.item_id = i.id
-            WHERE c.role = ? AND c.person_id IN ({ph}) AND {COUNTED}
-            ORDER BY i.year, i.title""",
-        (role, *person_ids),
-    ).fetchall()
+    rows = []
+    for part in chunked(list(person_ids)):
+        ph = ",".join("?" for _ in part)
+        rows += db.execute(
+            f"""SELECT DISTINCT c.person_id, i.id, i.title, i.year, i.runtime_min,
+                       COALESCE(us.seen, 0) AS seen, COALESCE(us.liked, 0) AS liked,
+                       COALESCE(us.on_watchlist, 0) AS on_watchlist, us.rating
+                FROM credits c JOIN items i ON i.id = c.item_id
+                LEFT JOIN user_status us ON us.item_id = i.id
+                WHERE c.role = ? AND c.person_id IN ({ph}) AND {COUNTED}
+                ORDER BY i.year, i.title""",
+            (role, *part),
+        ).fetchall()
+    rows.sort(key=lambda r: (r["year"] is None, r["year"] or 0, r["title"]))
     out: dict[int, list[DirectorFilm]] = {}
     for r in rows:
         out.setdefault(r["person_id"], []).append(DirectorFilm(
@@ -139,9 +140,9 @@ def director_completion(
 ) -> list[DirectorCompletion]:
     """Per-director completion, one query (plus one for films when ``with_films``)."""
     if sort not in SORTS:
-        raise ValueError(f"Unknown sort: {sort}")
+        raise InvalidInputError(f"Unknown sort: {sort}")
     if status not in STATUSES:
-        raise ValueError(f"Unknown status: {status}")
+        raise InvalidInputError(f"Unknown status: {status}")
     rows = db.execute(_AGG_SQL + " GROUP BY p.id HAVING total >= ?", (role, min_films)).fetchall()
     result = [_summary_from_row(r) for r in rows]
 
@@ -217,25 +218,27 @@ def completion_deltas(
     out: dict[int, list[CompletionDelta]] = {i: [] for i in item_ids}
     if not item_ids:
         return out
-    ph = ",".join("?" for _ in item_ids)
-    pairs = db.execute(
-        f"""SELECT DISTINCT c.item_id, c.person_id FROM credits c
-            JOIN items i ON i.id = c.item_id
-            LEFT JOIN user_status us ON us.item_id = i.id
-            WHERE c.role = ? AND c.item_id IN ({ph}) AND {COUNTED}
-              AND COALESCE(us.seen, 0) = 0""",
-        (role, *item_ids),
-    ).fetchall()
+    pairs = []
+    for part in chunked(list(item_ids)):
+        ph = ",".join("?" for _ in part)
+        pairs += db.execute(
+            f"""SELECT DISTINCT c.item_id, c.person_id FROM credits c
+                JOIN items i ON i.id = c.item_id
+                LEFT JOIN user_status us ON us.item_id = i.id
+                WHERE c.role = ? AND c.item_id IN ({ph}) AND {COUNTED}
+                  AND COALESCE(us.seen, 0) = 0""",
+            (role, *part),
+        ).fetchall()
     if not pairs:
         return out
     person_ids = sorted({r["person_id"] for r in pairs})
-    pph = ",".join("?" for _ in person_ids)
-    stats = {
-        r["person_id"]: r
+    stats = {}
+    for part in chunked(person_ids):
+        pph = ",".join("?" for _ in part)
         for r in db.execute(
-            _AGG_SQL + f" AND p.id IN ({pph}) GROUP BY p.id", (role, *person_ids)
-        ).fetchall()
-    }
+            _AGG_SQL + f" AND p.id IN ({pph}) GROUP BY p.id", (role, *part)
+        ).fetchall():
+            stats[r["person_id"]] = r
     unseen: dict[int, list[DirectorFilm]] = {}
     if with_remaining:
         unseen = {

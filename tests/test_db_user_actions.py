@@ -166,3 +166,27 @@ def test_writes_do_not_touch_documents_or_chunks(db):
     after = db.stats()
     for t in ("documents", "chunks"):
         assert before[t] == after[t]
+
+
+def test_dates_normalised_and_domain_errors(db):
+    from src.core.db import InvalidInputError, NotFoundError
+
+    i = _film(db)
+    e = db.log_watch(i, "20240102")
+    assert db.get_watch_entry(e)["watched_on"] == "2024-01-02"
+    db.update_watch(e, watched_on="2024-W02-1")
+    assert db.get_watch_entry(e)["watched_on"] == "2024-01-08"
+    with pytest.raises(InvalidInputError):
+        db.log_watch(i, "2024-1-1x")
+    with pytest.raises(NotFoundError):
+        db.set_watchlist(999, True)
+
+
+def test_batch_helpers_handle_more_ids_than_sqlite_variable_limit(db):
+    ids = [db.upsert_item("film", f"F{n}", 2000, runtime_min=100) for n in range(1200)]
+    assert len(db.get_item_cards(ids)) == 1200
+    from src.core.collections import completion_deltas
+    from src.core.docfacts import item_facts
+
+    assert len(completion_deltas(db, ids)) == 1200
+    assert len(item_facts(db, ids)) == 1200

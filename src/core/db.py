@@ -177,19 +177,33 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+class NotFoundError(KeyError):
+    """A requested row does not exist (the web layer maps this to 404)."""
+
+
+class InvalidInputError(ValueError):
+    """Caller-supplied data is invalid (the web layer maps this to 422)."""
+
+
+def chunked(items: list, size: int = 500):
+    """Yield slices so IN (...) lists stay under SQLite's variable limit (999 on old builds)."""
+    for i in range(0, len(items), size):
+        yield items[i:i + size]
+
+
 def _check_date(value: str) -> str:
+    """Validate a date and return it as YYYY-MM-DD (rejects ISO basic/week forms' raw text)."""
     try:
-        date.fromisoformat(value)
+        return date.fromisoformat(value).isoformat()
     except (TypeError, ValueError) as e:
-        raise ValueError(f"Invalid date (expected YYYY-MM-DD): {value!r}") from e
-    return value
+        raise InvalidInputError(f"Invalid date (expected YYYY-MM-DD): {value!r}") from e
 
 
 def _check_rating(rating: int | None) -> int | None:
     if rating is None:
         return None
     if isinstance(rating, bool) or not isinstance(rating, int) or not 1 <= rating <= 10:
-        raise ValueError(f"Rating must be an integer 1..10 (half-stars), got {rating!r}")
+        raise InvalidInputError(f"Rating must be an integer 1..10 (half-stars), got {rating!r}")
     return rating
 
 
@@ -599,7 +613,7 @@ class Database:
 
     def _ensure_status(self, item_id: int):
         if not self.conn.execute("SELECT 1 FROM items WHERE id = ?", (item_id,)).fetchone():
-            raise KeyError(f"No such item: {item_id}")
+            raise NotFoundError(f"No such item: {item_id}")
         self.conn.execute("INSERT OR IGNORE INTO user_status (item_id) VALUES (?)", (item_id,))
 
     def set_watchlist(
@@ -637,7 +651,7 @@ class Database:
         source_key: str | None = None,
     ) -> int:
         """Record a viewing. Idempotent by (source, source_key); tombstones are respected."""
-        _check_date(watched_on)
+        watched_on = _check_date(watched_on)
         _check_rating(rating)
         self._ensure_status(item_id)
         now = _now()
@@ -686,12 +700,12 @@ class Database:
         allowed = {"watched_on", "rating", "liked", "rewatch"}
         bad = set(fields) - allowed
         if bad:
-            raise ValueError(f"Cannot update fields: {sorted(bad)}")
+            raise InvalidInputError(f"Cannot update fields: {sorted(bad)}")
         entry = self.get_watch_entry(entry_id)
         if not entry or entry["deleted_at"]:
-            raise KeyError(f"No such log entry: {entry_id}")
+            raise NotFoundError(f"No such log entry: {entry_id}")
         if "watched_on" in fields:
-            _check_date(fields["watched_on"])
+            fields["watched_on"] = _check_date(fields["watched_on"])
         if "rating" in fields:
             _check_rating(fields["rating"])
         for k in ("liked", "rewatch"):
@@ -710,7 +724,7 @@ class Database:
         """Soft-delete (tombstone) a log entry."""
         entry = self.get_watch_entry(entry_id)
         if not entry:
-            raise KeyError(f"No such log entry: {entry_id}")
+            raise NotFoundError(f"No such log entry: {entry_id}")
         self.conn.execute(
             "UPDATE watch_log SET deleted_at = ?, updated_at = ? WHERE id = ?",
             (_now(), _now(), entry_id),
@@ -787,11 +801,14 @@ class Database:
 
     def get_item_cards(self, item_ids: list[int]) -> dict[int, dict]:
         """Batch-build UI item cards (item + directors + status) keyed by item id."""
-        if not item_ids:
-            return {}
+        cards: dict[int, dict] = {}
+        for part in chunked(list(item_ids)):
+            self._fill_item_cards(part, cards)
+        return cards
+
+    def _fill_item_cards(self, item_ids: list[int], cards: dict[int, dict]) -> None:
         ph = ",".join("?" for _ in item_ids)
         ids = tuple(item_ids)
-        cards: dict[int, dict] = {}
         for r in self.conn.execute(
             f"""SELECT i.id, i.title, i.year, i.item_type, i.runtime_min,
                        us.seen, us.seen_date, us.on_watchlist, us.liked, us.rating,
@@ -828,7 +845,6 @@ class Database:
                 cards[r["item_id"]]["directors"].append(
                     {"person_id": r["person_id"], "name": r["name"]}
                 )
-        return cards
 
     def get_item_card(self, item_id: int) -> dict | None:
         return self.get_item_cards([item_id]).get(item_id)

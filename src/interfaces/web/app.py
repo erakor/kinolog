@@ -13,13 +13,22 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException
 
-from src.core.db import Database
+from src.core.db import Database, InvalidInputError, NotFoundError
 from src.interfaces.web.state import AppState
 
 logger = logging.getLogger(__name__)
 
 STATIC_DIR = Path(__file__).parent / "static"
 MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
+LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+
+
+def _hostname(host_header: str) -> str:
+    """Host without port, IPv6 brackets removed."""
+    host = host_header.strip().lower()
+    if host.startswith("["):
+        return host[1:host.find("]")] if "]" in host else host
+    return host.split(":")[0]
 
 
 def error_response(status: int, code: str, message: str) -> JSONResponse:
@@ -33,7 +42,11 @@ def create_app(
     generator: Callable[[str, str], str] | None = None,
     w_taste: float = 0.0,
     w_comp: float = 0.0,
+    allowed_hosts: frozenset[str] | set[str] | None = None,
 ) -> FastAPI:
+    """``allowed_hosts`` are the Host header names accepted (default: loopback names only);
+    {"*"} accepts any. Rejecting unknown Hosts stops DNS-rebinding pages from reaching the API."""
+    allowed = LOOPBACK_HOSTS if allowed_hosts is None else frozenset(allowed_hosts)
     if isinstance(db, str):
         db = Database(db, check_same_thread=False)
 
@@ -44,7 +57,9 @@ def create_app(
 
     @app.middleware("http")
     async def same_origin_writes(request: Request, call_next):
-        """No CORS: reject cross-origin writes and non-JSON/multipart bodies."""
+        """Reject unknown Hosts, cross-origin writes and non-JSON/multipart bodies (no CORS)."""
+        if "*" not in allowed and _hostname(request.headers.get("host", "")) not in allowed:
+            return error_response(400, "bad_host", "Unexpected Host header")
         if request.method in MUTATING:
             origin = request.headers.get("origin")
             if origin and urlparse(origin).netloc != request.headers.get("host"):
@@ -67,12 +82,14 @@ def create_app(
         loc = ".".join(str(p) for p in first.get("loc", []) if p != "body")
         return error_response(422, "invalid_request", f"{loc}: {first.get('msg', 'invalid')}")
 
-    @app.exception_handler(KeyError)
-    async def key_error(_: Request, exc: KeyError):
+    # Only the database layer's domain errors map to client errors; any other KeyError or
+    # ValueError is a bug and must surface as a 500 with a logged traceback.
+    @app.exception_handler(NotFoundError)
+    async def not_found(_: Request, exc: NotFoundError):
         return error_response(404, "not_found", str(exc.args[0]) if exc.args else "Not found")
 
-    @app.exception_handler(ValueError)
-    async def value_error(_: Request, exc: ValueError):
+    @app.exception_handler(InvalidInputError)
+    async def invalid_input(_: Request, exc: InvalidInputError):
         return error_response(422, "invalid_request", str(exc))
 
     from src.interfaces.web.routes import (
