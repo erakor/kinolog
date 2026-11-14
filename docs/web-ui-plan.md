@@ -1,6 +1,6 @@
 # Kinolog web UI: implementation plan (DRAFT, not implemented)
 
-Status: reviewed; decisions recorded in section 9 (Q4 still open). Nothing in `src/` has changed;
+Status: reviewed; all decisions recorded in section 9. Nothing in `src/` has changed;
 items marked **[BLOCKER]** or **[DEP]** need an answer or a separate piece of work first.
 
 ---
@@ -146,13 +146,11 @@ Things I need the backend work to decide or provide (flag list):
 
 1. **Batched deltas.** Watch List and Concierge show deltas for 20-200 items per page; a per-item
    function means N+1 queries. `completion_deltas(item_ids)` must be one or two queries.
-2. **Denominator definition.** `credits` only exist for items in the index, so `total` today means
-   "films by this director that are in my index" (seen + watchlist + anything else ingested), not
-   the director's full filmography. If you want the real filmography, the backend needs a TMDB
-   person-credits fetch and a way to store non-index films (either stub `items` rows or a
-   `person_filmography` table). This changes every percentage on the Collections screen.
-3. **Exclusion rules**: shorts, TV, documentaries, co-directors, uncredited. Needs `items` metadata
-   that does not exist yet (see F4).
+2. **Denominator definition (decided).** `total` = films by this director that are in the index,
+   with no TMDB filmography fetch.
+3. **Exclusion rules (decided).** Exclude shorts (`runtime_min <= 40`) and TV (`items.is_tv = 1`)
+   from `seen`, `total` and deltas; count films with unknown runtime. Requires the `runtime_min`
+   and `is_tv` columns from commits 3 and 8.
 4. **Delta for already-seen items** should be `[]` (or `before == after`), never negative.
 5. `runtime_min` and `rating` on `DirectorFilm` depend on the schema additions in this plan; the
    backend should read them if present and return `None` otherwise.
@@ -454,7 +452,7 @@ helper using `PRAGMA table_info` + `ALTER TABLE ADD COLUMN`):
 
 ```sql
 -- items
-runtime_min INTEGER
+runtime_min INTEGER, is_tv INTEGER DEFAULT 0
 -- user_status
 rating INTEGER CHECK (rating BETWEEN 1 AND 10),
 watchlist_added_at TEXT, watchlist_removed_at TEXT,
@@ -583,8 +581,8 @@ Run `python3 -m src.interfaces.web --db data/index.db`, open `http://127.0.0.1:8
 
 ## 8. Risks
 
-1. **Director completion semantics** (section 2.0 point 2) changes every number on two screens; if
-   decided late, UI copy and tests churn.
+1. **Director completion semantics** are decided (index only, no shorts/TV), but percentages
+   depend on enrichment coverage: unenriched films have no runtime and cannot be classified.
 2. **Runtime coverage**: films never enriched have no runtime and vanish under runtime constraints.
    Mitigation: report the excluded count, and the backfill command.
 3. **Schema without migrations**: `ALTER TABLE` on a live personal DB. Mitigation: additive columns
@@ -607,8 +605,13 @@ Run `python3 -m src.interfaces.web --db data/index.db`, open `http://127.0.0.1:8
   until then; re-sample tokens before commit 10 (`tokens.css`).
 - **Q3. Delete.** Agreed: soft-delete a log entry, or remove a film from the watchlist. `items`
   rows are never deleted from the UI.
-- **Q4. Completion denominator.** STILL OPEN: the answer "yes" did not pick between "films in my
-  index" and "full TMDB filmography", or say whether shorts/TV count. Needed before commit 11.
+- **Q4. Completion denominator.** Films in the index only (no TMDB person-filmography fetch).
+  Shorts and TV are excluded from both `seen` and `total`:
+  - short = `items.runtime_min <= 40` (the common feature-length cutoff);
+  - TV = TMDB genre "TV Movie", stored as a new `items.is_tv INTEGER` flag by the TMDB enricher
+    (the backfill in commit 8 sets it from existing TMDB documents' "Genres:" line);
+  - films with unknown runtime are counted (they cannot be classified), and the detail view marks
+    them so missing enrichment is visible.
 - **Q5. Unknown runtime.** Agreed: excluded under a runtime constraint, with the excluded count
   reported.
 - **Q6. LLM.** Yes: optional LLM rationale ships in v1 (commit 21 is in scope), and sending
@@ -631,7 +634,7 @@ Run `python3 -m src.interfaces.web --db data/index.db`, open `http://127.0.0.1:8
 5. `db: add get_watchlist_ids/get_heart_ids; use them in mcp_server` + tests.
 6. `ingest(letterboxd): keep diary rating/rewatch and watchlist added date` + tests.
 7. `ingest(letterboxd): respect manual overrides and tombstones on re-import` + tests.
-8. `ingest(tmdb): store runtime_min; add backfill from existing TMDB documents` + tests.
+8. `ingest(tmdb): store runtime_min and is_tv; add backfill from existing TMDB documents` + tests.
 9. `search: add runtime_min/max and item_ids to SearchFilters` + tests.
 10. `build: add web extra; web app skeleton with health, static shell, tokens.css` + tests.
 11. `web: Collections endpoints and view` (after `collections.py` lands, or against a stub).
