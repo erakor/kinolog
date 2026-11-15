@@ -4,7 +4,7 @@ Local, single-user web UI over the existing index: Concierge, Watch List, Watchi
 Collections. FastAPI + a Vite/React/TypeScript frontend, bound to loopback.
 
 > Note: the frontend originally shipped as vanilla ES modules under `static/` with no build step.
-> It now lives in `src/interfaces/web/frontend/` and builds to `src/interfaces/web/dist/`; the JSON
+> It now lives in `frontend/` and builds to `src/kinolog/interfaces/web/dist/`; the JSON
 > API and visual design are unchanged. Mentions of vanilla JS below describe the original design.
 
 ## Decisions
