@@ -24,10 +24,12 @@ from kinolog.interfaces.cli.ingest import (
     handle_ingest_review,
 )
 from kinolog.interfaces.cli.query import (
+    handle_completion,
     handle_crew_overlap,
     handle_filmography,
     handle_search,
     handle_stats,
+    handle_watchlist_impact,
 )
 
 
@@ -111,6 +113,33 @@ def build_parser() -> argparse.ArgumentParser:
     # Stats
     subparsers.add_parser("stats", help="Show database statistics", parents=[base_parser])
 
+    # Completion against full filmographies
+    comp_parser = subparsers.add_parser(
+        "completion",
+        help="Director completion (run `ingest filmographies` first for full filmographies)",
+        parents=[base_parser],
+    )
+    comp_parser.add_argument("name", nargs="?", default=None,
+                             help="Director name (partial match); omit to list directors")
+    comp_parser.add_argument("--min-seen", type=int, default=None,
+                             help="Minimum seen films (default 1, or 0 with a name)")
+    comp_parser.add_argument("--min-total", type=int, default=None,
+                             help="Minimum feature films (default 2, or 1 with a name)")
+    comp_parser.add_argument("--limit", type=int, default=25)
+
+    impact_parser = subparsers.add_parser(
+        "watchlist-impact",
+        help="Rank watchlist films by how much they advance a director's completion",
+        parents=[base_parser],
+    )
+    impact_parser.add_argument("--max-runtime", type=int, default=None,
+                               help="Only films up to N minutes (presets: 90, 105, 120)")
+    impact_parser.add_argument("--include-unseen", action="store_true",
+                               help="Also consider unseen films that are not on the watchlist")
+    impact_parser.add_argument("--include-unknown-runtime", action="store_true",
+                               help="Keep films with no known runtime under --max-runtime")
+    impact_parser.add_argument("--limit", type=int, default=20)
+
     # Filmography
     film_parser = subparsers.add_parser("filmography", help="Show person's filmography", parents=[base_parser])
     film_parser.add_argument("name", help="Person name")
@@ -178,6 +207,11 @@ def run_argparse_cli():
         handle_stats(args.db)
     elif args.command == "filmography":
         handle_filmography(args.db, args.name, args.role)
+    elif args.command == "completion":
+        handle_completion(args.db, args.name, args.min_seen, args.min_total, args.limit)
+    elif args.command == "watchlist-impact":
+        handle_watchlist_impact(args.db, args.max_runtime, args.include_unseen,
+                                args.include_unknown_runtime, args.limit)
     elif args.command == "crew-overlap":
         handle_crew_overlap(args.db, role=args.role, min_overlap=args.min_overlap)
     elif args.command == "eval":

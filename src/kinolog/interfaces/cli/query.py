@@ -1,10 +1,10 @@
-"""CLI handlers for search, stats, filmography and crew-overlap (over ``kinolog.services``)."""
+"""CLI handlers for search, stats, filmography, completion and crew-overlap (over services)."""
 
 from __future__ import annotations
 
 from kinolog import services
 from kinolog.interfaces.cli.output import print_table
-from kinolog.store import Database
+from kinolog.store import Database, InvalidInputError
 
 
 def handle_search(
@@ -58,5 +58,79 @@ def handle_crew_overlap(db_path: str, role: str = "Director", min_overlap: int =
         rows.append([r["person"], str(r["heart_count"]), str(r["seen_count"]), films_str])
     print_table(
         f"Crew Overlap — {role}s in hearted films", ["Name", "Hearts", "Seen", "Films"], rows
+    )
+    db.close()
+
+
+def handle_completion(
+    db_path: str,
+    name: str | None = None,
+    min_seen: int | None = None,
+    min_total: int | None = None,
+    limit: int = 25,
+):
+    db = Database(db_path)
+    try:
+        results = services.filmography_completion(
+            db, name=name, min_seen=min_seen, min_total=min_total, limit=limit
+        )
+    except InvalidInputError as e:
+        print(e)
+        db.close()
+        return
+    if name:
+        for r in results:
+            rows = []
+            for f in r["films"]:
+                w = f["if_watched"]
+                rows.append([
+                    str(f["year"] or ""), f["title"],
+                    f"{f['runtime']} min" if f["runtime"] else "?",
+                    "✓" if f["seen"] else "", "✓" if f["on_watchlist"] else "",
+                    f"{w['before_pct']}% -> {w['after_pct']}%" if w else "",
+                ])
+            print_table(
+                f"{r['person']}: {r['seen']}/{r['total']} ({r['percent']}%, {r['coverage']})",
+                ["Year", "Title", "Runtime", "Seen", "WL", "If watched"], rows,
+            )
+    else:
+        rows = [[r["person"], str(r["seen"]), str(r["total"]), f"{r['percent']}%", r["coverage"]]
+                for r in results]
+        print_table("Director completion", ["Director", "Seen", "Total", "%", "Coverage"], rows)
+    if any(r["coverage"] == "index_only" for r in results):
+        print("Some totals come from your index only and may be low. "
+              "Run `ingest filmographies` to fetch full filmographies.")
+    db.close()
+
+
+def handle_watchlist_impact(
+    db_path: str,
+    max_runtime: int | None = None,
+    include_unseen: bool = False,
+    include_unknown_runtime: bool = False,
+    limit: int = 20,
+):
+    db = Database(db_path)
+    try:
+        results = services.watchlist_director_impact(
+            db, max_runtime=max_runtime, include_unseen=include_unseen,
+            include_unknown_runtime=include_unknown_runtime, limit=limit,
+        )
+    except InvalidInputError as e:
+        print(e)
+        db.close()
+        return
+    rows = [
+        [
+            r["title"], str(r["year"] or ""), f"{r['runtime']} min" if r["runtime"] else "?",
+            ", ".join(d["person"] for d in r["directors"]),
+            "; ".join(f"{d['before']} -> {d['after']}" for d in r["directors"]),
+            f"{r['impact']:.3f}",
+        ]
+        for r in results
+    ]
+    print_table(
+        "Watchlist by director impact",
+        ["Title", "Year", "Runtime", "Director(s)", "Before -> After", "Impact"], rows,
     )
     db.close()
