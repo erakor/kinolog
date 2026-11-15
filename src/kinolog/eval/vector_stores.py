@@ -8,6 +8,7 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
+from kinolog.config import DEFAULT_MODEL
 from kinolog.core.db import Database
 from kinolog.eval.harness import EvalResult
 
@@ -34,7 +35,7 @@ class VectorStoreBenchmark:
 
     def benchmark_sqlite_vec(
         self,
-        model_name: str = "bge_m3",
+        model_name: str = DEFAULT_MODEL,
         n_queries: int = 50,
     ) -> VectorStoreBenchmarkResult | None:
         """Benchmark sqlite-vec store."""

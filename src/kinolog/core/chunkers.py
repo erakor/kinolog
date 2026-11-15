@@ -4,21 +4,12 @@ from __future__ import annotations
 
 import logging
 import re
-from dataclasses import dataclass
 
+from kinolog.config import DEFAULT_STRATEGY
 from kinolog.core.db import Database, content_hash
+from kinolog.domain import Chunk
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class Chunk:
-    text: str
-    ord: int
-    section_name: str | None = None
-    token_count: int | None = None
-    start_ms: int | None = None
-    end_ms: int | None = None
 
 
 def _estimate_tokens(text: str) -> int:
@@ -139,7 +130,7 @@ STRATEGIES = {
 def chunk_document(
     db: Database,
     document_id: int,
-    strategy: str = "whole",
+    strategy: str = DEFAULT_STRATEGY,
 ) -> list[int]:
     """
     Chunk a document with the given strategy and store in DB.
@@ -199,7 +190,7 @@ def chunk_document(
 
 def chunk_all_documents(
     db: Database,
-    strategy: str = "whole",
+    strategy: str = DEFAULT_STRATEGY,
     item_type: str | None = None,
 ) -> dict:
     """Chunk all documents. Returns stats."""

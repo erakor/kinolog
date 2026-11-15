@@ -8,12 +8,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterator
 
-from kinolog.core.chunkers import Chunk
 from kinolog.core.db import Database
+from kinolog.domain import Chunk
 
 logger = logging.getLogger(__name__)
-
-CACHE_DIR = Path("data/cache/subs")
 
 
 @dataclass

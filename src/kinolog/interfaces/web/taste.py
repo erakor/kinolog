@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from kinolog.config import DEFAULT_RANKER
 from kinolog.core.taste import taste_scores
 from kinolog.interfaces.web.state import AppState
 
 
 def cached_taste_scores(
-    state: AppState, candidate_ids: list[int], ranker: str = "nearest_exemplar"
+    state: AppState, candidate_ids: list[int], ranker: str = DEFAULT_RANKER
 ) -> dict[int, float]:
     heart_ids = state.db.get_heart_ids()
     key = (ranker, tuple(heart_ids), tuple(sorted(candidate_ids)))

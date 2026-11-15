@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException
 
+from kinolog.config import DEFAULT_DB_PATH
 from kinolog.core.db import Database, InvalidInputError, NotFoundError
 from kinolog.interfaces.web.state import AppState
 
@@ -40,7 +41,7 @@ def error_response(status: int, code: str, message: str) -> JSONResponse:
 
 
 def create_app(
-    db: Database | str = "data/index.db",
+    db: Database | str = str(DEFAULT_DB_PATH),
     *,
     load_model: bool = True,
     generator: Callable[[str, str], str] | None = None,

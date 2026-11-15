@@ -6,6 +6,8 @@ import json
 import logging
 from typing import Any
 
+from kinolog.config import DEFAULT_DB_PATH, DEFAULT_RANKER
+
 logger = logging.getLogger(__name__)
 
 # Tool definitions for MCP
@@ -143,7 +145,7 @@ TOOLS = [
 class KinologServer:
     """MCP tool handler for Kinolog."""
 
-    def __init__(self, db_path: str = "data/index.db"):
+    def __init__(self, db_path: str = str(DEFAULT_DB_PATH)):
         from kinolog.core.db import Database
         self.db = Database(db_path)
         self._model = None  # Lazy-loaded embedding model
@@ -214,7 +216,7 @@ class KinologServer:
         except ImportError as e:
             return [{"error": f"Taste rankers unavailable: {e}"}]
 
-        ranker_name = args.get("ranker", "nearest_exemplar")
+        ranker_name = args.get("ranker", DEFAULT_RANKER)
         rank_fn = RANKERS.get(ranker_name)
         if not rank_fn:
             return [{"error": f"Unknown ranker: {ranker_name}"}]
@@ -337,7 +339,7 @@ class KinologServer:
         return s
 
 
-def create_mcp_app(db_path: str = "data/index.db"):
+def create_mcp_app(db_path: str = str(DEFAULT_DB_PATH)):
     """Create an MCP-compatible server application."""
     try:
         from mcp.server import Server

@@ -5,6 +5,7 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from kinolog.config import DEFAULT_RANKER
 from kinolog.core import collections as coll
 from kinolog.core.db import Database
 from kinolog.core.docfacts import item_facts
@@ -40,7 +41,7 @@ def list_watchlist(
     runtime_max: int | None = Query(None, ge=1, le=1000),
     decade: int | None = Query(None, ge=1880, le=2100),
     q: str | None = None,
-    ranker: str = "nearest_exemplar",
+    ranker: str = DEFAULT_RANKER,
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
     state: AppState = Depends(get_state),

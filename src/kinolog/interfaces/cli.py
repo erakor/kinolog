@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from kinolog.config import DEFAULT_DB_PATH, DEFAULT_MODEL, DEFAULT_RANKER, DEFAULT_STRATEGY
 from kinolog.core.db import Database
 
 logger = logging.getLogger(__name__)
@@ -110,7 +111,9 @@ def handle_ingest_review(db_path: str):
     review_queue(db_path)
 
 
-def handle_ingest_chunk(db_path: str, strategy: str = "whole", item_type: str | None = None):
+def handle_ingest_chunk(
+    db_path: str, strategy: str = DEFAULT_STRATEGY, item_type: str | None = None
+):
     from kinolog.core.chunkers import chunk_all_documents
     db = Database(db_path)
     stats = chunk_all_documents(db, strategy=strategy, item_type=item_type)
@@ -118,7 +121,7 @@ def handle_ingest_chunk(db_path: str, strategy: str = "whole", item_type: str | 
     db.close()
 
 
-def handle_ingest_embed(db_path: str, model: str = "bge_m3", strategy: str = "whole", device: str | None = None):
+def handle_ingest_embed(db_path: str, model: str = DEFAULT_MODEL, strategy: str = DEFAULT_STRATEGY, device: str | None = None):
     from kinolog.core.embed import BGE_M3, MultilingualE5, embed_chunks
     db = Database(db_path)
     if model == "bge_m3":
@@ -226,7 +229,7 @@ def handle_eval_hearts(db_path: str, ranker: str = "mean_heart", splits: int = 1
 
 
 def handle_eval_concierge(
-    db_path: str, mode: str = "bm25", ranker: str = "nearest_exemplar",
+    db_path: str, mode: str = "bm25", ranker: str = DEFAULT_RANKER,
     w_taste: float = 0.0, w_comp: float = 0.0, hearts: bool = False, splits: int = 5,
 ):
     from kinolog.core.taste import RANKERS, taste_scores
@@ -262,7 +265,9 @@ def handle_eval_concierge(
 
 def run_argparse_cli():
     base_parser = argparse.ArgumentParser(add_help=False)
-    base_parser.add_argument("--db", default="data/index.db", help="Path to SQLite index database")
+    base_parser.add_argument(
+        "--db", default=str(DEFAULT_DB_PATH), help="Path to SQLite index database"
+    )
     base_parser.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
 
     parser = argparse.ArgumentParser(prog="kinolog", description="Personal Film & Book Index", parents=[base_parser])
@@ -292,12 +297,12 @@ def run_argparse_cli():
     ingest_subs.add_parser("review", help="Review and clear the match review queue", parents=[base_parser])
 
     chk_parser = ingest_subs.add_parser("chunk", help="Chunk documents", parents=[base_parser])
-    chk_parser.add_argument("--strategy", default="whole", help="Chunk strategy")
+    chk_parser.add_argument("--strategy", default=DEFAULT_STRATEGY, help="Chunk strategy")
     chk_parser.add_argument("--type", default=None, help="Item type filter")
 
     emb_parser = ingest_subs.add_parser("embed", help="Embed chunks", parents=[base_parser])
-    emb_parser.add_argument("--model", default="bge_m3", help="Model name")
-    emb_parser.add_argument("--strategy", default="whole", help="Chunk strategy")
+    emb_parser.add_argument("--model", default=DEFAULT_MODEL, help="Model name")
+    emb_parser.add_argument("--strategy", default=DEFAULT_STRATEGY, help="Chunk strategy")
     emb_parser.add_argument("--device", default=None, help="Device (cpu/mps/cuda)")
 
     # Search
@@ -330,7 +335,7 @@ def run_argparse_cli():
 
     con_parser = eval_subs.add_parser("concierge", help="Run concierge eval", parents=[base_parser])
     con_parser.add_argument("--mode", default="bm25", choices=["bm25", "rrf"])
-    con_parser.add_argument("--ranker", default="nearest_exemplar", help="Taste ranker")
+    con_parser.add_argument("--ranker", default=DEFAULT_RANKER, help="Taste ranker")
     con_parser.add_argument("--w-taste", type=float, default=0.0)
     con_parser.add_argument("--w-comp", type=float, default=0.0)
     con_parser.add_argument("--hearts", action="store_true", help="Also run held-out hearts check")

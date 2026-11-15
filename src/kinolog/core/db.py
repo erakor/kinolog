@@ -10,6 +10,8 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from kinolog.config import DEFAULT_DB_PATH
+
 logger = logging.getLogger(__name__)
 
 SCHEMA_VERSION = 1
@@ -226,7 +228,7 @@ def content_hash(text: str) -> str:
 class Database:
     """SQLite database with FTS5 and optional sqlite-vec support."""
 
-    def __init__(self, db_path: str | Path = "data/index.db", check_same_thread: bool = True):
+    def __init__(self, db_path: str | Path = DEFAULT_DB_PATH, check_same_thread: bool = True):
         if str(db_path) != ":memory:":
             db_path = Path(db_path)
             db_path.parent.mkdir(parents=True, exist_ok=True)

@@ -7,6 +7,7 @@ from typing import Protocol
 
 import numpy as np
 
+from kinolog.config import DEFAULT_STRATEGY
 from kinolog.core.db import Database
 
 logger = logging.getLogger(__name__)
@@ -96,7 +97,7 @@ class MultilingualE5:
 def embed_chunks(
     db: Database,
     model: EmbeddingModel,
-    strategy: str = "whole",
+    strategy: str = DEFAULT_STRATEGY,
     batch_size: int = 64,
 ) -> dict:
     """

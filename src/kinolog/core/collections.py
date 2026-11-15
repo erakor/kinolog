@@ -12,8 +12,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from kinolog.core.db import Database, InvalidInputError, chunked
+from kinolog.domain import SHORT_MAX_MIN
 
-SHORT_MAX_MIN = 40
 SORTS = ("pct", "hearted", "name", "remaining")
 STATUSES = ("all", "in_progress", "completed")
 

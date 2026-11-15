@@ -5,15 +5,13 @@ from __future__ import annotations
 import json
 import logging
 import urllib.parse
-from pathlib import Path
 from typing import Any
 
+from kinolog.config import WIKI_CACHE_DIR, WIKIDATA_CACHE_DIR
 from kinolog.core.db import Database
 
 logger = logging.getLogger(__name__)
 
-WIKI_CACHE_DIR = Path("data/cache/wiki")
-WIKIDATA_CACHE_DIR = Path("data/cache/wikidata")
 
 
 def _fetch_wikidata_sitelinks(wikidata_id: str) -> dict[str, str]:

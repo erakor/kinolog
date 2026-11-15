@@ -5,14 +5,12 @@ from __future__ import annotations
 import json
 import logging
 import re
-from pathlib import Path
 
+from kinolog.config import TMDB_CACHE_DIR
 from kinolog.core.db import Database, content_hash
 from kinolog.ingest.resolvers.tmdb import TMDBResolver
 
 logger = logging.getLogger(__name__)
-
-CACHE_DIR = Path("data/cache/tmdb")
 
 # Key crew roles to extract
 KEY_ROLES = {
@@ -220,7 +218,7 @@ def enrich_item(
         db.execute("UPDATE items SET is_tv = 1 WHERE id = ?", (item_id,))
 
     # Register in raw_cache
-    cache_path = f"data/cache/tmdb/movie_{tmdb_id}.json"
+    cache_path = f"{TMDB_CACHE_DIR.as_posix()}/movie_{tmdb_id}.json"
     db.cache_put("tmdb", str(tmdb_id), cache_path)
 
     # --- Credits ---

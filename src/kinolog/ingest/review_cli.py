@@ -5,10 +5,11 @@ from __future__ import annotations
 import json
 import sys
 
+from kinolog.config import DEFAULT_DB_PATH
 from kinolog.core.db import Database
 
 
-def review_queue(db_path: str = "data/index.db"):
+def review_queue(db_path: str = str(DEFAULT_DB_PATH)):
     """Interactive CLI to clear the match review queue."""
     db = Database(db_path)
     queue = db.get_review_queue()

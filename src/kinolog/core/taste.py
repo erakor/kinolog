@@ -11,6 +11,7 @@ try:
 except ImportError:
     np = None  # type: ignore
 
+from kinolog.config import DEFAULT_MODEL, DEFAULT_RANKER, DEFAULT_STRATEGY
 from kinolog.core.db import Database
 
 logger = logging.getLogger(__name__)
@@ -28,8 +29,8 @@ class TasteScore:
 def _get_item_embeddings(
     db: Database,
     item_ids: list[int],
-    model_name: str = "bge_m3",
-    strategy: str = "whole",
+    model_name: str = DEFAULT_MODEL,
+    strategy: str = DEFAULT_STRATEGY,
     rollup: str = "mean",
 ) -> dict[int, Any]:
     """
@@ -108,8 +109,8 @@ def rank_mean_heart(
     db: Database,
     candidate_ids: list[int],
     heart_ids: list[int],
-    model_name: str = "bge_m3",
-    strategy: str = "whole",
+    model_name: str = DEFAULT_MODEL,
+    strategy: str = DEFAULT_STRATEGY,
 ) -> list[TasteScore]:
     """Mean of heart vectors baseline."""
     heart_embeddings = _get_item_embeddings(db, heart_ids, model_name, strategy)
@@ -139,8 +140,8 @@ def rank_nearest_exemplar(
     db: Database,
     candidate_ids: list[int],
     heart_ids: list[int],
-    model_name: str = "bge_m3",
-    strategy: str = "whole",
+    model_name: str = DEFAULT_MODEL,
+    strategy: str = DEFAULT_STRATEGY,
 ) -> list[TasteScore]:
     """Score = max cosine similarity to any heart."""
     heart_embeddings = _get_item_embeddings(db, heart_ids, model_name, strategy)
@@ -165,8 +166,8 @@ def rank_top_k_mean(
     candidate_ids: list[int],
     heart_ids: list[int],
     k: int = 3,
-    model_name: str = "bge_m3",
-    strategy: str = "whole",
+    model_name: str = DEFAULT_MODEL,
+    strategy: str = DEFAULT_STRATEGY,
 ) -> list[TasteScore]:
     """Score = mean of top-k cosine similarities to hearts."""
     heart_embeddings = _get_item_embeddings(db, heart_ids, model_name, strategy)
@@ -194,8 +195,8 @@ def rank_prototypes(
     candidate_ids: list[int],
     heart_ids: list[int],
     n_clusters: int = 5,
-    model_name: str = "bge_m3",
-    strategy: str = "whole",
+    model_name: str = DEFAULT_MODEL,
+    strategy: str = DEFAULT_STRATEGY,
 ) -> list[TasteScore]:
     """K-means prototypes: score = max cosine to any cluster centroid."""
     from sklearn.cluster import KMeans
@@ -247,7 +248,7 @@ class TasteUnavailableError(Exception):
     """Taste scoring cannot run (no vectors, no hearts, no embeddings)."""
 
 
-def taste_available(db: Database, model_name: str = "bge_m3") -> bool:
+def taste_available(db: Database, model_name: str = DEFAULT_MODEL) -> bool:
     """Rankers read stored embeddings, so they need the vec table, not the model."""
     if not db.vec_available:
         return False
@@ -259,7 +260,7 @@ def taste_available(db: Database, model_name: str = "bge_m3") -> bool:
 def taste_scores(
     db: Database,
     candidate_ids: list[int],
-    ranker: str = "nearest_exemplar",
+    ranker: str = DEFAULT_RANKER,
     heart_ids: list[int] | None = None,
 ) -> dict[int, float]:
     """Taste score per candidate (only those with embeddings), trained on hearted films.

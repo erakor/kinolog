@@ -4,33 +4,20 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import time
-from pathlib import Path
 
 import httpx
 
+from kinolog.config import TMDB_CACHE_DIR, get_tmdb_api_key
 from kinolog.core.db import Database
 
 logger = logging.getLogger(__name__)
 
 TMDB_BASE = "https://api.themoviedb.org/3"
-CACHE_DIR = Path("data/cache/tmdb")
+CACHE_DIR = TMDB_CACHE_DIR
 
 
-def _get_api_key() -> str:
-    key = os.environ.get("TMDB_API_KEY", "")
-    if not key:
-        key_file = Path(".env")
-        if key_file.exists():
-            for line in key_file.read_text().splitlines():
-                if line.startswith("TMDB_API_KEY="):
-                    key = line.split("=", 1)[1].strip().strip('"').strip("'")
-    if not key:
-        raise ValueError(
-            "TMDB_API_KEY not set. Set it as an environment variable or in .env"
-        )
-    return key
+_get_api_key = get_tmdb_api_key
 
 
 class TMDBResolver:

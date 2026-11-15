@@ -5,14 +5,14 @@ from __future__ import annotations
 import json
 import logging
 import urllib.parse
-from pathlib import Path
 from typing import Any
 
+from kinolog.config import OPENLIBRARY_CACHE_DIR
 from kinolog.core.db import Database
 
 logger = logging.getLogger(__name__)
 
-CACHE_DIR = Path("data/cache/openlibrary")
+CACHE_DIR = OPENLIBRARY_CACHE_DIR
 
 
 class OpenLibraryResolver:

@@ -39,6 +39,7 @@ Every CLI command accepts `--db` (default `data/index.db`) and `-v`. The CLI is 
 
 ## Architecture
 
+- `src/kinolog/config.py` holds every default path (`data/index.db`, `data/cache/<source>/`, `.env`) and default model/strategy/ranker names; `src/kinolog/domain.py` holds dataclasses and constants shared across layers (`Chunk`, `SHORT_MAX_MIN`). Both sit below all other modules and must not import from them.
 **Pipeline:** loaders → resolvers → enrichers → documents → chunks → embeddings → search/taste → eval & interfaces. Each stage is a separate CLI step and is idempotent, so stages can be re-run independently.
 
 - `src/kinolog/core/db.py` — the single `Database` class owns the whole schema (created on construction; no migrations). Key relationships: `items` (films and books share one table, discriminated by `item_type`) → `documents` (one per item/source/lang) → `chunks` (one row per document/strategy/ord). `user_status` holds seen/watchlist/liked state; `people`/`credits` hold TMDB crew. All upserts are content-hash based and skip unchanged text.

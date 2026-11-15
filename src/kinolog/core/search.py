@@ -9,8 +9,9 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     import numpy as np
 
-from kinolog.core.collections import SHORT_MAX_MIN
+from kinolog.config import DEFAULT_MODEL
 from kinolog.core.db import Database
+from kinolog.domain import SHORT_MAX_MIN
 
 logger = logging.getLogger(__name__)
 
@@ -247,7 +248,7 @@ def search_rrf(
     db: Database,
     query: str,
     query_embedding: np.ndarray | None = None,
-    model_name: str = "bge_m3",
+    model_name: str = DEFAULT_MODEL,
     limit: int = 20,
     k: int = 60,
     filters: SearchFilters | None = None,
@@ -303,7 +304,7 @@ def search(
     db: Database,
     query: str,
     model: Any | None = None,
-    model_name: str = "bge_m3",
+    model_name: str = DEFAULT_MODEL,
     mode: str = "rrf",
     limit: int = 20,
     filters: SearchFilters | None = None,

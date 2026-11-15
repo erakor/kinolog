@@ -7,6 +7,8 @@ import ipaddress
 import logging
 import sys
 
+from kinolog.config import DEFAULT_DB_PATH
+
 LOOPBACK_NAMES = {"localhost"}
 
 
@@ -21,7 +23,7 @@ def is_loopback(host: str) -> bool:
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="kinolog-web", description="Kinolog web UI")
-    p.add_argument("--db", default="data/index.db")
+    p.add_argument("--db", default=str(DEFAULT_DB_PATH))
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8765)
     p.add_argument("--no-model", action="store_true", help="never load the embedding model")
