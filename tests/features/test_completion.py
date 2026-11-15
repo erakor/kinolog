@@ -9,10 +9,13 @@ from kinolog.features.completion import (
     aggregate_impact,
     completion_deltas,
     compute_completion,
+    director_completions,
     director_impact_key,
     format_pct,
     is_feature,
+    load_director_films,
     passes_runtime,
+    watchlist_by_director_impact,
 )
 
 TODAY = date(2026, 6, 1)
@@ -175,3 +178,98 @@ def test_impact_ordering():
     assert keys == sorted(keys)
     # deterministic ties: same impact falls back to year, then title
     assert [r.film.title for r in ranked[1:3]] == ["xU0", "xU1"]
+
+
+# --- Loaders ---
+
+def director(db, name, tmdb_person_id):
+    return db.upsert_person(name, tmdb_person_id=tmdb_person_id)
+
+
+def indexed(db, pid, title, year, *, tmdb_id=None, runtime=100, role="Director", **status):
+    item = db.upsert_item("film", title, year, tmdb_id=tmdb_id, runtime_min=runtime)
+    db.upsert_credit(item, pid, role, "Directing")
+    if status:
+        db.upsert_user_status(item, **status)
+    return item
+
+
+def test_without_a_filmography_uses_director_credits_only(db):
+    fellini = director(db, "Fellini", 1)
+    indexed(db, fellini, "8½", 1963, seen=1)
+    indexed(db, fellini, "Amarcord", 1973, seen=1)
+    indexed(db, fellini, "Score", 1973, role="Original Music Composer")
+    (c,) = director_completions(db, name="Fellini", today=TODAY)
+    assert (c.coverage, c.seen, c.total) == ("index_only", 2, 2)
+    assert [f.title for f in c.films] == ["8½", "Amarcord"]
+
+
+def test_with_a_filmography_non_indexed_films_are_unseen_with_no_item(db):
+    ann = director(db, "Ann", 2)
+    indexed(db, ann, "Seen", 1990, tmdb_id=10, seen=1)
+    db.upsert_tmdb_movie(10, "Seen", year=1990, release_date="1990-05-01", runtime=100,
+                         status="Released")
+    db.upsert_tmdb_movie(11, "Unlogged", year=2001, release_date="2001-05-01", runtime=95,
+                         status="Released")
+    db.set_person_filmography(ann, [10, 11])
+    (c,) = director_completions(db, name="Ann", today=TODAY)
+    assert (c.coverage, c.seen, c.total) == ("tmdb", 1, 2)
+    unlogged = next(f for f in c.films if f.title == "Unlogged")
+    assert unlogged.item_id is None and not unlogged.seen and unlogged.tmdb_id == 11
+
+
+def test_indexed_item_takes_seen_state_from_user_status_and_defaults_to_unseen(db):
+    ann = director(db, "Ann", 2)
+    a = indexed(db, ann, "A", 1990, tmdb_id=10, seen=1, on_watchlist=1)
+    b = indexed(db, ann, "B", 1995, tmdb_id=11)  # no user_status row
+    for t, y in ((10, 1990), (11, 1995)):
+        db.upsert_tmdb_movie(t, "x", year=y, release_date=f"{y}-01-01", status="Released")
+    db.set_person_filmography(ann, [10, 11])
+    films, _ = load_director_films(db, ann)
+    by_item = {f.item_id: f for f in films}
+    assert by_item[a].seen and by_item[a].on_watchlist
+    assert not by_item[b].seen and not by_item[b].on_watchlist
+
+
+def test_union_keeps_a_seen_indexed_credit_missing_from_the_filmography(db):
+    ann = director(db, "Ann", 2)
+    indexed(db, ann, "Dropped", 1980, tmdb_id=20, seen=1)  # TMDB omits it from her credits
+    db.upsert_tmdb_movie(30, "Other", year=1999, release_date="1999-01-01", status="Released")
+    db.set_person_filmography(ann, [30])
+    (c,) = director_completions(db, name="Ann", today=TODAY)
+    assert c.coverage == "tmdb" and (c.seen, c.total) == (1, 2)
+
+
+def test_name_matching_two_people_returns_two_completions(db):
+    for n, pid in (("Jean Renoir", 5), ("Jean Vigo", 6)):
+        indexed(db, director(db, n, pid), f"Film {n}", 1950, seen=1)
+    res = director_completions(db, name="Jean", today=TODAY)
+    assert {c.name for c in res} == {"Jean Renoir", "Jean Vigo"}
+
+
+def test_min_seen_and_min_total_filter(db):
+    one = director(db, "One", 7)
+    indexed(db, one, "Only", 1990, seen=1)
+    assert director_completions(db, min_total=2, today=TODAY) == []
+    assert director_completions(db, min_seen=2, today=TODAY) == []
+    assert len(director_completions(db, min_seen=1, today=TODAY)) == 1
+
+
+def test_watchlist_impact_defaults_to_watchlist_and_include_unseen_adds_the_rest(db):
+    ann = director(db, "Ann", 2)
+    indexed(db, ann, "Seen", 1990, tmdb_id=10, seen=1)
+    indexed(db, ann, "Queued", 1995, tmdb_id=11, on_watchlist=1)
+    indexed(db, ann, "Shelf", 1998, tmdb_id=12)
+    for t, y, ti in ((10, 1990, "Seen"), (11, 1995, "Queued"), (12, 1998, "Shelf"),
+                     (13, 2003, "Unlogged")):
+        db.upsert_tmdb_movie(t, ti, year=y, release_date=f"{y}-01-01", runtime=90,
+                             status="Released")
+    db.set_person_filmography(ann, [10, 11, 12, 13])
+    default = watchlist_by_director_impact(db, today=TODAY)
+    assert [i.film.title for i in default] == ["Queued"]
+    everything = watchlist_by_director_impact(db, include_unseen=True, today=TODAY)
+    assert {i.film.title for i in everything} == {"Queued", "Shelf", "Unlogged"}
+    assert next(i for i in everything if i.film.title == "Unlogged").film.item_id is None
+    assert watchlist_by_director_impact(db, include_unseen=True, limit=1, today=TODAY)[0]
+    short = watchlist_by_director_impact(db, max_runtime=80, include_unseen=True, today=TODAY)
+    assert short == []

@@ -22,12 +22,15 @@ Feature-film rules (same short/TV policy as ``collections.py``):
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date
-from typing import Literal
+from typing import Any, Literal
 
 from kinolog.domain import SHORT_MAX_MIN
+from kinolog.features.crew import find_people
+from kinolog.store import Database
 
 RUNTIME_PRESETS: tuple[int, ...] = (90, 105, 120)
 TV_MOVIE_GENRE = 10770
@@ -231,3 +234,151 @@ def aggregate_impact(
     ]
     results.sort(key=director_impact_key)
     return results
+
+
+# --- Loaders ---
+
+_FILM_COLUMNS = """
+    i.id AS item_id, COALESCE(i.tmdb_id, tm.tmdb_id) AS tmdb_id,
+    i.title AS item_title, i.year AS item_year, i.runtime_min, COALESCE(i.is_tv, 0) AS is_tv,
+    COALESCE(us.seen, 0) AS seen, COALESCE(us.on_watchlist, 0) AS on_watchlist,
+    tm.title AS tm_title, tm.year AS tm_year, tm.release_date, tm.runtime, tm.status,
+    tm.is_video, tm.genre_ids
+"""
+
+
+def _film_from_row(r: Any) -> FilmographyFilm:
+    """Merge an item row and/or a ``tmdb_movies`` row. TMDB facts win; the index fills gaps."""
+    indexed = r["item_id"] is not None
+    year = r["tm_year"] or r["item_year"]
+    release_date = r["release_date"] or (f"{year:04d}-01-01" if indexed and year else None)
+    return FilmographyFilm(
+        tmdb_id=r["tmdb_id"],
+        item_id=r["item_id"],
+        title=r["tm_title"] or r["item_title"] or f"TMDB {r['tmdb_id']}",
+        year=year,
+        release_date=release_date,
+        runtime=r["runtime"] or r["runtime_min"] or None,
+        # A film in the index that TMDB never described is assumed released.
+        status=r["status"] or ("Released" if indexed else None),
+        is_video=bool(r["is_video"]),
+        genre_ids=tuple(json.loads(r["genre_ids"])) if r["genre_ids"] else (),
+        seen=bool(r["seen"]),
+        on_watchlist=bool(r["on_watchlist"]),
+        is_tv=bool(r["is_tv"]),
+    )
+
+
+def _indexed_director_films(db: Database, person_id: int) -> list[FilmographyFilm]:
+    rows = db.execute(
+        f"""SELECT DISTINCT {_FILM_COLUMNS}
+            FROM credits c
+            JOIN items i ON i.id = c.item_id
+            LEFT JOIN user_status us ON us.item_id = i.id
+            LEFT JOIN tmdb_movies tm ON tm.tmdb_id = i.tmdb_id
+            WHERE c.person_id = ? AND c.role = 'Director' AND i.item_type = 'film'""",
+        (person_id,),
+    ).fetchall()
+    return [_film_from_row(r) for r in rows]
+
+
+def _tmdb_director_films(db: Database, person_id: int) -> list[FilmographyFilm]:
+    rows = db.execute(
+        f"""SELECT DISTINCT {_FILM_COLUMNS}
+            FROM person_filmography pf
+            LEFT JOIN tmdb_movies tm ON tm.tmdb_id = pf.tmdb_id
+            LEFT JOIN items i ON i.tmdb_id = pf.tmdb_id AND i.item_type = 'film'
+            LEFT JOIN user_status us ON us.item_id = i.id
+            WHERE pf.person_id = ? AND pf.job = 'Director'""",
+        (person_id,),
+    ).fetchall()
+    return [_film_from_row(r) for r in rows]
+
+
+def load_director_films(db: Database, person_id: int) -> tuple[list[FilmographyFilm], Coverage]:
+    """All of a director's films plus the coverage of the data behind them.
+
+    With a fetched filmography the result is its union with the indexed Director credits, so a
+    seen film TMDB dropped from the person's credits still counts. Without one it is the indexed
+    credits alone, and coverage is ``"index_only"``.
+    """
+    indexed = _indexed_director_films(db, person_id)
+    tmdb = _tmdb_director_films(db, person_id)
+    if not tmdb:
+        return indexed, "index_only"
+    known_tmdb = {f.tmdb_id for f in tmdb if f.tmdb_id is not None}
+    known_items = {f.item_id for f in tmdb if f.item_id is not None}
+    extra = [
+        f
+        for f in indexed
+        if f.item_id not in known_items and (f.tmdb_id is None or f.tmdb_id not in known_tmdb)
+    ]
+    return [*tmdb, *extra], "tmdb"
+
+
+def _all_directors(db: Database) -> list:
+    return db.execute(
+        """SELECT p.id, p.name FROM people p
+           WHERE p.id IN (SELECT person_id FROM credits WHERE role = 'Director')
+              OR p.id IN (SELECT person_id FROM person_filmography WHERE job = 'Director')
+           ORDER BY p.name"""
+    ).fetchall()
+
+
+def director_completions(
+    db: Database,
+    *,
+    name: str | None = None,
+    person_id: int | None = None,
+    min_seen: int = 0,
+    min_total: int = 1,
+    today: date | None = None,
+    **feature_kw: Any,
+) -> list[FilmographyCompletion]:
+    """Completion for the directors matching ``name``/``person_id`` (default: every director).
+
+    Sorted by ratio, then seen, then total, then name. ``feature_kw`` is passed to
+    ``compute_completion`` (``max_short_runtime``, ``include_tv_movies``).
+    """
+    today = today or date.today()
+    if name is None and person_id is None:
+        people = _all_directors(db)
+    else:
+        people = find_people(db, name=name, person_id=person_id)
+    results = []
+    for p in people:
+        films, coverage = load_director_films(db, p["id"])
+        c = compute_completion(
+            p["id"], p["name"], films, coverage=coverage, today=today, **feature_kw
+        )
+        if c.seen >= min_seen and c.total >= min_total:
+            results.append(c)
+    results.sort(key=lambda c: (-c.ratio, -c.seen, -c.total, c.name))
+    return results
+
+
+def watchlist_by_director_impact(
+    db: Database,
+    *,
+    max_runtime: int | None = None,
+    include_unknown_runtime: bool = False,
+    include_unseen: bool = False,
+    limit: int | None = None,
+    today: date | None = None,
+) -> list[FilmImpact]:
+    """Films ranked by how much watching them would advance their directors' completion.
+
+    Candidates are unseen feature films on the watchlist; ``include_unseen`` adds the director's
+    other unseen films, including ones that are not in the index.
+    """
+    today = today or date.today()
+    deltas: list[FilmDelta] = []
+    for c in director_completions(db, today=today):
+        deltas += completion_deltas(
+            c,
+            max_runtime=max_runtime,
+            include_unknown_runtime=include_unknown_runtime,
+            watchlist_only=not include_unseen,
+        )
+    ranked = aggregate_impact(deltas)
+    return ranked if limit is None else ranked[:limit]
