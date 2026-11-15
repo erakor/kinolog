@@ -1,6 +1,7 @@
 """Dependency direction: a module may import its own top-level package or strictly lower layers."""
 
 import ast
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1] / "src" / "kinolog"
@@ -90,3 +91,26 @@ def test_layering():
                     f"({own}[{LAYERS[own]}] -> {target}[{LAYERS[target]}])"
                 )
     assert not violations, "layering violations:\n" + "\n".join(violations)
+
+
+# --- Only the store writes to the database ---
+
+_SQL_WRITE = re.compile(r"\b(INSERT|UPDATE|DELETE|REPLACE)\s")
+
+
+def test_only_the_store_writes_sql():
+    """No string literal outside kinolog.store contains INSERT/UPDATE/DELETE/REPLACE as SQL.
+
+    Reads (SELECT) may live in the modules whose subject they are; writes go through named
+    ``Database`` methods.
+    """
+    offenders = []
+    for path in _source_files():
+        if _own_top(path) == "store":
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                if _SQL_WRITE.search(node.value):
+                    offenders.append(f"{path.relative_to(ROOT)}:{node.lineno}: {node.value[:60]!r}")
+    assert not offenders, "SQL writes outside kinolog.store:\n" + "\n".join(offenders)

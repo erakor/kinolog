@@ -43,11 +43,11 @@ def backfill_runtime_and_tv(db: Database) -> dict:
         text = r["text"] or ""
         m = re.search(r"^Runtime:\s*(\d+)\s*minutes", text, re.MULTILINE)
         if m and r["runtime_min"] is None:
-            db.execute("UPDATE items SET runtime_min = ? WHERE id = ?", (int(m.group(1)), r["id"]))
+            db.set_item_facts(r["id"], runtime_min=int(m.group(1)), commit=False)
             stats["runtime"] += 1
         g = re.search(r"^Genres:\s*(.+)$", text, re.MULTILINE)
         if g and is_tv_movie(g.group(1).split(",")):
-            db.execute("UPDATE items SET is_tv = 1 WHERE id = ?", (r["id"],))
+            db.set_item_facts(r["id"], is_tv=True, commit=False)
             stats["tv"] += 1
     db.conn.commit()
     return stats
@@ -195,26 +195,20 @@ def enrich_item(
     # Update item with original title
     orig_title = details.get("original_title")
     if orig_title and orig_title != item["title"]:
-        db.execute(
-            "UPDATE items SET original_title = ? WHERE id = ?",
-            (orig_title, item_id),
-        )
+        db.set_item_facts(item_id, original_title=orig_title)
 
     # Store wikidata ID from external_ids if available
     ext_ids = details.get("external_ids", {})
     wikidata_id = ext_ids.get("wikidata_id")
     if wikidata_id:
-        db.execute(
-            "UPDATE items SET wikidata_id = ? WHERE id = ? AND wikidata_id IS NULL",
-            (wikidata_id, item_id),
-        )
+        db.set_wikidata_id_if_missing(item_id, wikidata_id)
 
     # Structured runtime / TV flag (used for filters and collection completion)
     runtime = details.get("runtime")
     if runtime:
-        db.execute("UPDATE items SET runtime_min = ? WHERE id = ?", (int(runtime), item_id))
+        db.set_item_facts(item_id, runtime_min=int(runtime))
     if is_tv_movie([g.get("name", "") for g in details.get("genres", [])]):
-        db.execute("UPDATE items SET is_tv = 1 WHERE id = ?", (item_id,))
+        db.set_item_facts(item_id, is_tv=True)
 
     # Register in raw_cache
     cache_path = f"{TMDB_CACHE_DIR.as_posix()}/movie_{tmdb_id}.json"

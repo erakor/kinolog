@@ -107,3 +107,65 @@ class ItemsMixin:
             "SELECT DISTINCT source FROM documents WHERE item_id = ? ORDER BY source", (item_id,)
         ).fetchall()
         return [r["source"] for r in rows]
+
+    def set_match(
+        self,
+        item_id: int,
+        *,
+        tmdb_id: int | None = None,
+        openlibrary_id: str | None = None,
+        confidence: float,
+        status: str = "auto",
+    ) -> None:
+        """Record a resolved external id (TMDB when ``tmdb_id`` is given, else Open Library)."""
+        if tmdb_id is not None:
+            column, value = "tmdb_id", tmdb_id
+        else:
+            column, value = "openlibrary_id", openlibrary_id
+        self.conn.execute(
+            f"UPDATE items SET {column} = ?, match_status = ?, match_confidence = ? WHERE id = ?",
+            (value, status, confidence, item_id),
+        )
+        self.conn.commit()
+
+    def mark_queued(self, item_id: int) -> None:
+        """Flag an item as waiting in the match review queue."""
+        self.conn.execute("UPDATE items SET match_status = 'queued' WHERE id = ?", (item_id,))
+        self.conn.commit()
+
+    def set_item_facts(
+        self,
+        item_id: int,
+        *,
+        runtime_min: int | None = None,
+        is_tv: bool | None = None,
+        original_title: str | None = None,
+        commit: bool = True,
+    ) -> None:
+        """Set the given structured facts (None leaves a field alone).
+
+        Pass ``commit=False`` inside a batch and commit once at the end.
+        """
+        fields = []
+        if original_title is not None:
+            fields.append(("original_title", original_title))
+        if runtime_min is not None:
+            fields.append(("runtime_min", int(runtime_min)))
+        if is_tv is not None:
+            fields.append(("is_tv", int(is_tv)))
+        if not fields:
+            return
+        assignments = ", ".join(f"{name} = ?" for name, _ in fields)
+        self.conn.execute(
+            f"UPDATE items SET {assignments} WHERE id = ?",
+            (*[value for _, value in fields], item_id),
+        )
+        if commit:
+            self.conn.commit()
+
+    def set_wikidata_id_if_missing(self, item_id: int, wikidata_id: str) -> None:
+        self.conn.execute(
+            "UPDATE items SET wikidata_id = ? WHERE id = ? AND wikidata_id IS NULL",
+            (wikidata_id, item_id),
+        )
+        self.conn.commit()

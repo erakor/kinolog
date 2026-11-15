@@ -19,3 +19,17 @@ class VectorsMixin:
         self.conn.commit()
         logger.info("Created vector table %s (dim=%d)", table_name, dim)
         return True
+
+    def upsert_embedding(
+        self, model_name: str, chunk_id: int, embedding: bytes, commit: bool = True
+    ) -> None:
+        """Store one chunk's embedding (float32 bytes) in the model's vec table.
+
+        Pass ``commit=False`` inside a batch and commit once per batch.
+        """
+        self.conn.execute(
+            f"INSERT OR REPLACE INTO vec_{model_name} (chunk_id, embedding) VALUES (?, ?)",
+            (chunk_id, embedding),
+        )
+        if commit:
+            self.conn.commit()

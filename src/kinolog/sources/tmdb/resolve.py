@@ -104,11 +104,7 @@ class TMDBResolver:
 
         if not all_candidates:
             db.queue_for_review(item_id, [], "no_results")
-            db.execute(
-                "UPDATE items SET match_status = 'queued' WHERE id = ?",
-                (item_id,),
-            )
-            db.conn.commit()
+            db.mark_queued(item_id)
             return None
 
         # Score candidates
@@ -139,11 +135,7 @@ class TMDBResolver:
         # Decision
         if best_score >= 0.7 and (len(scored) == 1 or scored[0][0] - scored[1][0] > 0.2):
             # Auto-accept
-            db.execute(
-                "UPDATE items SET tmdb_id = ?, match_status = 'auto', match_confidence = ? WHERE id = ?",
-                (best["id"], best_score, item_id),
-            )
-            db.conn.commit()
+            db.set_match(item_id, tmdb_id=best["id"], confidence=best_score)
             logger.debug("Auto-matched '%s' (%s) -> TMDB %d (%.2f: %s)",
                          title, year, best["id"], best_score, best_reason)
             return best
@@ -161,11 +153,7 @@ class TMDBResolver:
                 for s, r, c in scored[:5]
             ]
             db.queue_for_review(item_id, candidates_for_review, "ambiguous")
-            db.execute(
-                "UPDATE items SET match_status = 'queued' WHERE id = ?",
-                (item_id,),
-            )
-            db.conn.commit()
+            db.mark_queued(item_id)
             logger.info("Queued '%s' (%s) for review: %d candidates, best=%.2f",
                         title, year, len(candidates_for_review), best_score)
             return None

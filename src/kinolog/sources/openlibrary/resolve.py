@@ -31,11 +31,7 @@ class OpenLibraryResolver:
             if data:
                 olid = data.get("key")
                 title = data.get("title", item["title"])
-                db.execute(
-                    "UPDATE items SET openlibrary_id = ?, match_confidence = 1.0, match_status = 'auto' WHERE id = ?",
-                    (olid, item_id),
-                )
-                db.conn.commit()
+                db.set_match(item_id, openlibrary_id=olid, confidence=1.0)
                 return {"openlibrary_id": olid, "title": title}
 
         # 2. Try Title + Author
@@ -47,8 +43,7 @@ class OpenLibraryResolver:
         candidates = self.client.search_by_title_author(title, author)
         if not candidates:
             db.queue_for_review(item_id, [], "no_openlibrary_results")
-            db.execute("UPDATE items SET match_status = 'queued' WHERE id = ?", (item_id,))
-            db.conn.commit()
+            db.mark_queued(item_id)
             return None
 
         # Check top candidate
@@ -58,11 +53,7 @@ class OpenLibraryResolver:
 
         # Auto-match if title is very close
         if top_title.lower().strip() == title.lower().strip():
-            db.execute(
-                "UPDATE items SET openlibrary_id = ?, match_confidence = 0.85, match_status = 'auto' WHERE id = ?",
-                (olid, item_id),
-            )
-            db.conn.commit()
+            db.set_match(item_id, openlibrary_id=olid, confidence=0.85)
             return {"openlibrary_id": olid, "title": top_title}
 
         # Queue ambiguous
@@ -71,6 +62,5 @@ class OpenLibraryResolver:
             for c in candidates[:5]
         ]
         db.queue_for_review(item_id, candidates_json, "ambiguous_openlibrary")
-        db.execute("UPDATE items SET match_status = 'queued' WHERE id = ?", (item_id,))
-        db.conn.commit()
+        db.mark_queued(item_id)
         return None

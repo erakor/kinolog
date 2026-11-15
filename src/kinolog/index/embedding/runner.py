@@ -49,10 +49,7 @@ def embed_chunks(
 
     # Store in vec table
     for i, (chunk_id, embedding) in enumerate(zip(chunk_ids, all_embeddings)):
-        db.execute(
-            f"INSERT OR REPLACE INTO {vec_table} (chunk_id, embedding) VALUES (?, ?)",
-            (chunk_id, embedding.tobytes()),
-        )
+        db.upsert_embedding(model.name, chunk_id, embedding.tobytes(), commit=False)
         if (i + 1) % 500 == 0:
             db.conn.commit()
             logger.info("Stored %d/%d embeddings", i + 1, len(chunk_ids))
