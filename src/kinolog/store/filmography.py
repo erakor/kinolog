@@ -39,7 +39,10 @@ class FilmographyMixin:
     def set_person_filmography(
         self, person_id: int, tmdb_ids: list[int], job: str = "Director", *, commit: bool = True
     ) -> None:
-        """Add the person's credits for ``job``. Idempotent; never removes existing rows."""
+        """Replace the person's credits for ``job`` with ``tmdb_ids``. Idempotent."""
+        self.conn.execute(
+            "DELETE FROM person_filmography WHERE person_id = ? AND job = ?", (person_id, job)
+        )
         self.conn.executemany(
             "INSERT OR IGNORE INTO person_filmography (person_id, tmdb_id, job) VALUES (?, ?, ?)",
             [(person_id, t, job) for t in dict.fromkeys(tmdb_ids)],

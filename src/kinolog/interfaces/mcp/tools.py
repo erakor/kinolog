@@ -167,6 +167,11 @@ TOOLS = [
                     "default": False,
                     "description": "Also consider unseen films not on the watchlist",
                 },
+                "include_unknown_runtime": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": "Keep films with no known runtime when max_runtime is set",
+                },
                 "limit": {"type": "integer", "default": 20, "description": "Max films"},
             },
         },

@@ -78,7 +78,6 @@ def test_records_raw_cache_entries(db, ann):
     enrich_director_filmography(db, StubClient(), ann)
     sources = {(r["source"], r["external_id"]) for r in db.execute("SELECT * FROM raw_cache")}
     assert ("tmdb_person_movie_credits", "77") in sources
-    assert {("tmdb", "1"), ("tmdb", "3")} <= sources
     path = db.execute(
         "SELECT path FROM raw_cache WHERE source = 'tmdb_person_movie_credits'"
     ).fetchone()["path"]

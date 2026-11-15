@@ -36,13 +36,14 @@ def find_people(
     person_id: int | None = None,
 ) -> list:
     """Find people by name (partial match) or person_id."""
-    if person_id:
+    if person_id is not None:
         return db.execute("SELECT id, name FROM people WHERE id = ?", (person_id,)).fetchall()
     if name:
+        escaped = name.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         return db.execute(
-            "SELECT id, name FROM people WHERE name LIKE ?", (f"%{name}%",)
+            "SELECT id, name FROM people WHERE name LIKE ? ESCAPE '\\'", (f"%{escaped}%",)
         ).fetchall()
-    raise ValueError("Provide person_name or person_id")
+    raise ValueError("Provide name or person_id")
 
 
 def filmography(

@@ -89,5 +89,5 @@ def test_find_people(db_with_crew):
     assert [m["name"] for m in matches] == ["Federico Fellini"]
     by_id = find_people(db_with_crew, person_id=matches[0]["id"])
     assert [m["id"] for m in by_id] == [matches[0]["id"]]
-    with pytest.raises(ValueError, match="Provide person_name or person_id"):
+    with pytest.raises(ValueError, match="Provide name or person_id"):
         find_people(db_with_crew)

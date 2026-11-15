@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import logging
 
+import httpx
+
 from kinolog.sources.http_cache import read_json
 from kinolog.sources.tmdb.client import TMDBClient, person_credits_cache_path, tmdb_cache_path
 from kinolog.store import Database
@@ -97,12 +99,21 @@ def enrich_director_filmography(
         tmdb_id = credit["id"]
         try:
             details = _details_for(client, tmdb_id, fetch_details)
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code in (401, 403, 429):
+                raise  # auth or rate limit affects every film: fail the director, not store gaps
+            logger.warning("TMDB details failed for %d: %s", tmdb_id, e)
+            detail_errors += 1
+            details = None
         except Exception as e:  # one bad film must not abort the director
             logger.warning("TMDB details failed for %d: %s", tmdb_id, e)
             detail_errors += 1
             details = None
-        if details is not None and fetch_details:
-            db.cache_put("tmdb", str(tmdb_id), tmdb_cache_path(tmdb_id).as_posix())
+        director_ids.append(tmdb_id)
+        if details is None and db.execute(
+            "SELECT 1 FROM tmdb_movies WHERE tmdb_id = ?", (tmdb_id,)
+        ).fetchone():
+            continue  # keep the facts stored earlier rather than replace them with less
         facts = _movie_facts(credit, details)
         db.upsert_tmdb_movie(
             tmdb_id,
@@ -116,7 +127,6 @@ def enrich_director_filmography(
             genre_ids=facts["genre_ids"],
             commit=False,
         )
-        director_ids.append(tmdb_id)
 
     db.set_person_filmography(person_id, director_ids, "Director", commit=False)
     db.conn.commit()
