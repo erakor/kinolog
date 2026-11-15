@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 
 from src.core.db import Database, content_hash
-from src.ingest.resolvers.tmdb import TMDBResolver
+from src.ingest.resolvers.tmdb import TMDBResolver, tmdb_cache_path
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +52,72 @@ def backfill_runtime_and_tv(db: Database) -> dict:
         if g and is_tv_movie(g.group(1).split(",")):
             db.execute("UPDATE items SET is_tv = 1 WHERE id = ?", (r["id"],))
             stats["tv"] += 1
+    db.conn.commit()
+    return stats
+
+
+def imdb_id_from_details(details: dict) -> str | None:
+    """IMDb title id (tt...) from TMDB details, top-level field or external_ids."""
+    for value in (details.get("imdb_id"), (details.get("external_ids") or {}).get("imdb_id")):
+        if isinstance(value, str) and re.fullmatch(r"tt\d{5,}", value.strip()):
+            return value.strip()
+    return None
+
+
+def apply_details_columns(
+    db: Database, item_id: int, details: dict, overwrite: bool = True,
+) -> None:
+    """Write the structured item columns TMDB details provide (no commit).
+
+    Shared by enrichment and the offline cache backfill so a new TMDB-derived column
+    is added in one place. With ``overwrite=False`` only empty columns are filled.
+    """
+    wikidata_id = (details.get("external_ids") or {}).get("wikidata_id")
+    if wikidata_id:
+        # wikidata_id is UNIQUE: skip it if another item already holds it.
+        db.execute(
+            """UPDATE items SET wikidata_id = ? WHERE id = ? AND wikidata_id IS NULL
+               AND NOT EXISTS (SELECT 1 FROM items WHERE wikidata_id = ?)""",
+            (wikidata_id, item_id, wikidata_id),
+        )
+    set_value = "{col} = ?" if overwrite else "{col} = COALESCE({col}, ?)"
+    imdb_id = imdb_id_from_details(details)  # the key for the OMDb ratings enricher
+    if imdb_id:
+        db.execute(
+            f"UPDATE items SET {set_value.format(col='imdb_id')} WHERE id = ?", (imdb_id, item_id)
+        )
+    # Structured runtime / TV flag (used for filters and collection completion)
+    runtime = details.get("runtime")
+    if runtime:
+        db.execute(
+            f"UPDATE items SET {set_value.format(col='runtime_min')} WHERE id = ?",
+            (int(runtime), item_id),
+        )
+    if is_tv_movie([g.get("name", "") for g in details.get("genres", [])]):
+        db.execute("UPDATE items SET is_tv = 1 WHERE id = ?", (item_id,))
+
+
+def backfill_imdb_ids(db: Database, cache_dir: Path = CACHE_DIR) -> dict:
+    """Fill empty TMDB-derived columns from cached details for items lacking an IMDb id.
+
+    No network; existing values (runtime, ids) are never overwritten.
+    """
+    stats = {"scanned": 0, "imdb_ids": 0}
+    rows = db.execute(
+        "SELECT id, tmdb_id FROM items WHERE tmdb_id IS NOT NULL AND imdb_id IS NULL"
+    ).fetchall()
+    for r in rows:
+        path = tmdb_cache_path(r["tmdb_id"], cache_dir)
+        if not path.exists():
+            continue
+        stats["scanned"] += 1
+        try:
+            details = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            logger.warning("Unreadable TMDB cache %s: %s", path, e)
+            continue
+        apply_details_columns(db, r["id"], details, overwrite=False)
+        stats["imdb_ids"] += imdb_id_from_details(details) is not None
     db.conn.commit()
     return stats
 
@@ -203,25 +269,10 @@ def enrich_item(
             (orig_title, item_id),
         )
 
-    # Store wikidata ID from external_ids if available
-    ext_ids = details.get("external_ids", {})
-    wikidata_id = ext_ids.get("wikidata_id")
-    if wikidata_id:
-        db.execute(
-            "UPDATE items SET wikidata_id = ? WHERE id = ? AND wikidata_id IS NULL",
-            (wikidata_id, item_id),
-        )
-
-    # Structured runtime / TV flag (used for filters and collection completion)
-    runtime = details.get("runtime")
-    if runtime:
-        db.execute("UPDATE items SET runtime_min = ? WHERE id = ?", (int(runtime), item_id))
-    if is_tv_movie([g.get("name", "") for g in details.get("genres", [])]):
-        db.execute("UPDATE items SET is_tv = 1 WHERE id = ?", (item_id,))
+    apply_details_columns(db, item_id, details)
 
     # Register in raw_cache
-    cache_path = f"data/cache/tmdb/movie_{tmdb_id}.json"
-    db.cache_put("tmdb", str(tmdb_id), cache_path)
+    db.cache_put("tmdb", str(tmdb_id), str(tmdb_cache_path(tmdb_id)))
 
     # --- Credits ---
     credits = details.get("credits", {})

@@ -14,6 +14,14 @@ export interface ItemStatus {
   last_watched_on: string | null
 }
 
+/** An OMDb score; `score` is normalized to 0..100, `raw` is the provider's text ("8.7/10", "83%"). */
+export interface ExternalRating {
+  source: 'imdb' | 'rotten_tomatoes' | 'metacritic' | (string & {})
+  score: number
+  raw: string | null
+  votes: number | null
+}
+
 /** The "card" shape returned by Database.get_item_card. */
 export interface Item {
   item_id: number
@@ -24,6 +32,8 @@ export interface Item {
   directors: Director[]
   status: ItemStatus
   added_at: string | null
+  /** In display order (IMDb, Rotten Tomatoes, Metacritic); empty until `ingest omdb` has run. */
+  external_ratings: ExternalRating[]
 }
 
 export interface CompletionDelta {

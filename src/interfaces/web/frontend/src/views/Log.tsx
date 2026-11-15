@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { api } from '../api'
 import { EditLogDialog } from '../components/EditLogDialog'
 import { EmptyState } from '../components/EmptyState'
+import { ExternalRatings } from '../components/ExternalRatings'
 import { ImportButton } from '../components/ImportButton'
 import { RatingSelect } from '../components/RatingSelect'
 import { SearchBox } from '../components/SearchBox'
@@ -55,6 +56,9 @@ function LogRow({ entry: e, reload }: { entry: LogEntry; reload: () => void }) {
           {rating ? <Star className="size-4 fill-brand text-brand" aria-hidden="true" /> : null}
           <RatingSelect className="font-mono" aria-label={`Rating for ${it.title}`} value={rating} onChange={rate} />
         </div>
+      </TableCell>
+      <TableCell className="whitespace-nowrap">
+        <ExternalRatings ratings={it.external_ratings} />
       </TableCell>
       <TableCell className="whitespace-nowrap">
         <Button variant="ghost" size="icon" aria-label={`Edit ${it.title}`} title="Edit" onClick={() => setEditing(true)}>
@@ -130,7 +134,7 @@ export default function Log() {
           <Table className="min-w-2xl">
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                {['Date', 'Film', 'Director', 'Runtime', 'Rating', ''].map((t, i) => (
+                {['Date', 'Film', 'Director', 'Runtime', 'Rating', 'Scores', ''].map((t, i) => (
                   <TableHead key={i} scope="col">
                     {t}
                   </TableHead>

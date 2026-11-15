@@ -97,10 +97,32 @@ def handle_ingest_enrich(db_path: str, item_type: str = "film"):
     db.close()
 
 
-def handle_ingest_backfill_runtime(db_path: str):
-    from src.ingest.enrichers.tmdb import backfill_runtime_and_tv
+def handle_ingest_omdb(
+    db_path: str, item_type: str = "film", max_requests: int | None = None,
+    refresh: bool = False,
+):
+    from src.ingest.enrichers.omdb import DAILY_LIMIT, OMDbClient, enrich_all
+    try:
+        client = OMDbClient()
+    except ValueError as e:
+        print(e)
+        return
     db = Database(db_path)
-    stats = backfill_runtime_and_tv(db)
+    try:
+        stats = enrich_all(db, client, item_type=item_type, refresh=refresh,
+                           max_requests=DAILY_LIMIT if max_requests is None else max_requests)
+    finally:
+        client.close()
+    print_table("OMDb Ratings", ["Metric", "Count"], [[k, str(v)] for k, v in stats.items()])
+    db.close()
+
+
+def handle_ingest_backfill_runtime(db_path: str):
+    from src.ingest.enrichers.tmdb import backfill_imdb_ids, backfill_runtime_and_tv
+    db = Database(db_path)
+    stats = {**backfill_runtime_and_tv(db), **{
+        f"cache_{k}": v for k, v in backfill_imdb_ids(db).items()
+    }}
     print_table("Runtime backfill", ["Metric", "Count"], [[k, str(v)] for k, v in stats.items()])
     db.close()
 
@@ -284,8 +306,19 @@ def run_argparse_cli():
     enr_parser = ingest_subs.add_parser("enrich", help="Enrich items with TMDB metadata", parents=[base_parser])
     enr_parser.add_argument("--type", default="film", help="Item type (film/book)")
 
+    omdb_parser = ingest_subs.add_parser(
+        "omdb", help="Fetch IMDb/Rotten Tomatoes/Metacritic scores from OMDb",
+        parents=[base_parser],
+    )
+    omdb_parser.add_argument("--type", default="film", help="Item type")
+    omdb_parser.add_argument("--max-requests", type=int, default=None,
+                             help="Cap on network requests this run (free tier: 1000/day)")
+    omdb_parser.add_argument("--refresh", action="store_true",
+                             help="Re-fetch cached responses (counts against the cap)")
+
     ingest_subs.add_parser(
-        "backfill-runtime", help="Set runtime/TV flag from existing TMDB documents",
+        "backfill-runtime",
+        help="Set runtime/TV flag/IMDb id from stored TMDB documents and cache (no network)",
         parents=[base_parser],
     )
 
@@ -354,6 +387,8 @@ def run_argparse_cli():
             handle_ingest_resolve(args.db, args.type)
         elif args.ingest_cmd == "enrich":
             handle_ingest_enrich(args.db, args.type)
+        elif args.ingest_cmd == "omdb":
+            handle_ingest_omdb(args.db, args.type, args.max_requests, args.refresh)
         elif args.ingest_cmd == "backfill-runtime":
             handle_ingest_backfill_runtime(args.db)
         elif args.ingest_cmd == "review":

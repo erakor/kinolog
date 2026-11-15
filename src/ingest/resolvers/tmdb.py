@@ -18,26 +18,30 @@ TMDB_BASE = "https://api.themoviedb.org/3"
 CACHE_DIR = Path("data/cache/tmdb")
 
 
-def _get_api_key() -> str:
-    key = os.environ.get("TMDB_API_KEY", "")
+def get_api_key(var: str = "TMDB_API_KEY") -> str:
+    """API key from the environment, falling back to a ``VAR=value`` line in .env."""
+    key = os.environ.get(var, "")
     if not key:
         key_file = Path(".env")
         if key_file.exists():
             for line in key_file.read_text().splitlines():
-                if line.startswith("TMDB_API_KEY="):
+                if line.startswith(f"{var}="):
                     key = line.split("=", 1)[1].strip().strip('"').strip("'")
     if not key:
-        raise ValueError(
-            "TMDB_API_KEY not set. Set it as an environment variable or in .env"
-        )
+        raise ValueError(f"{var} not set. Set it as an environment variable or in .env")
     return key
+
+
+def tmdb_cache_path(tmdb_id: int, cache_dir: Path = CACHE_DIR) -> Path:
+    """Disk cache file for a TMDB movie details response."""
+    return Path(cache_dir) / f"movie_{tmdb_id}.json"
 
 
 class TMDBResolver:
     """Resolve film titles to TMDB IDs."""
 
     def __init__(self, api_key: str | None = None, rate_limit: float = 0.25):
-        self.api_key = api_key or _get_api_key()
+        self.api_key = api_key or get_api_key()
         self.rate_limit = rate_limit  # seconds between requests
         self._last_request = 0.0
         self.client = httpx.Client(
@@ -69,7 +73,7 @@ class TMDBResolver:
 
     def get_details(self, tmdb_id: int) -> dict:
         """Get full movie details with credits, keywords, and alternative titles."""
-        cache_path = CACHE_DIR / f"movie_{tmdb_id}.json"
+        cache_path = tmdb_cache_path(tmdb_id)
         if cache_path.exists():
             return json.loads(cache_path.read_text(encoding="utf-8"))
 

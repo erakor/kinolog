@@ -107,6 +107,19 @@ CREATE TABLE IF NOT EXISTS match_review_queue (
     reason TEXT
 );
 
+-- Third-party scores (OMDb: IMDb, Rotten Tomatoes, Metacritic), one row per item/source.
+-- score is normalized to 0..100; raw keeps the provider's string (e.g. "8.1/10", "94%").
+CREATE TABLE IF NOT EXISTS external_ratings (
+    item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+    source TEXT NOT NULL,
+    score REAL NOT NULL,
+    raw TEXT,
+    votes INTEGER,
+    provider TEXT NOT NULL,
+    fetched_at TEXT NOT NULL,
+    PRIMARY KEY (item_id, source)
+);
+
 CREATE TABLE IF NOT EXISTS eval_runs (
     id INTEGER PRIMARY KEY,
     run_at TEXT NOT NULL,
@@ -165,6 +178,7 @@ CREATE INDEX IF NOT EXISTS idx_watch_log_date ON watch_log(watched_on);
 _ADDED_COLUMNS = [
     ("items", "runtime_min", "INTEGER"),
     ("items", "is_tv", "INTEGER DEFAULT 0"),
+    ("items", "imdb_id", "TEXT"),
     ("user_status", "rating", "INTEGER"),
     ("user_status", "watchlist_added_at", "TEXT"),
     ("user_status", "watchlist_removed_at", "TEXT"),
@@ -319,7 +333,7 @@ class Database:
         allowed = {
             "original_title", "tmdb_id", "wikidata_id", "isbn",
             "openlibrary_id", "match_confidence", "match_status",
-            "runtime_min", "is_tv",
+            "runtime_min", "is_tv", "imdb_id",
         }
         filtered = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
 
@@ -551,6 +565,48 @@ class Database:
         )
         self.conn.commit()
 
+    # --- External ratings ---
+
+    def set_external_ratings(self, item_id: int, provider: str, ratings: list[dict]) -> None:
+        """Replace an item's ratings from one provider (sources it no longer reports are dropped).
+
+        Each rating is {"source", "score" (0..100), "raw", "votes"}. Does not commit, so
+        batch callers commit once.
+        """
+        now = _now()
+        self.conn.execute(
+            "DELETE FROM external_ratings WHERE item_id = ? AND provider = ?", (item_id, provider)
+        )
+        self.conn.executemany(
+            """INSERT INTO external_ratings
+               (item_id, source, score, raw, votes, provider, fetched_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            [
+                (item_id, r["source"], float(r["score"]), r.get("raw"), r.get("votes"),
+                 provider, now)
+                for r in ratings
+            ],
+        )
+
+    def get_external_ratings(self, item_ids: list[int]) -> dict[int, list[dict]]:
+        """Ratings per item, in display order (IMDb, Rotten Tomatoes, Metacritic, others)."""
+        out: dict[int, list[dict]] = {i: [] for i in item_ids}
+        for part in chunked(list(item_ids)):
+            ph = ",".join("?" for _ in part)
+            for r in self.conn.execute(
+                f"""SELECT item_id, source, score, raw, votes FROM external_ratings
+                    WHERE item_id IN ({ph})
+                    ORDER BY item_id, CASE source WHEN 'imdb' THEN 0
+                        WHEN 'rotten_tomatoes' THEN 1 WHEN 'metacritic' THEN 2 ELSE 3 END,
+                        source""",
+                tuple(part),
+            ):
+                out[r["item_id"]].append(
+                    {"source": r["source"], "score": r["score"], "raw": r["raw"],
+                     "votes": r["votes"]}
+                )
+        return out
+
     # --- Match Review Queue ---
 
     def queue_for_review(self, item_id: int, candidates: list[dict], reason: str):
@@ -574,13 +630,33 @@ class Database:
             result.append(d)
         return result
 
+    def _forget_match_derived(self, item_id: int) -> None:
+        """Drop ids and scores derived from an item's previous TMDB match.
+
+        Clears imdb_id, the item's external ratings and the OMDb "already checked" markers
+        for the old IMDb id, so the next `ingest enrich` / `ingest omdb` start fresh.
+        """
+        self.conn.execute(
+            """DELETE FROM raw_cache WHERE source = 'omdb'
+               AND external_id = (SELECT imdb_id FROM items WHERE id = ?)""",
+            (item_id,),
+        )
+        self.conn.execute("DELETE FROM external_ratings WHERE item_id = ?", (item_id,))
+        self.conn.execute("UPDATE items SET imdb_id = NULL WHERE id = ?", (item_id,))
+
     def resolve_review(self, item_id: int, tmdb_id: int | None = None, reject: bool = False):
         """Resolve a review queue entry."""
+        current = self.conn.execute(
+            "SELECT tmdb_id FROM items WHERE id = ?", (item_id,)
+        ).fetchone()
         if reject:
+            self._forget_match_derived(item_id)
             self.conn.execute(
                 "UPDATE items SET match_status = 'rejected' WHERE id = ?", (item_id,)
             )
         elif tmdb_id is not None:
+            if current is not None and current["tmdb_id"] != tmdb_id:
+                self._forget_match_derived(item_id)
             self.conn.execute(
                 "UPDATE items SET tmdb_id = ?, match_status = 'manual', match_confidence = 1.0 WHERE id = ?",
                 (tmdb_id, item_id),
@@ -805,7 +881,7 @@ class Database:
         return [r["item_id"] for r in rows]
 
     def get_item_cards(self, item_ids: list[int]) -> dict[int, dict]:
-        """Batch-build UI item cards (item + directors + status) keyed by item id."""
+        """Batch-build UI item cards (item + directors + status + OMDb ratings) by item id."""
         cards: dict[int, dict] = {}
         for part in chunked(list(item_ids)):
             self._fill_item_cards(part, cards)
@@ -840,6 +916,9 @@ class Database:
                 },
                 "added_at": r["watchlist_added_at"],
             }
+        ratings = self.get_external_ratings([i for i in item_ids if i in cards])
+        for item_id, rows in ratings.items():
+            cards[item_id]["external_ratings"] = rows
         for r in self.conn.execute(
             f"""SELECT c.item_id, p.id AS person_id, p.name FROM credits c
                 JOIN people p ON p.id = c.person_id
@@ -1012,7 +1091,7 @@ class Database:
         """Quick table row counts."""
         tables = [
             "items", "user_status", "documents", "chunks", "people", "credits", "eval_runs",
-            "watch_log",
+            "watch_log", "external_ratings",
         ]
         result = {}
         for t in tables:
