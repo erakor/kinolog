@@ -1,3 +1,4 @@
+import { ExternalRatings } from '../../components/ExternalRatings'
 import { LogButton, QueueButton } from '../../components/ItemActions'
 import { directorNames } from '../../format'
 import type { ConciergePick } from '../../types'
@@ -34,6 +35,7 @@ export function PickCard({ pick: p, primary, onChanged }: PickCardProps) {
         Directed by <strong className="text-ink font-semibold">{directorNames(it.directors) || 'unknown'}</strong>
         {it.genres?.length ? ` · ${it.genres.join(' / ')}` : ''}
       </p>
+      <ExternalRatings ratings={it.external_ratings} className="block mt-1 text-sm" />
       {p.rationale && <Rationale rationale={p.rationale} />}
       {delta && <CompletionPanel delta={delta} />}
       <div className="flex gap-2 flex-wrap mt-4 pt-4 border-t border-rule">

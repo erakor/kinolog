@@ -850,7 +850,7 @@ class Database:
         return [r["item_id"] for r in rows]
 
     def get_item_cards(self, item_ids: list[int]) -> dict[int, dict]:
-        """Batch-build UI item cards (item + directors + status) keyed by item id."""
+        """Batch-build UI item cards (item + directors + status + OMDb ratings) by item id."""
         cards: dict[int, dict] = {}
         for part in chunked(list(item_ids)):
             self._fill_item_cards(part, cards)
@@ -884,7 +884,18 @@ class Database:
                     "last_watched_on": r["last_log"] or r["seen_date"],
                 },
                 "added_at": r["watchlist_added_at"],
+                "external_ratings": [],
             }
+        for r in self.conn.execute(
+            f"""SELECT item_id, source, score, raw, votes FROM external_ratings
+                WHERE item_id IN ({ph}) ORDER BY item_id, source""",
+            ids,
+        ):
+            if r["item_id"] in cards:
+                cards[r["item_id"]]["external_ratings"].append(
+                    {"source": r["source"], "score": r["score"], "raw": r["raw"],
+                     "votes": r["votes"]}
+                )
         for r in self.conn.execute(
             f"""SELECT c.item_id, p.id AS person_id, p.name FROM credits c
                 JOIN people p ON p.id = c.person_id

@@ -153,3 +153,16 @@ def test_set_external_ratings_replaces_provider_rows():
     db.conn.commit()
     assert [(r["source"], r["score"], r["votes"]) for r in db.get_external_ratings(i)] \
         == [("imdb", 72.0, 10)]
+
+
+def test_item_cards_include_external_ratings():
+    db = Database(":memory:")
+    i = db.upsert_item("film", "X", 2000)
+    j = db.upsert_item("film", "Y", 2001)
+    db.set_external_ratings(i, "omdb", [{"source": "imdb", "score": 81, "raw": "8.1/10",
+                                         "votes": 5}])
+    cards = db.get_item_cards([i, j])
+    assert cards[i]["external_ratings"] == [
+        {"source": "imdb", "score": 81.0, "raw": "8.1/10", "votes": 5}
+    ]
+    assert cards[j]["external_ratings"] == []
