@@ -21,7 +21,11 @@ def lookup(
 
 @router.get("/{item_id}")
 def get_item(item_id: int, db: Database = Depends(get_db)):
-    return {**card_or_404(db, item_id), "sources": db.get_item_sources(item_id)}
+    return {
+        **card_or_404(db, item_id),
+        "sources": db.get_item_sources(item_id),
+        "external_ratings": db.get_external_ratings(item_id),
+    }
 
 
 @router.put("/{item_id}/rating")

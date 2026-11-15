@@ -56,6 +56,38 @@ def backfill_runtime_and_tv(db: Database) -> dict:
     return stats
 
 
+def imdb_id_from_details(details: dict) -> str | None:
+    """IMDb title id (tt...) from TMDB details, top-level field or external_ids."""
+    for value in (details.get("imdb_id"), (details.get("external_ids") or {}).get("imdb_id")):
+        if isinstance(value, str) and re.fullmatch(r"tt\d{5,}", value.strip()):
+            return value.strip()
+    return None
+
+
+def backfill_imdb_ids(db: Database, cache_dir: Path = CACHE_DIR) -> dict:
+    """Set items.imdb_id from cached TMDB detail JSON (no network). Existing ids are kept."""
+    stats = {"scanned": 0, "imdb_ids": 0}
+    rows = db.execute(
+        "SELECT id, tmdb_id FROM items WHERE tmdb_id IS NOT NULL AND imdb_id IS NULL"
+    ).fetchall()
+    for r in rows:
+        path = Path(cache_dir) / f"movie_{r['tmdb_id']}.json"
+        if not path.exists():
+            continue
+        stats["scanned"] += 1
+        try:
+            details = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            logger.warning("Unreadable TMDB cache %s: %s", path, e)
+            continue
+        imdb_id = imdb_id_from_details(details)
+        if imdb_id:
+            db.execute("UPDATE items SET imdb_id = ? WHERE id = ?", (imdb_id, r["id"]))
+            stats["imdb_ids"] += 1
+    db.conn.commit()
+    return stats
+
+
 def _extract_crew(credits: dict) -> list[dict]:
     """Extract key crew members from TMDB credits."""
     crew = []
@@ -211,6 +243,11 @@ def enrich_item(
             "UPDATE items SET wikidata_id = ? WHERE id = ? AND wikidata_id IS NULL",
             (wikidata_id, item_id),
         )
+
+    # IMDb id: the key for the OMDb ratings enricher
+    imdb_id = imdb_id_from_details(details)
+    if imdb_id:
+        db.execute("UPDATE items SET imdb_id = ? WHERE id = ?", (imdb_id, item_id))
 
     # Structured runtime / TV flag (used for filters and collection completion)
     runtime = details.get("runtime")

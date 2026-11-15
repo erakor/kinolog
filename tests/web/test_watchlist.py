@@ -110,5 +110,6 @@ def test_lookup_and_item(client, db):
     assert [x["title"] for x in r] == ["Glass Orchard"]
     item = client.get(f"/api/items/{ids['Glass Orchard']}").json()
     assert item["sources"] == ["tmdb"] and item["directors"][0]["name"] == "Bob Bergman"
+    assert item["external_ratings"] == []
     assert client.get("/api/items/9999").status_code == 404
     assert client.get("/api/items/lookup").status_code == 422

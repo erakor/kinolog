@@ -107,6 +107,19 @@ CREATE TABLE IF NOT EXISTS match_review_queue (
     reason TEXT
 );
 
+-- Third-party scores (OMDb: IMDb, Rotten Tomatoes, Metacritic), one row per item/source.
+-- score is normalized to 0..100; raw keeps the provider's string (e.g. "8.1/10", "94%").
+CREATE TABLE IF NOT EXISTS external_ratings (
+    item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+    source TEXT NOT NULL,
+    score REAL NOT NULL,
+    raw TEXT,
+    votes INTEGER,
+    provider TEXT NOT NULL,
+    fetched_at TEXT NOT NULL,
+    PRIMARY KEY (item_id, source)
+);
+
 CREATE TABLE IF NOT EXISTS eval_runs (
     id INTEGER PRIMARY KEY,
     run_at TEXT NOT NULL,
@@ -158,6 +171,7 @@ CREATE INDEX IF NOT EXISTS idx_credits_item ON credits(item_id);
 CREATE INDEX IF NOT EXISTS idx_credits_person ON credits(person_id);
 CREATE INDEX IF NOT EXISTS idx_watch_log_item ON watch_log(item_id);
 CREATE INDEX IF NOT EXISTS idx_watch_log_date ON watch_log(watched_on);
+CREATE INDEX IF NOT EXISTS idx_items_imdb ON items(imdb_id);
 """
 
 
@@ -165,6 +179,7 @@ CREATE INDEX IF NOT EXISTS idx_watch_log_date ON watch_log(watched_on);
 _ADDED_COLUMNS = [
     ("items", "runtime_min", "INTEGER"),
     ("items", "is_tv", "INTEGER DEFAULT 0"),
+    ("items", "imdb_id", "TEXT"),
     ("user_status", "rating", "INTEGER"),
     ("user_status", "watchlist_added_at", "TEXT"),
     ("user_status", "watchlist_removed_at", "TEXT"),
@@ -319,7 +334,7 @@ class Database:
         allowed = {
             "original_title", "tmdb_id", "wikidata_id", "isbn",
             "openlibrary_id", "match_confidence", "match_status",
-            "runtime_min", "is_tv",
+            "runtime_min", "is_tv", "imdb_id",
         }
         filtered = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
 
@@ -550,6 +565,38 @@ class Database:
             (source, external_id, datetime.now(timezone.utc).isoformat(), content_hash, path),
         )
         self.conn.commit()
+
+    # --- External ratings ---
+
+    def set_external_ratings(self, item_id: int, provider: str, ratings: list[dict]) -> int:
+        """Replace an item's ratings from one provider (sources it no longer reports are dropped).
+
+        Each rating is {"source", "score" (0..100), "raw", "votes"}. Returns rows written.
+        """
+        now = _now()
+        self.conn.execute(
+            "DELETE FROM external_ratings WHERE item_id = ? AND provider = ?", (item_id, provider)
+        )
+        self.conn.executemany(
+            """INSERT OR REPLACE INTO external_ratings
+               (item_id, source, score, raw, votes, provider, fetched_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            [
+                (item_id, r["source"], float(r["score"]), r.get("raw"), r.get("votes"),
+                 provider, now)
+                for r in ratings
+            ],
+        )
+        self.conn.commit()
+        return len(ratings)
+
+    def get_external_ratings(self, item_id: int) -> list[dict]:
+        rows = self.conn.execute(
+            """SELECT source, score, raw, votes, provider, fetched_at FROM external_ratings
+               WHERE item_id = ? ORDER BY source""",
+            (item_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
 
     # --- Match Review Queue ---
 
@@ -1012,7 +1059,7 @@ class Database:
         """Quick table row counts."""
         tables = [
             "items", "user_status", "documents", "chunks", "people", "credits", "eval_runs",
-            "watch_log",
+            "watch_log", "external_ratings",
         ]
         result = {}
         for t in tables:
