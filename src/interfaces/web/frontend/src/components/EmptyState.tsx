@@ -1,4 +1,4 @@
-import { empty } from './ui'
+import { empty } from './styles'
 
 export function EmptyState({ title, text }: { title: string; text: string }) {
   return (

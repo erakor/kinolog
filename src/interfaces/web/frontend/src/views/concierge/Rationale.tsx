@@ -15,7 +15,7 @@ export function Rationale({ rationale }: { rationale: RationaleData }) {
           return (
             <button
               key={i}
-              className="text-accent px-px text-xs align-super"
+              className="text-brand px-px text-xs align-super"
               type="button"
               aria-label={`Source ${seg.n}`}
               onClick={() => setOpenN((cur) => (cur === seg.n ? null : seg.n))}
@@ -26,7 +26,7 @@ export function Rationale({ rationale }: { rationale: RationaleData }) {
         })}
       </p>
       <div
-        className="mt-3 px-4 py-3 border-l-2 border-accent bg-subtle text-sm text-ink-muted"
+        className="mt-3 px-4 py-3 border-l-2 border-brand bg-subtle text-sm text-ink-muted"
         hidden={!open}
       >
         {open && (

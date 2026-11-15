@@ -3,7 +3,8 @@ import { api } from '../api'
 import { useHealth } from '../context/HealthContext'
 import { useToast } from '../context/ToastContext'
 import type { ImportStats } from '../types'
-import { Button } from './Button'
+import { Upload } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 /** Opens a file picker and uploads a Letterboxd export (.zip or a single .csv). */
 export function ImportButton({ onDone }: { onDone?: () => void | Promise<void> }) {
@@ -33,8 +34,8 @@ export function ImportButton({ onDone }: { onDone?: () => void | Promise<void> }
 
   return (
     <span>
-      <Button disabled={busy} onClick={() => input.current?.click()}>
-        ↑ Import CSV
+      <Button variant="outline" disabled={busy} onClick={() => input.current?.click()}>
+        <Upload /> Import CSV
       </Button>
       <input ref={input} type="file" accept=".zip,.csv" className="sr-only" tabIndex={-1} onChange={onFile} />
     </span>

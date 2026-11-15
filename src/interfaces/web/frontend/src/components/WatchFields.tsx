@@ -1,7 +1,11 @@
+import { useId } from 'react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
 import { RatingSelect } from './RatingSelect'
-import { cx, field, fieldInput, fieldRow } from './ui'
+import { field, fieldRow } from './styles'
 
-const fieldLabel = cx(field, 'flex-auto basis-36')
+const fieldBox = cn(field, 'flex-auto basis-36')
 
 interface WatchFieldsProps {
   date: string
@@ -14,16 +18,17 @@ interface WatchFieldsProps {
 
 /** Date watched + rating row shared by the log and edit dialogs. */
 export function WatchFields({ date, onDate, rating, onRating, max }: WatchFieldsProps) {
+  const id = useId()
   return (
     <div className={fieldRow}>
-      <label className={fieldLabel}>
-        Date watched
-        <input className={fieldInput} type="date" value={date} max={max} required onChange={(e) => onDate(e.target.value)} />
-      </label>
-      <label className={fieldLabel}>
-        Rating
-        <RatingSelect className={fieldInput} value={rating} onChange={onRating} />
-      </label>
+      <div className={fieldBox}>
+        <Label htmlFor={`${id}-date`}>Date watched</Label>
+        <Input id={`${id}-date`} type="date" value={date} max={max} required onChange={(e) => onDate(e.target.value)} />
+      </div>
+      <div className={fieldBox}>
+        <Label htmlFor={`${id}-rating`}>Rating</Label>
+        <RatingSelect id={`${id}-rating`} className="w-full" value={rating} onChange={onRating} />
+      </div>
     </div>
   )
 }

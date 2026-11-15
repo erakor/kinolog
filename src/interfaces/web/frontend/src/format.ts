@@ -14,8 +14,11 @@ export function nextFromPrompt(director: string): string {
   return `What should I watch next from ${director}?`
 }
 
+/** Today's date in the user's local time zone (not UTC), as YYYY-MM-DD. */
 export function today(): string {
-  return new Date().toISOString().slice(0, 10)
+  const d = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
 export function directorNames(directors: { name: string }[]): string {

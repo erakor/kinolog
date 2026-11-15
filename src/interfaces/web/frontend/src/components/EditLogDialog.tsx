@@ -2,9 +2,10 @@ import { useState, type FormEvent } from 'react'
 import { api } from '../api'
 import { useAction } from '../hooks/useAction'
 import type { LogEntry } from '../types'
-import { Button } from './Button'
+import { Button } from '@/components/ui/button'
+import { DialogFooter } from '@/components/ui/dialog'
+import { CheckField } from './CheckField'
 import { Modal } from './Modal'
-import { dialogActions, fieldCheck, fieldCheckInput } from './ui'
 import { WatchFields } from './WatchFields'
 
 interface EditLogDialogProps {
@@ -32,16 +33,13 @@ export function EditLogDialog({ entry, reload, onClose }: EditLogDialogProps) {
     <Modal title={`Edit ${entry.item.title}`} onClose={onClose}>
       <form onSubmit={submit}>
         <WatchFields date={date} onDate={setDate} rating={rating} onRating={setRating} />
-        <label className={fieldCheck}>
-          <input className={fieldCheckInput} type="checkbox" checked={rewatch} onChange={(e) => setRewatch(e.target.checked)} />
-          Rewatch
-        </label>
-        <div className={dialogActions}>
-          <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" type="submit">
-            Save
+        <CheckField label="Rewatch" checked={rewatch} onChange={setRewatch} />
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
           </Button>
-        </div>
+          <Button type="submit">Save</Button>
+        </DialogFooter>
       </form>
     </Modal>
   )

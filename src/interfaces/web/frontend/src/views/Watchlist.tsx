@@ -7,8 +7,9 @@ import { LogButton, RemoveButton } from '../components/ItemActions'
 import { ListRow } from '../components/ListRow'
 import { SearchBox } from '../components/SearchBox'
 import { Segmented } from '../components/Segmented'
-import { Button } from '../components/Button'
-import { eyebrow, heroArt, heroLede, heroSplit, heroTitle, listBox, num, toolbar } from '../components/ui'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { eyebrow, heroArt, heroLede, heroSplit, heroTitle, listBox, num, toolbar } from '../components/styles'
 import { useToast } from '../context/ToastContext'
 import { useAsync } from '../hooks/useAsync'
 import type { WatchlistResponse, WatchlistSort } from '../types'
@@ -38,25 +39,29 @@ export default function Watchlist() {
   const [highlightedId, setHighlightedId] = useState<number | null>(null)
   const highlightRef = useRef<HTMLDivElement>(null)
 
+  // Once the server reports taste ranking unavailable, stop asking for it. The loader keeps a single request
+  // per run: no setSort here, so the fallback does not trigger a second load.
+  const [tasteDown, setTasteDown] = useState(false)
+  const shownSort: WatchlistSort = sort === 'taste' && tasteDown ? 'impact' : sort
+
   const { data, reload } = useAsync<WatchlistResponse>(async () => {
+    const get = (s: WatchlistSort) => api.get<WatchlistResponse>('/api/watchlist', { sort: s, runtime_max: runtime, q })
     try {
-      return await api.get<WatchlistResponse>('/api/watchlist', { sort, runtime_max: runtime, q })
+      return await get(shownSort)
     } catch (e) {
-      if (e instanceof ApiError && e.code === 'taste_unavailable') {
-        toast('Taste ranking is unavailable.', 'error')
-        setSort('impact') // the select follows; this load already returns the fallback
-        return await api.get<WatchlistResponse>('/api/watchlist', { sort: 'impact', runtime_max: runtime, q })
-      }
-      throw e
+      if (!(e instanceof ApiError && e.code === 'taste_unavailable')) throw e
+      setTasteDown(true)
+      toast('Taste ranking is unavailable.', 'error')
+      return await get('impact')
     }
   }, [sort, runtime, q])
-  
+
   useEffect(() => setHighlightedId(null), [data])
   useEffect(() => {
     highlightRef.current?.scrollIntoView?.({ block: 'center', behavior: 'smooth' })
   }, [highlightedId])
 
-  const sorts = data?.taste_available ? [...SORT_OPTIONS, ['taste', 'Sort: Taste Match'] as [WatchlistSort, string]] : SORT_OPTIONS
+  const sorts = data?.taste_available && !tasteDown ? [...SORT_OPTIONS, ['taste', 'Sort: Taste Match'] as [WatchlistSort, string]] : SORT_OPTIONS
 
   function pickShort() {
     const pick = data?.items.find((r) => r.runtime_min && r.runtime_min <= SHORT_MIN)
@@ -80,7 +85,7 @@ export default function Watchlist() {
           </p>
           <div className={`${toolbar} mt-6`}>
             <SearchBox placeholder="Filter by title or director…" onChange={setQ} />
-            <Button onClick={pickShort}>Pick 90m Film</Button>
+            <Button variant="outline" onClick={pickShort}>Pick 90m Film</Button>
             <ImportButton onDone={reload} />
           </div>
         </div>
@@ -92,15 +97,18 @@ export default function Watchlist() {
         <Segmented options={RUNTIME_OPTIONS} value={runtime} onChange={setRuntime} />
         <div className="flex gap-3 items-center">
           <span className={`${num} text-ink-muted`}>{data && `Showing ${data.total} of ${count}`}</span>
-          <select
-            className="bg-surface border border-rule rounded-lg px-3 py-2 min-h-10"
-            aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value as WatchlistSort)}>
-            {sorts.map(([v, label]) => (
-              <option key={v} value={v}>
-                {label}
-              </option>
-            ))}
-          </select>
+          <Select value={shownSort} onValueChange={(v) => setSort(v as WatchlistSort)}>
+            <SelectTrigger className="h-10" aria-label="Sort">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {sorts.map(([v, label]) => (
+                <SelectItem key={v} value={v}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <div className={listBox}>

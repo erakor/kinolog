@@ -1,5 +1,5 @@
 import { Component, type ReactNode } from 'react'
-import { empty } from './ui'
+import { empty } from './styles'
 
 interface State {
   error: Error | null

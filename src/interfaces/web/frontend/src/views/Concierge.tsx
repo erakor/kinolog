@@ -3,8 +3,12 @@ import { api } from '../api'
 import { BannerArt } from '../components/BannerArt'
 import { EmptyState } from '../components/EmptyState'
 import { Segmented } from '../components/Segmented'
-import { Button } from '../components/Button'
-import { bareInput, chip, chipPlain, eyebrow, grid2, heroArt, heroLede, heroSplit, heroTitle, num, toolbar } from '../components/ui'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Search } from 'lucide-react'
+import { eyebrow, grid2, heroArt, heroLede, heroSplit, heroTitle, num, toolbar } from '../components/styles'
 import { useHealth } from '../context/HealthContext'
 import { fmtHours, fmtPct } from '../format'
 import { useAsync } from '../hooks/useAsync'
@@ -28,7 +32,7 @@ function Stat({ label, value, sub, accent = false }: { label: string; value: str
   return (
     <div>
       <div className="text-sm text-ink-muted">{label}</div>
-      <div className={`${num} text-3xl font-bold${accent ? ' text-accent' : ''}`}>{value}</div>
+      <div className={`${num} text-3xl font-bold${accent ? ' text-brand' : ''}`}>{value}</div>
       <div className="font-mono text-xs text-ink-muted">{sub}</div>
     </div>
   )
@@ -49,9 +53,9 @@ function Results({ data, onChanged }: { data: ConciergeResponse; onChanged: (ite
       </p>
       <div className="flex flex-wrap gap-2 mb-3">
         {data.parsed.chips.map((c, i) => (
-          <span className={chip} key={i}>
+          <Badge key={i}>
             {c.label}
-          </span>
+          </Badge>
         ))}
       </div>
       {notes.length > 0 && (
@@ -167,23 +171,26 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
             film for tonight.
           </p>
           <div className="mt-5">
-            <form
-              className="flex gap-2 bg-surface border border-rule rounded-xl py-1.5 pr-1.5 pl-3.5 items-center focus-within:border-ink-faint"
-              onSubmit={onSubmit}
-            >
-              <span aria-hidden="true" className="text-ink-muted">
-                ⌕
-              </span>
-              <input
-                className={`${bareInput} py-2.5`}
-                type="text"
-                placeholder="I have 90 minutes. Give me a movie."
-                aria-label="Ask the concierge"
-                maxLength={500}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-              />
-              <Button variant="accent" type="submit" disabled={result.status === 'loading'}>
+            <form className="flex items-center gap-2" onSubmit={onSubmit}>
+              <Label htmlFor="concierge-ask" className="sr-only">
+                Ask the concierge
+              </Label>
+              <div className="relative min-w-0 flex-1">
+                <Search
+                  className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <Input
+                  id="concierge-ask"
+                  className="h-11 rounded-xl pl-10"
+                  type="text"
+                  placeholder="I have 90 minutes. Give me a movie."
+                  maxLength={500}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                />
+              </div>
+              <Button variant="brand" size="lg" type="submit" disabled={result.status === 'loading'}>
                 Find a Film →
               </Button>
             </form>
@@ -200,9 +207,15 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
             </p>
             <div className="flex flex-wrap gap-2">
               {home?.prompts.map((prompt) => (
-                <button key={prompt} className={chipPlain} type="button" onClick={() => void ask(prompt)}>
+                <Button
+                  key={prompt}
+                  variant="outline"
+                  size="sm"
+                  className="h-auto rounded-full py-1 text-sm whitespace-normal"
+                  onClick={() => void ask(prompt)}
+                >
                   {prompt}
-                </button>
+                </Button>
               ))}
             </div>
           </div>

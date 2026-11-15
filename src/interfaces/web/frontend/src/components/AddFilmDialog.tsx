@@ -8,7 +8,7 @@ import type { Item } from '../types'
 import { LogButton, QueueButton } from './ItemActions'
 import { Modal } from './Modal'
 import { SearchBox } from './SearchBox'
-import { listBox, listRow } from './ui'
+import { listBox, listRow } from './styles'
 
 function Note({ children }: { children: string }) {
   return <span className="text-ink-muted text-sm">{children}</span>

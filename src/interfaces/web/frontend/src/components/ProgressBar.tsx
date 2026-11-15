@@ -1,4 +1,5 @@
-const FILL = 'absolute inset-y-0 left-0 rounded-full'
+import { Progress } from '@/components/ui/progress'
+import { pct } from '@/lib/utils'
 
 interface ProgressBarProps {
   seen: number
@@ -7,14 +8,13 @@ interface ProgressBarProps {
   afterSeen?: number | null
 }
 
+/** Two-segment bar: shadcn Progress for `seen`, plus a lighter overlay for `afterSeen`. */
 export function ProgressBar({ seen, total, afterSeen = null }: ProgressBarProps) {
-  const pct = (n: number) => (total ? Math.min(100, (n / total) * 100) : 0)
   return (
-    <div
-      className="relative h-1.5 bg-track rounded-full overflow-hidden"
-      role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={seen}>
-      {afterSeen != null && <div className={`${FILL} bg-accent-soft`} style={{ width: `${pct(afterSeen)}%` }} />}
-      <div className={`${FILL} bg-ink`} style={{ width: `${pct(seen)}%` }} />
-    </div>
+    <Progress value={seen} max={total || 1}>
+      {afterSeen != null && (
+        <div className="absolute inset-y-0 left-0 rounded-full bg-brand-soft" style={{ width: `${pct(afterSeen, total)}%` }} />
+      )}
+    </Progress>
   )
 }

@@ -1,5 +1,6 @@
+import { Search } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { bareInput } from './ui'
+import { Input } from '@/components/ui/input'
 
 interface SearchBoxProps {
   placeholder: string
@@ -26,16 +27,16 @@ export function SearchBox({ placeholder, onChange, initial = '' }: SearchBoxProp
   }, [text])
 
   return (
-    <label className="flex items-center gap-2 bg-surface border border-rule rounded-lg px-3 min-h-10 flex-auto basis-64 max-w-lg focus-within:border-ink-faint">
-      <span aria-hidden="true">⌕</span>
-      <input
-        className={`${bareInput} py-2`}
+    <div className="relative max-w-lg flex-auto basis-64">
+      <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+      <Input
+        className="h-10 pl-9"
         type="search"
         placeholder={placeholder}
         aria-label={placeholder}
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
-    </label>
+    </div>
   )
 }

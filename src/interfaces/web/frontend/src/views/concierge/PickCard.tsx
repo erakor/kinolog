@@ -1,7 +1,8 @@
 import { LogButton, QueueButton } from '../../components/ItemActions'
 import { directorNames } from '../../format'
 import type { ConciergePick } from '../../types'
-import { card, num } from '../../components/ui'
+import { Card, CardContent } from '@/components/ui/card'
+import { num } from '../../components/styles'
 import { CompletionPanel } from './CompletionPanel'
 import { Rationale } from './Rationale'
 
@@ -17,9 +18,10 @@ export function PickCard({ pick: p, primary, onChanged }: PickCardProps) {
   const delta = p.completion[0]
   const reload = () => onChanged(it.item_id)
   return (
-    <article className={`${card} mb-4`}>
+    <Card className="mb-4">
+      <CardContent>
       <div className="flex gap-2 items-center flex-wrap text-sm text-ink-muted">
-        <span className="text-accent">{primary ? 'Primary Pick' : 'Alternative Angle'}</span>
+        <span className="text-brand">{primary ? 'Primary Pick' : 'Alternative Angle'}</span>
         <span>·</span>
         <span>{onList ? 'In Your Watch List' : 'Blind Spot'}</span>
         {it.runtime_min ? <span className={num}>· {it.runtime_min} min</span> : null}
@@ -35,9 +37,10 @@ export function PickCard({ pick: p, primary, onChanged }: PickCardProps) {
       {p.rationale && <Rationale rationale={p.rationale} />}
       {delta && <CompletionPanel delta={delta} />}
       <div className="flex gap-2 flex-wrap mt-4 pt-4 border-t border-rule">
-        <LogButton item={it} reload={reload} label="✓ Log as Watched" />
+        <LogButton item={it} reload={reload} label="Log as Watched" />
         {!onList && <QueueButton item={it} reload={reload} />}
       </div>
-    </article>
+      </CardContent>
+    </Card>
   )
 }

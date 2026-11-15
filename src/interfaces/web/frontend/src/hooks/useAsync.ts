@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRefresh } from '../context/RefreshContext'
+import { useToast } from '../context/ToastContext'
 
 export interface AsyncState<T> {
   data: T | null
@@ -20,6 +21,8 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]): AsyncState<T
     loading: true,
   })
   const { key: refreshKey } = useRefresh() // refreshView() reloads every mounted view's data
+  const toast = useToast()
+  const hasData = useRef(false)
   const seq = useRef(0)
   const fnRef = useRef(fn)
   fnRef.current = fn
@@ -29,15 +32,19 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]): AsyncState<T
     setState((s) => ({ ...s, loading: true }))
     fnRef.current().then(
       (data) => {
-        if (my === seq.current) setState({ data, error: null, loading: false })
+        if (my !== seq.current) return
+        hasData.current = true
+        setState({ data, error: null, loading: false })
       },
       (e: unknown) => {
-        if (my === seq.current) {
-          setState((s) => ({ ...s, error: e instanceof Error ? e : new Error(String(e)), loading: false }))
-        }
+        if (my !== seq.current) return
+        const error = e instanceof Error ? e : new Error(String(e))
+        // With data on screen the view keeps showing it, so say that the refresh failed instead of staying silent.
+        if (hasData.current) toast(error.message || 'Could not refresh', 'error')
+        setState((s) => ({ ...s, error, loading: false }))
       },
     )
-  }, [])
+  }, [toast])
 
   useEffect(() => {
     run()
