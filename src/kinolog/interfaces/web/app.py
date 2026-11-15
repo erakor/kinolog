@@ -18,11 +18,10 @@ from kinolog.interfaces.web.state import AppState
 
 logger = logging.getLogger(__name__)
 
-FRONTEND_DIR = Path(__file__).parent / "frontend"
 DIST_DIR = Path(__file__).parent / "dist"
 BUILD_HINT = (
-    "npm --prefix src/interfaces/web/frontend ci && "
-    "npm --prefix src/interfaces/web/frontend run build"
+    "npm --prefix frontend ci && "
+    "npm --prefix frontend run build"
 )
 MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
 LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})

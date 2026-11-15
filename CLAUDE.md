@@ -26,11 +26,11 @@ python3 -m kinolog.interfaces.cli search "journalist in Rome" --mode rrf
 python3 -m kinolog.interfaces.cli eval known-items --mode bm25
 python3 -m kinolog.interfaces.cli eval hearts --ranker nearest_exemplar --splits 10
 python3 -m kinolog.interfaces.mcp_server                  # stdio MCP server (needs `mcp` extra)
-npm --prefix src/kinolog/interfaces/web/frontend ci && npm --prefix src/kinolog/interfaces/web/frontend run build  # build the web UI (once, and after frontend changes)
+npm --prefix frontend ci && npm --prefix frontend run build  # build the web UI (once, and after frontend changes)
 python3 -m kinolog.interfaces.web --db data/index.db      # local web UI (needs `web` extra)
-npm --prefix src/kinolog/interfaces/web/frontend run dev      # UI dev server on 127.0.0.1:5173, proxies /api to :8765
-npm --prefix src/kinolog/interfaces/web/frontend run typecheck && npm --prefix src/kinolog/interfaces/web/frontend test  # frontend checks (Vitest)
-npm --prefix src/kinolog/interfaces/web/frontend run lint     # oxlint (config: frontend/.oxlintrc.json; warnings only for now)
+npm --prefix frontend run dev      # UI dev server on 127.0.0.1:5173, proxies /api to :8765
+npm --prefix frontend run typecheck && npm --prefix frontend test  # frontend checks (Vitest)
+npm --prefix frontend run lint     # oxlint (config: frontend/.oxlintrc.json; warnings only for now)
 python3 -m kinolog.interfaces.cli eval concierge --hearts # concierge eval
 python3 -m kinolog.interfaces.cli ingest backfill-runtime # runtime_min / is_tv from stored TMDB docs
 ```

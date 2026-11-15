@@ -99,8 +99,8 @@ the build output is not committed.
 
 ```bash
 pip install -e '.[web]'
-npm --prefix src/kinolog/interfaces/web/frontend ci
-npm --prefix src/kinolog/interfaces/web/frontend run build
+npm --prefix frontend ci
+npm --prefix frontend run build
 python3 -m kinolog.interfaces.web --db data/index.db          # http://127.0.0.1:8765
 python3 -m kinolog.interfaces.web --no-model                  # keyword search only, no embedding model
 python3 -m kinolog.interfaces.web --llm                       # optional LLM rationales (pip install '.[llm]')
@@ -113,7 +113,7 @@ To work on the UI, run the Python server and the Vite dev server in two terminal
 
 ```bash
 python3 -m kinolog.interfaces.web --db data/index.db --no-model
-npm --prefix src/kinolog/interfaces/web/frontend run dev
+npm --prefix frontend run dev
 ```
 
 `--llm` sends the query and retrieved chunk text to the Anthropic API, so it is opt-in; the
