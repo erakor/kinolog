@@ -42,6 +42,10 @@ class KinologServer:
             return self._filmography(args)
         elif name == "crew_overlap":
             return self._crew_overlap(args)
+        elif name == "director_completion":
+            return self._director_completion(args)
+        elif name == "watchlist_by_director_impact":
+            return self._watchlist_by_director_impact(args)
         elif name == "stats":
             return self._stats(args)
         else:
@@ -88,6 +92,29 @@ class KinologServer:
         return services.crew_overlap(
             self.db, role=args.get("role", "Director"), min_overlap=args.get("min_overlap", 2)
         )
+
+    def _director_completion(self, args: dict) -> Any:
+        try:
+            return services.filmography_completion(
+                self.db,
+                name=args.get("name"),
+                min_seen=args.get("min_seen"),
+                min_total=args.get("min_total"),
+                limit=args.get("limit", 25),
+            )
+        except (InvalidInputError, TypeError, ValueError) as e:
+            return {"error": str(e)}
+
+    def _watchlist_by_director_impact(self, args: dict) -> Any:
+        try:
+            return services.watchlist_director_impact(
+                self.db,
+                max_runtime=args.get("max_runtime"),
+                include_unseen=bool(args.get("include_unseen", False)),
+                limit=args.get("limit", 20),
+            )
+        except (InvalidInputError, TypeError, ValueError) as e:
+            return {"error": str(e)}
 
     def _stats(self, args: dict) -> dict:
         return services.stats(self.db)

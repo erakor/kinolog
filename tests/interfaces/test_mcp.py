@@ -46,6 +46,8 @@ def test_tools_list():
     assert "filmography" in tool_names
     assert "crew_overlap" in tool_names
     assert "stats" in tool_names
+    assert "director_completion" in tool_names
+    assert "watchlist_by_director_impact" in tool_names
 
 
 def test_stats_tool(mcp_server):
@@ -96,3 +98,37 @@ def test_rank_watchlist_uses_db_id_helpers(mcp_server, monkeypatch):
     assert seen_args["c"] == mcp_server.db.get_watchlist_ids()
     assert seen_args["h"] == mcp_server.db.get_heart_ids()
     assert out and out[0]["title"] == "Solaris"
+
+
+def test_director_completion_lists_fellini_as_index_only(mcp_server):
+    (row,) = mcp_server.handle_tool("director_completion", {})
+    assert (row["person"], row["seen"], row["total"], row["percent"]) == (
+        "Federico Fellini", 2, 2, 100,
+    )
+    assert row["coverage"] == "index_only" and "films" not in row
+
+
+def test_director_completion_with_a_name_returns_films(mcp_server):
+    (row,) = mcp_server.handle_tool("director_completion", {"name": "Fellini"})
+    assert [f["title"] for f in row["films"]] == ["La Dolce Vita", "8½"]
+    assert all(f["seen"] and f["if_watched"] is None for f in row["films"])
+
+
+def test_watchlist_by_director_impact_runs_with_max_runtime(mcp_server):
+    assert mcp_server.handle_tool("watchlist_by_director_impact", {"max_runtime": 90}) == []
+    db = mcp_server.db
+    fellini = db.execute("SELECT id FROM people WHERE name = 'Federico Fellini'").fetchone()["id"]
+    amarcord = db.upsert_item("film", "Amarcord", 1973, runtime_min=123)
+    db.upsert_credit(amarcord, fellini, "Director", "Directing")
+    db.upsert_user_status(amarcord, seen=0, on_watchlist=1)
+    (hit,) = mcp_server.handle_tool("watchlist_by_director_impact", {"max_runtime": 130})
+    assert hit["title"] == "Amarcord"
+    d = hit["directors"][0]
+    assert (d["before"], d["after"], d["completes"]) == ("2/3", "3/3", True)
+    assert mcp_server.handle_tool("watchlist_by_director_impact", {"max_runtime": 100}) == []
+
+
+def test_director_completion_tools_return_errors_for_bad_arguments(mcp_server):
+    assert "error" in mcp_server.handle_tool("director_completion", {"limit": 0})
+    assert "error" in mcp_server.handle_tool("director_completion", {"limit": "many"})
+    assert "error" in mcp_server.handle_tool("watchlist_by_director_impact", {"max_runtime": -5})
