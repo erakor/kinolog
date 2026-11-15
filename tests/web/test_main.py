@@ -1,4 +1,4 @@
-from src.interfaces.web.__main__ import build_parser, is_loopback, main
+from kinolog.interfaces.web.__main__ import build_parser, is_loopback, main
 
 
 def test_defaults():

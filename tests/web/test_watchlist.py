@@ -1,6 +1,6 @@
 import pytest
 
-from src.core.taste import TasteScore
+from kinolog.core.taste import TasteScore
 from tests.web.seed import seed
 
 
@@ -41,7 +41,7 @@ def test_bad_sort_422_and_taste_409_without_vec(client, db):
 
 def test_taste_sort_with_stubbed_ranker(client, db, monkeypatch):
     ids = seed(db)
-    from src.core import taste
+    from kinolog.core import taste
 
     monkeypatch.setattr(taste, "taste_available", lambda db, model_name="bge_m3": True)
 

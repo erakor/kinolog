@@ -3,8 +3,8 @@
 import csv
 import pytest
 
-from src.core.db import Database
-from src.ingest.goodreads import load_goodreads, _clean_isbn
+from kinolog.core.db import Database
+from kinolog.ingest.goodreads import load_goodreads, _clean_isbn
 
 
 @pytest.fixture

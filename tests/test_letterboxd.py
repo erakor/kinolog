@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from src.core.db import Database
-from src.ingest.letterboxd import load_letterboxd, compute_first_heart_date
+from kinolog.core.db import Database
+from kinolog.ingest.letterboxd import load_letterboxd, compute_first_heart_date
 
 
 @pytest.fixture

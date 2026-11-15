@@ -28,8 +28,8 @@ A personal vector search, ingestion, and evaluation engine built over personal w
 - **Interfaces**:
   - Zero-dependency CLI (`kinolog`) with clean terminal output.
   - Interactive match review queue CLI (`kinolog ingest review`).
-  - MCP Server (`src/interfaces/mcp_server.py`) with 6 tools: `search`, `rank_watchlist`, `similar_to`, `filmography`, `crew_overlap`, `stats`.
-  - Chat Agent (`src/interfaces/chat/agent.py`) with token-budgeted context assembly and citations.
+  - MCP Server (`src/kinolog/interfaces/mcp_server.py`) with 6 tools: `search`, `rank_watchlist`, `similar_to`, `filmography`, `crew_overlap`, `stats`.
+  - Chat Agent (`src/kinolog/interfaces/chat/agent.py`) with token-budgeted context assembly and citations.
 
 ---
 
@@ -39,52 +39,52 @@ A personal vector search, ingestion, and evaluation engine built over personal w
 
 ```bash
 # View current database statistics
-python3 -m src.interfaces.cli stats
+python3 -m kinolog.interfaces.cli stats
 
 # Ingest Letterboxd exports (folder or zip)
-python3 -m src.interfaces.cli ingest letterboxd data/raw_exports/letterboxd
+python3 -m kinolog.interfaces.cli ingest letterboxd data/raw_exports/letterboxd
 
 # Ingest Goodreads export
-python3 -m src.interfaces.cli ingest goodreads data/raw_exports/goodreads.csv
+python3 -m kinolog.interfaces.cli ingest goodreads data/raw_exports/goodreads.csv
 
 # Resolve items with TMDB
 export TMDB_API_KEY="your_api_key"
-python3 -m src.interfaces.cli ingest resolve
+python3 -m kinolog.interfaces.cli ingest resolve
 
 # Review ambiguous matches interactively
-python3 -m src.interfaces.cli ingest review
+python3 -m kinolog.interfaces.cli ingest review
 
 # Enrich matched films with TMDB metadata & credits
-python3 -m src.interfaces.cli ingest enrich
+python3 -m kinolog.interfaces.cli ingest enrich
 
 # Chunk all documents (whole, fixed_256_50, section)
-python3 -m src.interfaces.cli ingest chunk --strategy whole
+python3 -m kinolog.interfaces.cli ingest chunk --strategy whole
 
 # Embed chunks (requires sentence-transformers)
-python3 -m src.interfaces.cli ingest embed --model bge_m3
+python3 -m kinolog.interfaces.cli ingest embed --model bge_m3
 ```
 
 ### Search & Exploration
 
 ```bash
 # BM25 Search
-python3 -m src.interfaces.cli search "journalist in Rome" --mode bm25
+python3 -m kinolog.interfaces.cli search "journalist in Rome" --mode bm25
 
 # Check person filmography
-python3 -m src.interfaces.cli filmography "Fellini" --role Director
+python3 -m kinolog.interfaces.cli filmography "Fellini" --role Director
 
 # Check crew overlap with hearted films
-python3 -m src.interfaces.cli crew-overlap --role Director --min-overlap 2
+python3 -m kinolog.interfaces.cli crew-overlap --role Director --min-overlap 2
 ```
 
 ### Running Evaluations
 
 ```bash
 # Run known-item retrieval benchmark
-python3 -m src.interfaces.cli eval known-items --mode bm25
+python3 -m kinolog.interfaces.cli eval known-items --mode bm25
 
 # Run hearts recall taste evaluation (10 random splits)
-python3 -m src.interfaces.cli eval hearts --ranker nearest_exemplar --splits 10
+python3 -m kinolog.interfaces.cli eval hearts --ranker nearest_exemplar --splits 10
 ```
 
 ---
@@ -99,21 +99,21 @@ the build output is not committed.
 
 ```bash
 pip install -e '.[web]'
-npm --prefix src/interfaces/web/frontend ci
-npm --prefix src/interfaces/web/frontend run build
-python3 -m src.interfaces.web --db data/index.db          # http://127.0.0.1:8765
-python3 -m src.interfaces.web --no-model                  # keyword search only, no embedding model
-python3 -m src.interfaces.web --llm                       # optional LLM rationales (pip install '.[llm]')
-python3 -m src.interfaces.cli ingest backfill-runtime     # fill runtime/TV flags from existing TMDB docs
-python3 -m src.interfaces.cli eval concierge --hearts     # measure the Concierge
+npm --prefix src/kinolog/interfaces/web/frontend ci
+npm --prefix src/kinolog/interfaces/web/frontend run build
+python3 -m kinolog.interfaces.web --db data/index.db          # http://127.0.0.1:8765
+python3 -m kinolog.interfaces.web --no-model                  # keyword search only, no embedding model
+python3 -m kinolog.interfaces.web --llm                       # optional LLM rationales (pip install '.[llm]')
+python3 -m kinolog.interfaces.cli ingest backfill-runtime     # fill runtime/TV flags from existing TMDB docs
+python3 -m kinolog.interfaces.cli eval concierge --hearts     # measure the Concierge
 ```
 
 To work on the UI, run the Python server and the Vite dev server in two terminals; the dev server
 (http://127.0.0.1:5173) proxies `/api` to port 8765:
 
 ```bash
-python3 -m src.interfaces.web --db data/index.db --no-model
-npm --prefix src/interfaces/web/frontend run dev
+python3 -m kinolog.interfaces.web --db data/index.db --no-model
+npm --prefix src/kinolog/interfaces/web/frontend run dev
 ```
 
 `--llm` sends the query and retrieved chunk text to the Anthropic API, so it is opt-in; the
@@ -131,11 +131,8 @@ To expose the Kinolog index tools to Claude or Antigravity via Model Context Pro
   "mcpServers": {
     "kinolog": {
       "command": "python3",
-      "args": ["-m", "src.interfaces.mcp_server"],
-      "cwd": "/Users/amaurymouldron/Sites/Me/kinolog",
-      "env": {
-        "PYTHONPATH": "."
-      }
+      "args": ["-m", "kinolog.interfaces.mcp_server"],
+      "cwd": "/Users/amaurymouldron/Sites/Me/kinolog"
     }
   }
 }

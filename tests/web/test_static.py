@@ -3,7 +3,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from src.interfaces.web.app import BUILD_HINT, FRONTEND_DIR, create_app
+from kinolog.interfaces.web.app import BUILD_HINT, FRONTEND_DIR, create_app
 
 EXTERNAL_URL = re.compile(
     r"""(?:src|href)=["']https?://|url\(\s*["']?https?://|@import\s+["']?https?://"""

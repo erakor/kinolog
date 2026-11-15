@@ -2,8 +2,8 @@
 
 import pytest
 
-from src.core.db import Database
-from src.core.chunkers import (
+from kinolog.core.db import Database
+from kinolog.core.chunkers import (
     chunk_whole_document,
     chunk_fixed_window,
     chunk_by_section,

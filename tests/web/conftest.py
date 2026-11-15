@@ -7,8 +7,8 @@ pytest.importorskip("multipart")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from src.core.db import Database  # noqa: E402
-from src.interfaces.web.app import create_app  # noqa: E402
+from kinolog.core.db import Database  # noqa: E402
+from kinolog.interfaces.web.app import create_app  # noqa: E402
 
 
 @pytest.fixture

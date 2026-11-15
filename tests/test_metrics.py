@@ -1,6 +1,6 @@
 """Tests for evaluation metrics."""
 
-from src.eval.metrics import recall_at_k, hit_at_k, mrr, groundedness
+from kinolog.eval.metrics import recall_at_k, hit_at_k, mrr, groundedness
 
 
 def test_recall_at_k():

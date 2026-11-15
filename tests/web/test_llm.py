@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from src.interfaces.web.llm import SYSTEM_PROMPT, build_generator
+from kinolog.interfaces.web.llm import SYSTEM_PROMPT, build_generator
 
 
 class FakeClient:
@@ -45,7 +45,7 @@ def test_default_model_from_env(monkeypatch):
 def test_empty_output_triggers_template_fallback_end_to_end(db):
     from fastapi.testclient import TestClient
 
-    from src.interfaces.web.app import create_app
+    from kinolog.interfaces.web.app import create_app
     from tests.web.seed import seed
 
     seed(db)

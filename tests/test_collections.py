@@ -2,13 +2,13 @@
 
 import pytest
 
-from src.core.collections import (
+from kinolog.core.collections import (
     collection_summary,
     completion_deltas,
     director_completion,
     director_detail,
 )
-from src.core.db import Database
+from kinolog.core.db import Database
 
 
 @pytest.fixture

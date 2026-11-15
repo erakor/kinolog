@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.core.db import Database, content_hash
+from kinolog.core.db import Database, content_hash
 
 
 @pytest.fixture

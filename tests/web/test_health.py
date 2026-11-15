@@ -37,7 +37,7 @@ def test_unknown_host_rejected_to_stop_dns_rebinding(client):
 def test_allow_remote_accepts_any_host(db):
     from fastapi.testclient import TestClient
 
-    from src.interfaces.web.app import create_app
+    from kinolog.interfaces.web.app import create_app
 
     app = create_app(db, load_model=False, allowed_hosts={"*"})
     with TestClient(app, base_url="http://anything.lan") as c:

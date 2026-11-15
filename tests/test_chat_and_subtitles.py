@@ -1,11 +1,11 @@
 """Tests for subtitle processing, chat agent context assembly, and faithfulness."""
 
 import pytest
-from src.core.db import Database
-from src.core.chunkers import chunk_document
-from src.ingest.enrichers.subtitles import clean_subtitle_text, parse_srt, chunk_subtitles_by_gap, chunk_subtitles_by_window
-from src.interfaces.chat.agent import KinologChatAgent, assemble_context
-from src.eval.faithfulness import eval_faithfulness
+from kinolog.core.db import Database
+from kinolog.core.chunkers import chunk_document
+from kinolog.ingest.enrichers.subtitles import clean_subtitle_text, parse_srt, chunk_subtitles_by_gap, chunk_subtitles_by_window
+from kinolog.interfaces.chat.agent import KinologChatAgent, assemble_context
+from kinolog.eval.faithfulness import eval_faithfulness
 
 
 SAMPLE_SRT = """1
@@ -105,8 +105,8 @@ def _agent_db():
 
 
 def test_answer_query_uses_prefetched_results_without_searching(monkeypatch):
-    from src.core.search import SearchResult
-    from src.interfaces.chat import agent as agent_mod
+    from kinolog.core.search import SearchResult
+    from kinolog.interfaces.chat import agent as agent_mod
 
     db, ids = _agent_db()
 
@@ -121,7 +121,7 @@ def test_answer_query_uses_prefetched_results_without_searching(monkeypatch):
 
 
 def test_answer_query_forwards_filters():
-    from src.core.search import SearchFilters
+    from kinolog.core.search import SearchFilters
 
     db, ids = _agent_db()
     db.execute("UPDATE items SET runtime_min = 167 WHERE title = 'Solaris'")
@@ -157,18 +157,18 @@ def test_scoped_mention_check_and_citation_validation():
 
 
 def test_grounding_module_is_core_and_agent_reexports():
-    import src.core.grounding as g
-    from src.interfaces.chat import agent as agent_mod
+    import kinolog.core.grounding as g
+    from kinolog.interfaces.chat import agent as agent_mod
 
     assert agent_mod.assemble_context is g.assemble_context
-    from src.eval.metrics import groundedness
+    from kinolog.eval.metrics import groundedness
 
     assert groundedness is g.groundedness
 
 
 def test_check_grounding_directly():
-    from src.core.grounding import assemble_context, check_grounding
-    from src.core.search import SearchResult
+    from kinolog.core.grounding import assemble_context, check_grounding
+    from kinolog.core.search import SearchResult
 
     db, ids = _agent_db()
     ctx = assemble_context([SearchResult(

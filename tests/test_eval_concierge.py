@@ -2,16 +2,16 @@
 
 import pytest
 
-from src.core.chunkers import chunk_document
-from src.core.db import Database
-from src.core.taste import TasteScore
-from src.eval.concierge import (
+from kinolog.core.chunkers import chunk_document
+from kinolog.core.db import Database
+from kinolog.core.taste import TasteScore
+from kinolog.eval.concierge import (
     eval_concierge,
     eval_concierge_hearts,
     load_concierge_prompts,
     violates,
 )
-from src.eval.harness import log_results
+from kinolog.eval.harness import log_results
 
 
 @pytest.fixture
@@ -77,7 +77,7 @@ def test_results_are_logged_to_eval_runs(db):
 
 
 def test_violates_detects_each_constraint(db):
-    from src.core.search import SearchFilters
+    from kinolog.core.search import SearchFilters
 
     card = {"runtime_min": 100, "year": 1962,
             "status": {"seen": True, "on_watchlist": False}}

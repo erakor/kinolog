@@ -1,9 +1,9 @@
 """Tests for MCP server tool handling."""
 
 import pytest
-from src.core.db import Database
-from src.core.chunkers import chunk_document
-from src.interfaces.mcp_server import KinologServer, TOOLS
+from kinolog.core.db import Database
+from kinolog.core.chunkers import chunk_document
+from kinolog.interfaces.mcp_server import KinologServer, TOOLS
 
 
 @pytest.fixture
@@ -81,7 +81,7 @@ def test_unknown_tool(mcp_server):
 
 
 def test_rank_watchlist_uses_db_id_helpers(mcp_server, monkeypatch):
-    from src.core import taste
+    from kinolog.core import taste
 
     seen_args = {}
 

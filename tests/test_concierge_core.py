@@ -2,9 +2,9 @@
 
 import pytest
 
-from src.core.chunkers import chunk_document
-from src.core.concierge import parse_constraints, pick, to_search_filters
-from src.core.db import Database
+from kinolog.core.chunkers import chunk_document
+from kinolog.core.concierge import parse_constraints, pick, to_search_filters
+from kinolog.core.db import Database
 
 CASES = [
     # text, expected filters (subset), expected residual
