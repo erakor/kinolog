@@ -1,4 +1,5 @@
-import { Progress, pct } from '@/components/ui/progress'
+import { Progress } from '@/components/ui/progress'
+import { pct } from '@/lib/utils'
 
 interface ProgressBarProps {
   seen: number

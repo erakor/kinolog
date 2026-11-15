@@ -1,11 +1,7 @@
 import { Progress as ProgressPrimitive } from 'radix-ui'
 import type * as React from 'react'
 
-import { cn } from '@/lib/utils'
-
-/** Percent of `max`, clamped to 0..100 (0 when `max` is not positive). */
-export const pct = (value: number, max: number): number =>
-  max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0
+import { cn, pct } from '@/lib/utils'
 
 /** Children render under the indicator, e.g. a lighter "planned" segment. Width (not translateX) keeps both ends rounded. */
 function Progress({

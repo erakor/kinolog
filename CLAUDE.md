@@ -30,6 +30,7 @@ npm --prefix src/interfaces/web/frontend ci && npm --prefix src/interfaces/web/f
 python3 -m src.interfaces.web --db data/index.db      # local web UI (needs `web` extra)
 npm --prefix src/interfaces/web/frontend run dev      # UI dev server on 127.0.0.1:5173, proxies /api to :8765
 npm --prefix src/interfaces/web/frontend run typecheck && npm --prefix src/interfaces/web/frontend test  # frontend checks (Vitest)
+npm --prefix src/interfaces/web/frontend run lint     # oxlint (config: frontend/.oxlintrc.json; warnings only for now)
 python3 -m src.interfaces.cli eval concierge --hearts # concierge eval
 python3 -m src.interfaces.cli ingest backfill-runtime # runtime_min / is_tv from stored TMDB docs
 ```

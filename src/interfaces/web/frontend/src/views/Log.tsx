@@ -23,22 +23,22 @@ const MIN_OPTIONS = [
 ] as const
 
 function LogRow({ entry: e, reload }: { entry: LogEntry; reload: () => void }) {
-  const [rating, setRating] = useState(e.rating)
   const [editing, setEditing] = useState(false)
-  const run = useAction()
-  const reloadAfter = useAction(reload)
+  // Optimistic rating, only honoured while the server value is still the one it was based on.
+  const [pending, setPending] = useState<{ base: number | null; value: number | null } | null>(null)
+  const run = useAction(reload)
   const it = e.item
+  const rating = pending && pending.base === e.rating ? pending.value : e.rating
 
   async function rate(value: number | null) {
-    const prev = rating
-    setRating(value)
+    setPending({ base: e.rating, value })
     const ok = await run(() => api.patch(`/api/log/${e.entry_id}`, { rating: value }), 'Rating saved')
-    if (!ok) setRating(prev)
+    if (!ok) setPending(null)
   }
 
   function remove() {
     if (!confirm(`Delete this log entry for ${it.title}?`)) return
-    void reloadAfter(() => api.del(`/api/log/${e.entry_id}`), 'Entry deleted')
+    void run(() => api.del(`/api/log/${e.entry_id}`), 'Entry deleted')
   }
 
   return (
@@ -139,7 +139,7 @@ export default function Log() {
             </TableHeader>
             <TableBody>
               {data.entries.map((e) => (
-                <LogRow key={`${e.entry_id}:${e.rating}`} entry={e} reload={reload} />
+                <LogRow key={e.entry_id} entry={e} reload={reload} />
               ))}
             </TableBody>
           </Table>
