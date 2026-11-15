@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query, Response
 
-from kinolog.core.db import Database
 from kinolog.interfaces.web.deps import card_or_404, get_db, get_state
 from kinolog.interfaces.web.schemas import LogCreate, LogPatch
 from kinolog.interfaces.web.state import AppState
+from kinolog.store import Database
 
 router = APIRouter(prefix="/api/log")
 

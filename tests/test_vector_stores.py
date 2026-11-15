@@ -1,7 +1,7 @@
 """Tests for vector store benchmark."""
 
-from kinolog.core.db import Database
 from kinolog.eval.vector_stores import VectorStoreBenchmark
+from kinolog.store import Database
 
 
 def test_vector_store_benchmark():

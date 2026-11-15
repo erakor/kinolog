@@ -8,8 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterator
 
-from kinolog.core.db import Database
 from kinolog.domain import Chunk
+from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
 

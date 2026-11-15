@@ -1,7 +1,7 @@
 """Tests for crew queries."""
 
 import pytest
-from kinolog.core.db import Database
+from kinolog.store import Database
 from kinolog.core.crew import filmography, crew_overlap_with_hearts, directors_by_heart_count
 
 

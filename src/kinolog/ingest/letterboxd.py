@@ -9,7 +9,7 @@ from datetime import date
 from pathlib import Path
 from typing import Iterator
 
-from kinolog.core.db import Database
+from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
 

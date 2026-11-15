@@ -2,7 +2,7 @@
 
 import pytest
 
-from kinolog.core.db import Database
+from kinolog.store import Database
 
 
 @pytest.fixture
@@ -169,7 +169,7 @@ def test_writes_do_not_touch_documents_or_chunks(db):
 
 
 def test_dates_normalised_and_domain_errors(db):
-    from kinolog.core.db import InvalidInputError, NotFoundError
+    from kinolog.store import InvalidInputError, NotFoundError
 
     i = _film(db)
     e = db.log_watch(i, "20240102")

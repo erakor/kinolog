@@ -7,13 +7,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from kinolog.config import DEFAULT_RANKER
 from kinolog.core import collections as coll
-from kinolog.core.db import Database
 from kinolog.core.docfacts import item_facts
 from kinolog.core.taste import TasteUnavailableError
 from kinolog.interfaces.web.deps import card_or_404, get_db, get_state
 from kinolog.interfaces.web.schemas import ItemRef, WatchedBody
 from kinolog.interfaces.web.state import AppState
 from kinolog.interfaces.web.taste import cached_taste_scores
+from kinolog.store import Database
 
 router = APIRouter(prefix="/api/watchlist")
 

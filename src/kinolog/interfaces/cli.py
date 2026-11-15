@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from kinolog.config import DEFAULT_DB_PATH, DEFAULT_MODEL, DEFAULT_RANKER, DEFAULT_STRATEGY
-from kinolog.core.db import Database
+from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
 

@@ -3,7 +3,7 @@
 import subprocess
 import sys
 import pytest
-from kinolog.core.db import Database
+from kinolog.store import Database
 
 
 @pytest.fixture

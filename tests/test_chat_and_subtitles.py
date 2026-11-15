@@ -1,7 +1,7 @@
 """Tests for subtitle processing, chat agent context assembly, and faithfulness."""
 
 import pytest
-from kinolog.core.db import Database
+from kinolog.store import Database
 from kinolog.core.chunkers import chunk_document
 from kinolog.ingest.enrichers.subtitles import clean_subtitle_text, parse_srt, chunk_subtitles_by_gap, chunk_subtitles_by_window
 from kinolog.interfaces.chat.agent import KinologChatAgent, assemble_context

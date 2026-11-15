@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from kinolog.core.db import Database
 from kinolog.interfaces.web.deps import get_db, get_state
 from kinolog.interfaces.web.state import AppState
+from kinolog.store import Database
 
 router = APIRouter()
 

@@ -3,7 +3,6 @@
 import pytest
 
 from kinolog.core.chunkers import chunk_document
-from kinolog.core.db import Database
 from kinolog.core.taste import TasteScore
 from kinolog.eval.concierge import (
     eval_concierge,
@@ -12,6 +11,7 @@ from kinolog.eval.concierge import (
     violates,
 )
 from kinolog.eval.harness import log_results
+from kinolog.store import Database
 
 
 @pytest.fixture

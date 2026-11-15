@@ -7,7 +7,7 @@ import logging
 import re
 from pathlib import Path
 
-from kinolog.core.db import Database
+from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
 

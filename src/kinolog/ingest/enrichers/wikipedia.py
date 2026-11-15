@@ -8,7 +8,7 @@ import urllib.parse
 from typing import Any
 
 from kinolog.config import WIKI_CACHE_DIR, WIKIDATA_CACHE_DIR
-from kinolog.core.db import Database
+from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
 

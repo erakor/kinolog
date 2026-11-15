@@ -6,7 +6,6 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
-from kinolog.core.db import Database
 from kinolog.core.grounding import (
     AssembledContext,
     RetrievedChunkContext,
@@ -14,6 +13,7 @@ from kinolog.core.grounding import (
     check_grounding,
 )
 from kinolog.core.search import SearchFilters, SearchResult, search
+from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
 

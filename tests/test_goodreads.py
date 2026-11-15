@@ -3,7 +3,7 @@
 import csv
 import pytest
 
-from kinolog.core.db import Database
+from kinolog.store import Database
 from kinolog.ingest.goodreads import load_goodreads, _clean_isbn
 
 

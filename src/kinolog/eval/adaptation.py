@@ -6,9 +6,9 @@ import logging
 from dataclasses import dataclass
 from typing import Callable
 
-from kinolog.core.db import Database
 from kinolog.eval.harness import EvalResult
 from kinolog.eval.metrics import mrr
+from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
 

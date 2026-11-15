@@ -8,9 +8,9 @@ from importlib import resources
 from pathlib import Path
 from typing import Any, Callable
 
-from kinolog.core.db import Database
 from kinolog.eval.harness import EvalResult
 from kinolog.interfaces.chat.agent import KinologChatAgent
+from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
 

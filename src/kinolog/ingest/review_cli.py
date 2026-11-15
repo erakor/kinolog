@@ -6,7 +6,7 @@ import json
 import sys
 
 from kinolog.config import DEFAULT_DB_PATH
-from kinolog.core.db import Database
+from kinolog.store import Database
 
 
 def review_queue(db_path: str = str(DEFAULT_DB_PATH)):

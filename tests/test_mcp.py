@@ -1,7 +1,7 @@
 """Tests for MCP server tool handling."""
 
 import pytest
-from kinolog.core.db import Database
+from kinolog.store import Database
 from kinolog.core.chunkers import chunk_document
 from kinolog.interfaces.mcp_server import KinologServer, TOOLS
 

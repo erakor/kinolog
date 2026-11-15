@@ -1,7 +1,7 @@
 """Tests for the evaluation harness."""
 
 import pytest
-from kinolog.core.db import Database
+from kinolog.store import Database
 from kinolog.core.chunkers import chunk_document
 from kinolog.core.search import search_bm25
 from kinolog.eval.harness import eval_known_items, eval_hearts_recall, log_results

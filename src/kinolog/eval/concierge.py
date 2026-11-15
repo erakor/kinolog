@@ -18,9 +18,9 @@ from pathlib import Path
 from typing import Any
 
 from kinolog.core.concierge import parse_constraints, pick, to_search_filters
-from kinolog.core.db import Database
 from kinolog.eval.harness import EvalResult
 from kinolog.eval.metrics import hit_at_k, mrr, ndcg_at_k
+from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
 

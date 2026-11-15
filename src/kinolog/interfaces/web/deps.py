@@ -6,8 +6,8 @@ from collections.abc import Iterator
 
 from fastapi import HTTPException, Request
 
-from kinolog.core.db import Database
 from kinolog.interfaces.web.state import AppState
+from kinolog.store import Database
 
 
 def get_state(request: Request) -> AppState:

@@ -6,10 +6,10 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 
-from kinolog.core.db import Database
 from kinolog.ingest.letterboxd import load_letterboxd
 from kinolog.interfaces.web.deps import get_state
 from kinolog.interfaces.web.state import AppState
+from kinolog.store import Database
 
 router = APIRouter(prefix="/api/import")
 

@@ -8,7 +8,7 @@ from kinolog.core.collections import (
     director_completion,
     director_detail,
 )
-from kinolog.core.db import Database
+from kinolog.store import Database
 
 
 @pytest.fixture

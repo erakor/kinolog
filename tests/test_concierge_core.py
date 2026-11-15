@@ -4,7 +4,7 @@ import pytest
 
 from kinolog.core.chunkers import chunk_document
 from kinolog.core.concierge import parse_constraints, pick, to_search_filters
-from kinolog.core.db import Database
+from kinolog.store import Database
 
 CASES = [
     # text, expected filters (subset), expected residual

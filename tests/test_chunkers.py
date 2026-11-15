@@ -2,7 +2,7 @@
 
 import pytest
 
-from kinolog.core.db import Database
+from kinolog.store import Database
 from kinolog.core.chunkers import (
     chunk_whole_document,
     chunk_fixed_window,

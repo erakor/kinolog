@@ -9,8 +9,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from kinolog.core.db import Database, chunked
 from kinolog.core.search import SearchResult
+from kinolog.store import Database, chunked
 
 CITATION_RE = re.compile(r"\[\^(\d+)\]")
 

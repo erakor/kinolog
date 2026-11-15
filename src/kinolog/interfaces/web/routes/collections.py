@@ -5,8 +5,8 @@ from dataclasses import asdict
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from kinolog.core import collections as coll
-from kinolog.core.db import Database
 from kinolog.interfaces.web.deps import get_db
+from kinolog.store import Database
 
 router = APIRouter(prefix="/api/collections")
 

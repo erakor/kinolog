@@ -14,8 +14,8 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException
 
 from kinolog.config import DEFAULT_DB_PATH
-from kinolog.core.db import Database, InvalidInputError, NotFoundError
 from kinolog.interfaces.web.state import AppState
+from kinolog.store import Database, InvalidInputError, NotFoundError
 
 logger = logging.getLogger(__name__)
 

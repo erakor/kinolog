@@ -1,6 +1,6 @@
-from kinolog.core.db import Database
 from kinolog.core.docfacts import item_facts, parse_tmdb_text
 from kinolog.ingest.enrichers.tmdb import _build_document_text
+from kinolog.store import Database
 
 DETAILS = {
     "title": "Okay", "original_title": "Okay", "release_date": "2017-06-01",

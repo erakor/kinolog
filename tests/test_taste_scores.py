@@ -3,8 +3,8 @@
 import pytest
 
 from kinolog.core import taste
-from kinolog.core.db import Database
 from kinolog.core.taste import TasteScore, TasteUnavailableError, taste_scores
+from kinolog.store import Database
 
 
 @pytest.fixture

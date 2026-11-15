@@ -10,8 +10,8 @@ if TYPE_CHECKING:
     import numpy as np
 
 from kinolog.config import DEFAULT_MODEL
-from kinolog.core.db import Database
 from kinolog.domain import SHORT_MAX_MIN
+from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
 

@@ -16,8 +16,8 @@ try:
 except ImportError:
     np = None  # type: ignore
 
-from kinolog.core.db import Database
 from kinolog.eval.metrics import hit_at_k, mrr, recall_at_k
+from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
 

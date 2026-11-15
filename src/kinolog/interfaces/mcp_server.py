@@ -146,7 +146,7 @@ class KinologServer:
     """MCP tool handler for Kinolog."""
 
     def __init__(self, db_path: str = str(DEFAULT_DB_PATH)):
-        from kinolog.core.db import Database
+        from kinolog.store import Database
         self.db = Database(db_path)
         self._model = None  # Lazy-loaded embedding model
 

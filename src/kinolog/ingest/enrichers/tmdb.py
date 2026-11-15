@@ -7,8 +7,8 @@ import logging
 import re
 
 from kinolog.config import TMDB_CACHE_DIR
-from kinolog.core.db import Database, content_hash
 from kinolog.ingest.resolvers.tmdb import TMDBResolver
+from kinolog.store import Database, content_hash
 
 logger = logging.getLogger(__name__)
 

@@ -6,8 +6,8 @@ import logging
 import re
 
 from kinolog.config import DEFAULT_STRATEGY
-from kinolog.core.db import Database, content_hash
 from kinolog.domain import Chunk
+from kinolog.store import Database, content_hash
 
 logger = logging.getLogger(__name__)
 

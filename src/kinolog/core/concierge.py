@@ -13,10 +13,10 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from kinolog.core import collections as coll
-from kinolog.core.db import Database
 from kinolog.core.docfacts import item_facts, parse_tmdb_text
 from kinolog.core.grounding import MentionScope, assemble_context, check_grounding
 from kinolog.core.search import SearchFilters, SearchResult, search
+from kinolog.store import Database
 
 # --- lexicons ---------------------------------------------------------------------------
 

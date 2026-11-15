@@ -11,8 +11,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from kinolog.core.db import Database, InvalidInputError, chunked
 from kinolog.domain import SHORT_MAX_MIN
+from kinolog.store import Database, InvalidInputError, chunked
 
 SORTS = ("pct", "hearted", "name", "remaining")
 STATUSES = ("all", "in_progress", "completed")

@@ -8,7 +8,7 @@ from collections.abc import Callable
 from typing import Any
 
 from kinolog.core import taste as taste_core
-from kinolog.core.db import Database
+from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
 

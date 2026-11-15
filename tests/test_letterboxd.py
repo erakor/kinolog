@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from kinolog.core.db import Database
+from kinolog.store import Database
 from kinolog.ingest.letterboxd import load_letterboxd, compute_first_heart_date
 
 

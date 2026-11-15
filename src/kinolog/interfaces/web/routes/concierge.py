@@ -4,11 +4,11 @@ from fastapi import APIRouter, Depends
 
 from kinolog.core import collections as coll
 from kinolog.core.concierge import parse_constraints, pick
-from kinolog.core.db import Database
 from kinolog.interfaces.web.deps import get_db, get_state
 from kinolog.interfaces.web.schemas import ConciergeBody, ParseBody
 from kinolog.interfaces.web.state import AppState
 from kinolog.interfaces.web.taste import cached_taste_scores
+from kinolog.store import Database
 
 router = APIRouter(prefix="/api/concierge")
 

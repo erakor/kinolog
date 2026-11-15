@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from kinolog.core.db import Database, chunked
+from kinolog.store import Database, chunked
 
 
 def parse_tmdb_text(text: str) -> dict:

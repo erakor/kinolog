@@ -9,7 +9,7 @@ import time
 import httpx
 
 from kinolog.config import TMDB_CACHE_DIR, get_tmdb_api_key
-from kinolog.core.db import Database
+from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
 

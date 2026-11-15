@@ -12,7 +12,7 @@ except ImportError:
     np = None  # type: ignore
 
 from kinolog.config import DEFAULT_MODEL, DEFAULT_RANKER, DEFAULT_STRATEGY
-from kinolog.core.db import Database
+from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
 
