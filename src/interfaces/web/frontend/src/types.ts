@@ -32,7 +32,7 @@ export interface Item {
   directors: Director[]
   status: ItemStatus
   added_at: string | null
-  /** Ordered by source (imdb, metacritic, rotten_tomatoes); empty until `ingest omdb` has run. */
+  /** In display order (IMDb, Rotten Tomatoes, Metacritic); empty until `ingest omdb` has run. */
   external_ratings: ExternalRating[]
 }
 

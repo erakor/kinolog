@@ -16,15 +16,15 @@ describe('today', () => {
 
 describe('externalRatingLabel', () => {
   it('shows IMDb on its /10 scale with votes in the tooltip', () => {
-    expect(externalRatingLabel({ source: 'imdb', score: 87, votes: 2123456 })).toEqual({
+    expect(externalRatingLabel({ source: 'imdb', score: 87, raw: '8.7/10', votes: 2123456 })).toEqual({
       text: 'IMDb 8.7',
       title: 'IMDb 8.7/10 from 2,123,456 votes',
     })
   })
 
   it('shows Rotten Tomatoes as a percentage and Metacritic out of 100', () => {
-    expect(externalRatingLabel({ source: 'rotten_tomatoes', score: 83, votes: null }).text).toBe('RT 83%')
-    expect(externalRatingLabel({ source: 'metacritic', score: 73, votes: null })).toEqual({
+    expect(externalRatingLabel({ source: 'rotten_tomatoes', score: 83, raw: '83%', votes: null }).text).toBe('RT 83%')
+    expect(externalRatingLabel({ source: 'metacritic', score: 73, raw: '73/100', votes: null })).toEqual({
       text: 'MC 73',
       title: 'Metacritic 73/100',
     })

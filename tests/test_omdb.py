@@ -104,8 +104,8 @@ def test_enrich_all_stores_ratings_and_uses_cache(tmp_path):
 
     stats = enrich_all(db, client)
     assert stats["rated"] == 1 and stats["not_found"] == 1 and stats["requests"] == 2
-    assert by_source(db.get_external_ratings(i))["rotten_tomatoes"]["score"] == 83.0
-    assert db.get_external_ratings(gone) == []
+    assert by_source(db.get_external_ratings([i])[i])["rotten_tomatoes"]["score"] == 83.0
+    assert db.get_external_ratings([gone])[gone] == []
 
     again = enrich_all(db, client)  # rated film skipped; "not found" answer is cached
     assert again["requests"] == 0 and again["not_found"] == 1 and len(calls) == 2
@@ -120,7 +120,7 @@ def test_enrich_all_respects_request_cap_and_prioritizes_unrated(tmp_path):
     assert first["requests"] == 2 and first["deferred"] == 1
     second = enrich_all(db, client, max_requests=1)
     assert second["requests"] == 1 and second["deferred"] == 0
-    assert all(db.get_external_ratings(i) for i in ids)
+    assert all(db.get_external_ratings(ids).values())
 
 
 def test_quota_error_stops_network_but_keeps_cached(tmp_path):
@@ -132,8 +132,8 @@ def test_quota_error_stops_network_but_keeps_cached(tmp_path):
     stats = enrich_all(db, client)
     assert stats["quota_hit"] == 1 and stats["deferred"] == 2 and stats["errors"] == 0
     assert calls == ["tt1000001", "tt1000002"]  # C not attempted after the limit
-    assert db.get_external_ratings(a) and not db.get_external_ratings(b)
-    assert not db.get_external_ratings(c)
+    assert db.get_external_ratings([a])[a] and not db.get_external_ratings([b])[b]
+    assert not db.get_external_ratings([c])[c]
     assert not client.is_cached("tt1000002")  # the limit answer is never cached
 
 
@@ -151,8 +151,17 @@ def test_set_external_ratings_replaces_provider_rows():
                                         {"source": "metacritic", "score": 60}])
     db.set_external_ratings(i, "omdb", [{"source": "imdb", "score": 72, "votes": 10}])
     db.conn.commit()
-    assert [(r["source"], r["score"], r["votes"]) for r in db.get_external_ratings(i)] \
+    assert [(r["source"], r["score"], r["votes"]) for r in db.get_external_ratings([i])[i]] \
         == [("imdb", 72.0, 10)]
+
+
+def test_external_ratings_come_back_in_display_order():
+    db = Database(":memory:")
+    i = db.upsert_item("film", "X", 2000)
+    db.set_external_ratings(i, "omdb", [{"source": s, "score": 50} for s in
+                                        ("metacritic", "rotten_tomatoes", "imdb")])
+    assert [r["source"] for r in db.get_external_ratings([i])[i]] \
+        == ["imdb", "rotten_tomatoes", "metacritic"]
 
 
 def test_item_cards_include_external_ratings():

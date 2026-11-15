@@ -8,17 +8,17 @@ describe('ExternalRatings', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('orders IMDb, Rotten Tomatoes, Metacritic regardless of payload order', () => {
+  it('renders the scores in payload order with provider-text tooltips', () => {
     render(
       <ExternalRatings
         ratings={[
-          { source: 'metacritic', score: 73, raw: '73/100', votes: null },
-          { source: 'rotten_tomatoes', score: 83, raw: '83%', votes: null },
           { source: 'imdb', score: 87, raw: '8.7/10', votes: 10 },
+          { source: 'rotten_tomatoes', score: 83, raw: '83%', votes: null },
+          { source: 'metacritic', score: 73, raw: '73/100', votes: null },
         ]}
       />,
     )
     expect(screen.getByTestId('external-ratings')).toHaveTextContent('IMDb 8.7 · RT 83% · MC 73')
-    expect(screen.getByLabelText('Rotten Tomatoes critics score 83%')).toBeInTheDocument()
+    expect(screen.getByLabelText('Rotten Tomatoes 83%')).toBeInTheDocument()
   })
 })

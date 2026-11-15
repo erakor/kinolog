@@ -588,13 +588,24 @@ class Database:
             ],
         )
 
-    def get_external_ratings(self, item_id: int) -> list[dict]:
-        rows = self.conn.execute(
-            """SELECT source, score, raw, votes, provider, fetched_at FROM external_ratings
-               WHERE item_id = ? ORDER BY source""",
-            (item_id,),
-        ).fetchall()
-        return [dict(r) for r in rows]
+    def get_external_ratings(self, item_ids: list[int]) -> dict[int, list[dict]]:
+        """Ratings per item, in display order (IMDb, Rotten Tomatoes, Metacritic, others)."""
+        out: dict[int, list[dict]] = {i: [] for i in item_ids}
+        for part in chunked(list(item_ids)):
+            ph = ",".join("?" for _ in part)
+            for r in self.conn.execute(
+                f"""SELECT item_id, source, score, raw, votes FROM external_ratings
+                    WHERE item_id IN ({ph})
+                    ORDER BY item_id, CASE source WHEN 'imdb' THEN 0
+                        WHEN 'rotten_tomatoes' THEN 1 WHEN 'metacritic' THEN 2 ELSE 3 END,
+                        source""",
+                tuple(part),
+            ):
+                out[r["item_id"]].append(
+                    {"source": r["source"], "score": r["score"], "raw": r["raw"],
+                     "votes": r["votes"]}
+                )
+        return out
 
     # --- Match Review Queue ---
 
@@ -884,18 +895,10 @@ class Database:
                     "last_watched_on": r["last_log"] or r["seen_date"],
                 },
                 "added_at": r["watchlist_added_at"],
-                "external_ratings": [],
             }
-        for r in self.conn.execute(
-            f"""SELECT item_id, source, score, raw, votes FROM external_ratings
-                WHERE item_id IN ({ph}) ORDER BY item_id, source""",
-            ids,
-        ):
-            if r["item_id"] in cards:
-                cards[r["item_id"]]["external_ratings"].append(
-                    {"source": r["source"], "score": r["score"], "raw": r["raw"],
-                     "votes": r["votes"]}
-                )
+        ratings = self.get_external_ratings([i for i in item_ids if i in cards])
+        for item_id, rows in ratings.items():
+            cards[item_id]["external_ratings"] = rows
         for r in self.conn.execute(
             f"""SELECT c.item_id, p.id AS person_id, p.name FROM credits c
                 JOIN people p ON p.id = c.person_id
