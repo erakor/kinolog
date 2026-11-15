@@ -158,3 +158,35 @@ def test_client_fetches_and_caches_when_missing(tmp_path, monkeypatch):
     client.get_person_movie_credits(5)
     assert calls == ["/person/5/movie_credits"]
     assert (tmp_path / "person_5_movie_credits.json").exists()
+
+
+def test_pipeline_step_wires_the_client_and_closes_it(db, ann, monkeypatch):
+    from kinolog import pipeline
+
+    stub = StubClient()
+    stub.close = lambda: stub.__dict__.setdefault("closed", True)
+    monkeypatch.setattr("kinolog.sources.tmdb.client.TMDBClient", lambda: stub)
+    stats = pipeline.filmographies(db, person_name="Ann", refresh=True)
+    assert stats["enriched"] == 1 and stub.closed
+    assert stub.person_calls == [(77, True)]
+
+
+def test_cli_filmographies_without_key_prints_hint(tmp_path, monkeypatch, capsys):
+    from kinolog.interfaces.cli.ingest import handle_ingest_filmographies
+
+    monkeypatch.delenv("TMDB_API_KEY", raising=False)
+    monkeypatch.chdir(tmp_path)  # no .env here
+    handle_ingest_filmographies(str(tmp_path / "x.db"))
+    assert "TMDB_API_KEY not set" in capsys.readouterr().out
+    assert not (tmp_path / "x.db").exists()
+
+
+def test_cli_parser_accepts_filmographies_options():
+    from kinolog.interfaces.cli.main import build_parser
+
+    args = build_parser().parse_args(
+        ["ingest", "filmographies", "--min-seen", "3", "--person", "Fellini", "--limit", "5",
+         "--no-details", "--refresh", "--db", "x.db"]
+    )
+    assert (args.min_seen, args.person, args.limit) == (3, "Fellini", 5)
+    assert args.no_details and args.refresh and args.db == "x.db"

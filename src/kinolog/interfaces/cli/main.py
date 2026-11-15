@@ -16,6 +16,7 @@ from kinolog.interfaces.cli.ingest import (
     handle_ingest_chunk,
     handle_ingest_embed,
     handle_ingest_enrich,
+    handle_ingest_filmographies,
     handle_ingest_goodreads,
     handle_ingest_letterboxd,
     handle_ingest_omdb,
@@ -66,6 +67,21 @@ def build_parser() -> argparse.ArgumentParser:
                              help="Cap on network requests this run (free tier: 1000/day)")
     omdb_parser.add_argument("--refresh", action="store_true",
                              help="Re-fetch cached responses (counts against the cap)")
+
+    film_ing = ingest_subs.add_parser(
+        "filmographies",
+        help="Fetch full TMDB director filmographies (for completion beyond the index)",
+        parents=[base_parser],
+    )
+    film_ing.add_argument("--min-seen", type=int, default=2,
+                          help="Only directors with at least this many seen films")
+    film_ing.add_argument("--person", default=None, help="Only people whose name matches")
+    film_ing.add_argument("--limit", type=int, default=None, help="Cap on directors this run")
+    film_ing.add_argument("--no-details", action="store_true",
+                          help="Skip per-film detail requests (films not already cached are "
+                               "not counted until details are fetched)")
+    film_ing.add_argument("--refresh", action="store_true",
+                          help="Re-fetch cached person credits (filmographies grow)")
 
     ingest_subs.add_parser(
         "backfill-runtime",
@@ -143,6 +159,10 @@ def run_argparse_cli():
             handle_ingest_enrich(args.db, args.type)
         elif args.ingest_cmd == "omdb":
             handle_ingest_omdb(args.db, args.type, args.max_requests, args.refresh)
+        elif args.ingest_cmd == "filmographies":
+            handle_ingest_filmographies(
+                args.db, args.min_seen, args.person, args.limit, not args.no_details, args.refresh
+            )
         elif args.ingest_cmd == "backfill-runtime":
             handle_ingest_backfill_runtime(args.db)
         elif args.ingest_cmd == "review":

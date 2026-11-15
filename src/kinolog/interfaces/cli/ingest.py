@@ -41,6 +41,29 @@ def handle_ingest_enrich(db_path: str, item_type: str = "film"):
     db.close()
 
 
+def handle_ingest_filmographies(
+    db_path: str,
+    min_seen: int = 2,
+    person_name: str | None = None,
+    limit: int | None = None,
+    fetch_details: bool = True,
+    refresh: bool = False,
+):
+    try:
+        get_api_key("TMDB_API_KEY")
+    except ValueError as e:
+        print(e)
+        return
+    db = Database(db_path)
+    stats = pipeline.filmographies(
+        db, min_seen=min_seen, person_name=person_name, limit=limit,
+        fetch_details=fetch_details, refresh=refresh,
+    )
+    rows = [[k, str(v)] for k, v in stats.items()]
+    print_table("Director filmographies", ["Metric", "Count"], rows)
+    db.close()
+
+
 def handle_ingest_omdb(
     db_path: str, item_type: str = "film", max_requests: int | None = None,
     refresh: bool = False,
