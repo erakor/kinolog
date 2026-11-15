@@ -44,6 +44,9 @@ class ViewsMixin:
                 },
                 "added_at": r["watchlist_added_at"],
             }
+        ratings = self.get_external_ratings([i for i in item_ids if i in cards])
+        for item_id, rows in ratings.items():
+            cards[item_id]["external_ratings"] = rows
         for r in self.conn.execute(
             f"""SELECT c.item_id, p.id AS person_id, p.name FROM credits c
                 JOIN people p ON p.id = c.person_id
@@ -173,7 +176,7 @@ class ViewsMixin:
         """Quick table row counts."""
         tables = [
             "items", "user_status", "documents", "chunks", "people", "credits", "eval_runs",
-            "watch_log",
+            "watch_log", "external_ratings",
         ]
         result = {}
         for t in tables:

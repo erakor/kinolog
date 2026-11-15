@@ -23,7 +23,7 @@ class ItemsMixin:
         allowed = {
             "original_title", "tmdb_id", "wikidata_id", "isbn",
             "openlibrary_id", "match_confidence", "match_status",
-            "runtime_min", "is_tv",
+            "runtime_min", "is_tv", "imdb_id",
         }
         filtered = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
 
@@ -140,32 +140,41 @@ class ItemsMixin:
         runtime_min: int | None = None,
         is_tv: bool | None = None,
         original_title: str | None = None,
+        imdb_id: str | None = None,
+        only_if_empty: bool = False,
         commit: bool = True,
     ) -> None:
         """Set the given structured facts (None leaves a field alone).
 
-        Pass ``commit=False`` inside a batch and commit once at the end.
+        With ``only_if_empty`` runtime_min and imdb_id only fill empty columns. Pass
+        ``commit=False`` inside a batch and commit once at the end.
         """
         fields = []
         if original_title is not None:
-            fields.append(("original_title", original_title))
+            fields.append(("original_title", original_title, False))
         if runtime_min is not None:
-            fields.append(("runtime_min", int(runtime_min)))
+            fields.append(("runtime_min", int(runtime_min), only_if_empty))
         if is_tv is not None:
-            fields.append(("is_tv", int(is_tv)))
+            fields.append(("is_tv", int(is_tv), False))
+        if imdb_id is not None:
+            fields.append(("imdb_id", imdb_id, only_if_empty))
         if not fields:
             return
-        assignments = ", ".join(f"{name} = ?" for name, _ in fields)
+        assignments = ", ".join(
+            f"{name} = COALESCE({name}, ?)" if keep else f"{name} = ?"
+            for name, _, keep in fields
+        )
         self.conn.execute(
             f"UPDATE items SET {assignments} WHERE id = ?",
-            (*[value for _, value in fields], item_id),
+            (*[value for _, value, _ in fields], item_id),
         )
         if commit:
             self.conn.commit()
 
     def set_wikidata_id_if_missing(self, item_id: int, wikidata_id: str) -> None:
         self.conn.execute(
-            "UPDATE items SET wikidata_id = ? WHERE id = ? AND wikidata_id IS NULL",
-            (wikidata_id, item_id),
+            """UPDATE items SET wikidata_id = ? WHERE id = ? AND wikidata_id IS NULL
+               AND NOT EXISTS (SELECT 1 FROM items WHERE wikidata_id = ?)""",  # column is UNIQUE
+            (wikidata_id, item_id, wikidata_id),
         )
         self.conn.commit()

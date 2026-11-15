@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import logging
 import re
+from pathlib import Path
 
 from kinolog.config import TMDB_CACHE_DIR
-from kinolog.sources.tmdb.client import TMDBClient
+from kinolog.sources.http_cache import read_json
+from kinolog.sources.tmdb.client import TMDBClient, tmdb_cache_path
 from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
@@ -49,6 +51,64 @@ def backfill_runtime_and_tv(db: Database) -> dict:
         if g and is_tv_movie(g.group(1).split(",")):
             db.set_item_facts(r["id"], is_tv=True, commit=False)
             stats["tv"] += 1
+    db.conn.commit()
+    return stats
+
+
+def imdb_id_from_details(details: dict) -> str | None:
+    """IMDb title id (tt...) from TMDB details, top-level field or external_ids."""
+    for value in (details.get("imdb_id"), (details.get("external_ids") or {}).get("imdb_id")):
+        if isinstance(value, str) and re.fullmatch(r"tt\d{5,}", value.strip()):
+            return value.strip()
+    return None
+
+
+def apply_details_columns(
+    db: Database, item_id: int, details: dict, overwrite: bool = True,
+) -> None:
+    """Write the structured item columns TMDB details provide (no commit for batched facts).
+
+    Shared by enrichment and the offline cache backfill so a new TMDB-derived column
+    is added in one place. With ``overwrite=False`` only empty columns are filled.
+    """
+    wikidata_id = (details.get("external_ids") or {}).get("wikidata_id")
+    if wikidata_id:
+        # wikidata_id is UNIQUE: the store skips it if another item already holds it.
+        db.set_wikidata_id_if_missing(item_id, wikidata_id)
+    # imdb_id is the key for the OMDb ratings enricher; runtime/TV drive filters and collections.
+    runtime = details.get("runtime")
+    db.set_item_facts(
+        item_id,
+        imdb_id=imdb_id_from_details(details),
+        runtime_min=int(runtime) if runtime else None,
+        only_if_empty=not overwrite,
+        commit=False,
+    )
+    if is_tv_movie([g.get("name", "") for g in details.get("genres", [])]):
+        db.set_item_facts(item_id, is_tv=True, commit=False)
+
+
+def backfill_imdb_ids(db: Database, cache_dir: Path = TMDB_CACHE_DIR) -> dict:
+    """Fill empty TMDB-derived columns from cached details for items lacking an IMDb id.
+
+    No network; existing values (runtime, ids) are never overwritten.
+    """
+    stats = {"scanned": 0, "imdb_ids": 0}
+    rows = db.execute(
+        "SELECT id, tmdb_id FROM items WHERE tmdb_id IS NOT NULL AND imdb_id IS NULL"
+    ).fetchall()
+    for r in rows:
+        path = tmdb_cache_path(r["tmdb_id"], cache_dir)
+        if not path.exists():
+            continue
+        stats["scanned"] += 1
+        try:
+            details = read_json(path)
+        except (OSError, ValueError) as e:
+            logger.warning("Unreadable TMDB cache %s: %s", path, e)
+            continue
+        apply_details_columns(db, r["id"], details, overwrite=False)
+        stats["imdb_ids"] += imdb_id_from_details(details) is not None
     db.conn.commit()
     return stats
 
@@ -197,22 +257,10 @@ def enrich_item(
     if orig_title and orig_title != item["title"]:
         db.set_item_facts(item_id, original_title=orig_title)
 
-    # Store wikidata ID from external_ids if available
-    ext_ids = details.get("external_ids", {})
-    wikidata_id = ext_ids.get("wikidata_id")
-    if wikidata_id:
-        db.set_wikidata_id_if_missing(item_id, wikidata_id)
-
-    # Structured runtime / TV flag (used for filters and collection completion)
-    runtime = details.get("runtime")
-    if runtime:
-        db.set_item_facts(item_id, runtime_min=int(runtime))
-    if is_tv_movie([g.get("name", "") for g in details.get("genres", [])]):
-        db.set_item_facts(item_id, is_tv=True)
+    apply_details_columns(db, item_id, details)
 
     # Register in raw_cache
-    cache_path = f"{TMDB_CACHE_DIR.as_posix()}/movie_{tmdb_id}.json"
-    db.cache_put("tmdb", str(tmdb_id), cache_path)
+    db.cache_put("tmdb", str(tmdb_id), tmdb_cache_path(tmdb_id).as_posix())
 
     # --- Credits ---
     credits = details.get("credits", {})

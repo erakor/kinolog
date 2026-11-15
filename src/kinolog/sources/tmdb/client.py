@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
+from pathlib import Path
 
 import httpx
 
@@ -14,6 +15,11 @@ logger = logging.getLogger(__name__)
 
 TMDB_BASE = "https://api.themoviedb.org/3"
 CACHE_DIR = TMDB_CACHE_DIR
+
+
+def tmdb_cache_path(tmdb_id: int, cache_dir: Path = CACHE_DIR) -> Path:
+    """Disk cache file for a TMDB movie details response."""
+    return Path(cache_dir) / f"movie_{tmdb_id}.json"
 
 
 class TMDBClient:
@@ -52,7 +58,7 @@ class TMDBClient:
 
     def get_details(self, tmdb_id: int) -> dict:
         """Get full movie details with credits, keywords, and alternative titles."""
-        cache_path = CACHE_DIR / f"movie_{tmdb_id}.json"
+        cache_path = tmdb_cache_path(tmdb_id)
         if cache_path.exists():
             return read_json(cache_path)
 

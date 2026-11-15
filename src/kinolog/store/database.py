@@ -8,6 +8,7 @@ from kinolog.store.eval_runs import EvalRunsMixin
 from kinolog.store.ingest_meta import IngestMetaMixin
 from kinolog.store.items import ItemsMixin
 from kinolog.store.people import PeopleMixin
+from kinolog.store.ratings import RatingsMixin
 from kinolog.store.user_state import UserStateMixin
 from kinolog.store.vectors import VectorsMixin
 from kinolog.store.views import ViewsMixin
@@ -17,6 +18,7 @@ class Database(
     ItemsMixin,
     DocumentsMixin,
     PeopleMixin,
+    RatingsMixin,
     IngestMetaMixin,
     UserStateMixin,
     ViewsMixin,

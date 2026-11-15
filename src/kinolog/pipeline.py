@@ -45,11 +45,36 @@ def enrich(db: Database, item_type: str = "film") -> dict:
     return stats
 
 
-def backfill_runtime(db: Database) -> dict:
-    """Set runtime_min / is_tv from stored TMDB documents (no network)."""
-    from kinolog.sources.tmdb.enrich import backfill_runtime_and_tv
+def omdb(
+    db: Database,
+    item_type: str = "film",
+    max_requests: int | None = None,
+    refresh: bool = False,
+) -> dict:
+    """Fetch IMDb / Rotten Tomatoes / Metacritic scores from OMDb (needs OMDB_API_KEY).
 
-    return backfill_runtime_and_tv(db)
+    Raises ValueError when the key is missing.
+    """
+    from kinolog.sources.omdb.client import DAILY_LIMIT, OMDbClient
+    from kinolog.sources.omdb.enrich import enrich_all
+
+    client = OMDbClient()
+    try:
+        return enrich_all(
+            db, client, item_type=item_type, refresh=refresh,
+            max_requests=DAILY_LIMIT if max_requests is None else max_requests,
+        )
+    finally:
+        client.close()
+
+
+def backfill_runtime(db: Database) -> dict:
+    """Set runtime_min / is_tv / imdb_id from stored TMDB documents and cache (no network)."""
+    from kinolog.sources.tmdb.enrich import backfill_imdb_ids, backfill_runtime_and_tv
+
+    return {**backfill_runtime_and_tv(db), **{
+        f"cache_{k}": v for k, v in backfill_imdb_ids(db).items()
+    }}
 
 
 def chunk(

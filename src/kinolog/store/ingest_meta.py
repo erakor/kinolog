@@ -46,13 +46,33 @@ class IngestMetaMixin:
             result.append(d)
         return result
 
+    def _forget_match_derived(self, item_id: int) -> None:
+        """Drop ids and scores derived from an item's previous TMDB match.
+
+        Clears imdb_id, the item's external ratings and the OMDb "already checked" markers
+        for the old IMDb id, so the next `ingest enrich` / `ingest omdb` start fresh.
+        """
+        self.conn.execute(
+            """DELETE FROM raw_cache WHERE source = 'omdb'
+               AND external_id = (SELECT imdb_id FROM items WHERE id = ?)""",
+            (item_id,),
+        )
+        self.conn.execute("DELETE FROM external_ratings WHERE item_id = ?", (item_id,))
+        self.conn.execute("UPDATE items SET imdb_id = NULL WHERE id = ?", (item_id,))
+
     def resolve_review(self, item_id: int, tmdb_id: int | None = None, reject: bool = False):
         """Resolve a review queue entry."""
+        current = self.conn.execute(
+            "SELECT tmdb_id FROM items WHERE id = ?", (item_id,)
+        ).fetchone()
         if reject:
+            self._forget_match_derived(item_id)
             self.conn.execute(
                 "UPDATE items SET match_status = 'rejected' WHERE id = ?", (item_id,)
             )
         elif tmdb_id is not None:
+            if current is not None and current["tmdb_id"] != tmdb_id:
+                self._forget_match_derived(item_id)
             self.conn.execute(
                 "UPDATE items SET tmdb_id = ?, match_status = 'manual', match_confidence = 1.0 WHERE id = ?",
                 (tmdb_id, item_id),

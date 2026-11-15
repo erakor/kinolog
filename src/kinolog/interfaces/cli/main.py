@@ -18,6 +18,7 @@ from kinolog.interfaces.cli.ingest import (
     handle_ingest_enrich,
     handle_ingest_goodreads,
     handle_ingest_letterboxd,
+    handle_ingest_omdb,
     handle_ingest_resolve,
     handle_ingest_review,
 )
@@ -56,8 +57,19 @@ def build_parser() -> argparse.ArgumentParser:
     enr_parser = ingest_subs.add_parser("enrich", help="Enrich items with TMDB metadata", parents=[base_parser])
     enr_parser.add_argument("--type", default="film", help="Item type (film/book)")
 
+    omdb_parser = ingest_subs.add_parser(
+        "omdb", help="Fetch IMDb/Rotten Tomatoes/Metacritic scores from OMDb",
+        parents=[base_parser],
+    )
+    omdb_parser.add_argument("--type", default="film", help="Item type")
+    omdb_parser.add_argument("--max-requests", type=int, default=None,
+                             help="Cap on network requests this run (free tier: 1000/day)")
+    omdb_parser.add_argument("--refresh", action="store_true",
+                             help="Re-fetch cached responses (counts against the cap)")
+
     ingest_subs.add_parser(
-        "backfill-runtime", help="Set runtime/TV flag from existing TMDB documents",
+        "backfill-runtime",
+        help="Set runtime/TV flag/IMDb id from stored TMDB documents and cache (no network)",
         parents=[base_parser],
     )
 
@@ -129,6 +141,8 @@ def run_argparse_cli():
             handle_ingest_resolve(args.db, args.type)
         elif args.ingest_cmd == "enrich":
             handle_ingest_enrich(args.db, args.type)
+        elif args.ingest_cmd == "omdb":
+            handle_ingest_omdb(args.db, args.type, args.max_requests, args.refresh)
         elif args.ingest_cmd == "backfill-runtime":
             handle_ingest_backfill_runtime(args.db)
         elif args.ingest_cmd == "review":

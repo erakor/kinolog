@@ -17,6 +17,7 @@ OPENLIBRARY_CACHE_DIR = CACHE_DIR / "openlibrary"
 WIKI_CACHE_DIR = CACHE_DIR / "wiki"
 WIKIDATA_CACHE_DIR = CACHE_DIR / "wikidata"
 SUBS_CACHE_DIR = CACHE_DIR / "subs"
+OMDB_CACHE_DIR = CACHE_DIR / "omdb"
 
 ENV_FILE = Path(".env")
 TMDB_API_KEY_VAR = "TMDB_API_KEY"
@@ -26,18 +27,20 @@ DEFAULT_STRATEGY = "whole"
 DEFAULT_RANKER = "nearest_exemplar"
 
 
-def get_tmdb_api_key() -> str:
-    """TMDB API key from the environment, else from ``.env`` in the working directory."""
+def get_api_key(var: str = TMDB_API_KEY_VAR) -> str:
+    """API key from the environment, falling back to a ``VAR=value`` line in ``.env``."""
     import os
 
-    key = os.environ.get(TMDB_API_KEY_VAR, "")
+    key = os.environ.get(var, "")
     if not key:
         if ENV_FILE.exists():
             for line in ENV_FILE.read_text().splitlines():
-                if line.startswith(f"{TMDB_API_KEY_VAR}="):
+                if line.startswith(f"{var}="):
                     key = line.split("=", 1)[1].strip().strip('"').strip("'")
     if not key:
-        raise ValueError(
-            "TMDB_API_KEY not set. Set it as an environment variable or in .env"
-        )
+        raise ValueError(f"{var} not set. Set it as an environment variable or in .env")
     return key
+
+
+def get_tmdb_api_key() -> str:
+    return get_api_key(TMDB_API_KEY_VAR)

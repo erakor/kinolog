@@ -2,6 +2,7 @@ import type { ReactNode, Ref } from 'react'
 import { directorNames, fmtPct } from '../format'
 import type { WatchlistRow } from '../types'
 import { cn } from '@/lib/utils'
+import { ExternalRatings } from './ExternalRatings'
 import { listRow, num } from './styles'
 
 const meta = 'font-normal text-sm text-ink-muted ml-2'
@@ -34,6 +35,7 @@ export function ListRow({ row, actions, highlighted = false, rowRef }: ListRowPr
             </span>
           )}
         </div>
+        <ExternalRatings ratings={row.external_ratings} className="block mt-0.5" />
         {row.overview && <p className="text-sm text-ink-muted mt-1">{row.overview}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}

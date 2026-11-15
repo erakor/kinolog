@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from kinolog import pipeline
-from kinolog.config import DEFAULT_MODEL, DEFAULT_STRATEGY
+from kinolog.config import DEFAULT_MODEL, DEFAULT_STRATEGY, get_api_key
 from kinolog.interfaces.cli.output import print_table
 from kinolog.store import Database
 
@@ -38,6 +38,21 @@ def handle_ingest_enrich(db_path: str, item_type: str = "film"):
     stats = pipeline.enrich(db, item_type=item_type)
     rows = [[k, str(v)] for k, v in stats.items()]
     print_table("TMDB Enrichment", ["Metric", "Count"], rows)
+    db.close()
+
+
+def handle_ingest_omdb(
+    db_path: str, item_type: str = "film", max_requests: int | None = None,
+    refresh: bool = False,
+):
+    try:
+        get_api_key("OMDB_API_KEY")
+    except ValueError as e:
+        print(e)
+        return
+    db = Database(db_path)
+    stats = pipeline.omdb(db, item_type=item_type, max_requests=max_requests, refresh=refresh)
+    print_table("OMDb Ratings", ["Metric", "Count"], [[k, str(v)] for k, v in stats.items()])
     db.close()
 
 

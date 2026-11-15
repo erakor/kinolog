@@ -553,6 +553,12 @@ database created by the old code opens with the new code, ends at `user_version 
 identical schema. There was no real `data/index.db` in the cloud container, so the plan's final
 comparison against the user's own index was not run; do it locally.
 
+After the refactor, `main` gained the OMDb ratings enricher (#6) and it was merged in: the OMDb code
+lives in `sources/omdb/` (client, enrich), `external_ratings` and `items.imdb_id` come from migration
+004 (idempotent, because databases that ran the pre-migration OMDb code already have both), the
+ratings queries are in `store/ratings.py`, the `omdb` command is wired through `pipeline.omdb`, and
+`get_api_key(var)` is in `config.py`.
+
 Noticed, not changed (out of scope for a pure refactor):
 
 - `create_mcp_app` fails with the installed `mcp` 2.3.0 (`Server` has no `list_tools` decorator). It
