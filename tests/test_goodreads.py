@@ -1,10 +1,11 @@
 """Tests for the Goodreads loader."""
 
 import csv
+
 import pytest
 
+from kinolog.ingest.goodreads import _clean_isbn, load_goodreads
 from kinolog.store import Database
-from kinolog.ingest.goodreads import load_goodreads, _clean_isbn
 
 
 @pytest.fixture

@@ -2,9 +2,9 @@
 
 import pytest
 
+from kinolog.index.chunking import chunk_document
+from kinolog.retrieval import SearchFilters, search_bm25
 from kinolog.store import Database
-from kinolog.core.chunkers import chunk_document
-from kinolog.core.search import search_bm25, SearchFilters
 
 
 @pytest.fixture

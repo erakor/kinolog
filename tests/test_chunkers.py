@@ -2,14 +2,14 @@
 
 import pytest
 
-from kinolog.store import Database
-from kinolog.core.chunkers import (
-    chunk_whole_document,
-    chunk_fixed_window,
+from kinolog.index.chunking import (
+    STRATEGIES,
     chunk_by_section,
     chunk_document,
-    STRATEGIES,
+    chunk_fixed_window,
+    chunk_whole_document,
 )
+from kinolog.store import Database
 
 
 @pytest.fixture

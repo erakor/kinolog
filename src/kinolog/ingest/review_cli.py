@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import json
-import sys
-
 from kinolog.config import DEFAULT_DB_PATH
 from kinolog.store import Database
 

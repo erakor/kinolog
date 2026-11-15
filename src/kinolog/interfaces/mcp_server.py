@@ -153,7 +153,7 @@ class KinologServer:
     def _get_model(self):
         if self._model is None:
             try:
-                from kinolog.core.embed import BGE_M3
+                from kinolog.index.embedding import BGE_M3
                 self._model = BGE_M3()
             except Exception as e:
                 logger.warning("Embedding model not available: %s", e)
@@ -177,7 +177,7 @@ class KinologServer:
             return {"error": f"Unknown tool: {name}"}
 
     def _search(self, args: dict) -> list[dict]:
-        from kinolog.core.search import SearchFilters, search
+        from kinolog.retrieval import SearchFilters, search
 
         filters = SearchFilters(
             item_type=args.get("item_type"),
@@ -212,7 +212,7 @@ class KinologServer:
 
     def _rank_watchlist(self, args: dict) -> list[dict]:
         try:
-            from kinolog.core.taste import RANKERS
+            from kinolog.taste import RANKERS
         except ImportError as e:
             return [{"error": f"Taste rankers unavailable: {e}"}]
 
@@ -242,7 +242,7 @@ class KinologServer:
         return results
 
     def _similar_to(self, args: dict) -> list[dict]:
-        from kinolog.core.search import SearchFilters, search_vector
+        from kinolog.retrieval import SearchFilters, search_vector
 
         title = args["title"]
         item = self.db.execute(
@@ -291,7 +291,7 @@ class KinologServer:
         ][:args.get("limit", 10)]
 
     def _filmography(self, args: dict) -> list[dict]:
-        from kinolog.core.crew import filmography
+        from kinolog.features.crew import filmography
 
         entries = filmography(self.db, person_name=args["name"], role=args.get("role"))
         results = []
@@ -309,7 +309,7 @@ class KinologServer:
         return results
 
     def _crew_overlap(self, args: dict) -> list[dict]:
-        from kinolog.core.crew import crew_overlap_with_hearts
+        from kinolog.features.crew import crew_overlap_with_hearts
 
         results = crew_overlap_with_hearts(
             self.db,
@@ -343,7 +343,7 @@ def create_mcp_app(db_path: str = str(DEFAULT_DB_PATH)):
     """Create an MCP-compatible server application."""
     try:
         from mcp.server import Server
-        from mcp.types import Tool, TextContent
+        from mcp.types import TextContent, Tool
     except ImportError:
         logger.error("MCP library not installed. Install with: pip install 'kinolog[mcp]'")
         raise
@@ -365,6 +365,7 @@ def create_mcp_app(db_path: str = str(DEFAULT_DB_PATH)):
 
 if __name__ == "__main__":
     import asyncio
+
     from mcp.server.stdio import stdio_server
 
     async def main():

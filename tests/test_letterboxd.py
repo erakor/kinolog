@@ -1,14 +1,11 @@
 """Tests for the Letterboxd loader."""
 
 import csv
-import os
-import tempfile
-from pathlib import Path
 
 import pytest
 
+from kinolog.ingest.letterboxd import compute_first_heart_date, load_letterboxd
 from kinolog.store import Database
-from kinolog.ingest.letterboxd import load_letterboxd, compute_first_heart_date
 
 
 @pytest.fixture

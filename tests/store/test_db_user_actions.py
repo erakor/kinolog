@@ -185,8 +185,8 @@ def test_dates_normalised_and_domain_errors(db):
 def test_batch_helpers_handle_more_ids_than_sqlite_variable_limit(db):
     ids = [db.upsert_item("film", f"F{n}", 2000, runtime_min=100) for n in range(1200)]
     assert len(db.get_item_cards(ids)) == 1200
-    from kinolog.core.collections import completion_deltas
-    from kinolog.core.docfacts import item_facts
+    from kinolog.features.collections import completion_deltas
+    from kinolog.features.docfacts import item_facts
 
     assert len(completion_deltas(db, ids)) == 1200
     assert len(item_facts(db, ids)) == 1200

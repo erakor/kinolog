@@ -2,7 +2,7 @@
 
 import pytest
 
-from kinolog.core.collections import (
+from kinolog.features.collections import (
     collection_summary,
     completion_deltas,
     director_completion,

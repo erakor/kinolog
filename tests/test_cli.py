@@ -2,7 +2,9 @@
 
 import subprocess
 import sys
+
 import pytest
+
 from kinolog.store import Database
 
 
@@ -15,7 +17,7 @@ def populated_db(tmp_path):
     fellini = db.upsert_person("Federico Fellini", tmdb_person_id=4415)
     db.upsert_credit(id1, fellini, "Director", "Directing")
     doc_id = db.upsert_document(id1, "tmdb", "en", "A journalist in Rome experiencing decadence.")
-    from kinolog.core.chunkers import chunk_document
+    from kinolog.index.chunking import chunk_document
     chunk_document(db, doc_id, strategy="whole")
     db.close()
     return str(db_path)

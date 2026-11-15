@@ -1,10 +1,8 @@
-"""Evaluation metrics: recall@k, MRR, hit@k, groundedness."""
+"""Evaluation metrics: recall@k, MRR, hit@k, nDCG."""
 
 from __future__ import annotations
 
 import logging
-
-from kinolog.core.grounding import groundedness as groundedness  # re-exported for eval users
 
 logger = logging.getLogger(__name__)
 

@@ -4,7 +4,7 @@ from dataclasses import asdict
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from kinolog.core import collections as coll
+from kinolog.features import collections as coll
 from kinolog.interfaces.web.deps import get_db
 from kinolog.store import Database
 

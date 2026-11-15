@@ -5,9 +5,7 @@ from __future__ import annotations
 import csv
 import logging
 import zipfile
-from datetime import date
 from pathlib import Path
-from typing import Iterator
 
 from kinolog.store import Database
 

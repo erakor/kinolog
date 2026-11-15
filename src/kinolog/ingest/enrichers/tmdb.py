@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 
 from kinolog.config import TMDB_CACHE_DIR
 from kinolog.ingest.resolvers.tmdb import TMDBResolver
-from kinolog.store import Database, content_hash
+from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
 

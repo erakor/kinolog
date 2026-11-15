@@ -2,8 +2,8 @@
 
 import pytest
 
-from kinolog.core.chunkers import chunk_document
-from kinolog.core.concierge import parse_constraints, pick, to_search_filters
+from kinolog.features.concierge import parse_constraints, pick, to_search_filters
+from kinolog.index.chunking import chunk_document
 from kinolog.store import Database
 
 CASES = [

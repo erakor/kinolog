@@ -6,10 +6,10 @@ import json
 import logging
 from importlib import resources
 from pathlib import Path
-from typing import Any, Callable
+from typing import Callable
 
 from kinolog.eval.harness import EvalResult
-from kinolog.interfaces.chat.agent import KinologChatAgent
+from kinolog.rag.agent import KinologChatAgent
 from kinolog.store import Database
 
 logger = logging.getLogger(__name__)

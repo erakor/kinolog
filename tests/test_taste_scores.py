@@ -2,9 +2,9 @@
 
 import pytest
 
-from kinolog.core import taste
-from kinolog.core.taste import TasteScore, TasteUnavailableError, taste_scores
+from kinolog import taste
 from kinolog.store import Database
+from kinolog.taste import TasteScore, TasteUnavailableError, taste_scores
 
 
 @pytest.fixture

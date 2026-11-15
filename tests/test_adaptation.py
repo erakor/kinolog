@@ -1,10 +1,11 @@
 """Tests for adaptation pairs evaluation."""
 
 import pytest
+
+from kinolog.eval.adaptation import eval_adaptation_pairs, find_adaptation_pairs
+from kinolog.index.chunking import chunk_document
+from kinolog.retrieval import SearchFilters, search_bm25
 from kinolog.store import Database
-from kinolog.core.chunkers import chunk_document
-from kinolog.core.search import search_bm25, SearchFilters
-from kinolog.eval.adaptation import find_adaptation_pairs, eval_adaptation_pairs, AdaptationPair
 
 
 @pytest.fixture

@@ -1,10 +1,11 @@
 """Tests for the evaluation harness."""
 
 import pytest
+
+from kinolog.eval.harness import eval_hearts_recall, eval_known_items, log_results
+from kinolog.index.chunking import chunk_document
+from kinolog.retrieval import search_bm25
 from kinolog.store import Database
-from kinolog.core.chunkers import chunk_document
-from kinolog.core.search import search_bm25
-from kinolog.eval.harness import eval_known_items, eval_hearts_recall, log_results
 
 
 @pytest.fixture
@@ -59,7 +60,7 @@ def test_eval_known_items(db_for_eval):
 
 def test_eval_hearts_recall(db_for_eval):
     # Dummy ranker that returns candidates sorted by id
-    from kinolog.core.taste import TasteScore
+    from kinolog.taste import TasteScore
 
     def dummy_ranker(db, candidates, hearts):
         return [TasteScore(item_id=cid, score=float(-cid), method="dummy") for cid in candidates]

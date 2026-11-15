@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from kinolog.core import collections as coll
-from kinolog.core.concierge import parse_constraints, pick
+from kinolog.features import collections as coll
+from kinolog.features.concierge import parse_constraints, pick
 from kinolog.interfaces.web.deps import get_db, get_state
 from kinolog.interfaces.web.schemas import ConciergeBody, ParseBody
 from kinolog.interfaces.web.state import AppState
-from kinolog.interfaces.web.taste import cached_taste_scores
 from kinolog.store import Database
 
 router = APIRouter(prefix="/api/concierge")
@@ -86,7 +85,7 @@ def concierge(body: ConciergeBody, state: AppState = Depends(get_state)):
             scope=body.scope,
             limit=body.limit,
             generator_fn=state.generator,
-            taste_fn=lambda ids: cached_taste_scores(state, ids),
+            taste_fn=lambda ids: state.taste_cache.scores(state.db, ids),
             w_taste=state.w_taste,
             w_comp=state.w_comp,
         )

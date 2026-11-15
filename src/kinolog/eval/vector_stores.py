@@ -6,10 +6,8 @@ import logging
 import sqlite3
 import time
 from dataclasses import dataclass
-from typing import Any
 
 from kinolog.config import DEFAULT_MODEL
-from kinolog.eval.harness import EvalResult
 from kinolog.store import Database
 
 logger = logging.getLogger(__name__)

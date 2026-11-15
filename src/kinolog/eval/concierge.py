@@ -17,9 +17,9 @@ from importlib import resources
 from pathlib import Path
 from typing import Any
 
-from kinolog.core.concierge import parse_constraints, pick, to_search_filters
 from kinolog.eval.harness import EvalResult
 from kinolog.eval.metrics import hit_at_k, mrr, ndcg_at_k
+from kinolog.features.concierge import parse_constraints, pick, to_search_filters
 from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
@@ -157,7 +157,7 @@ def eval_concierge(
 
 
 def _heart_prompt(db: Database, item_id: int) -> str | None:
-    from kinolog.core.docfacts import item_facts
+    from kinolog.features.docfacts import item_facts
 
     genres = item_facts(db, [item_id])[item_id]["genres"]
     return f"a {genres[0].lower()} film" if genres else None

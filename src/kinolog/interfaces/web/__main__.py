@@ -54,7 +54,7 @@ def main(argv: list[str] | None = None) -> int:
 
     generator = None
     if args.llm:
-        from kinolog.interfaces.web.llm import build_generator
+        from kinolog.rag.llm import build_generator
 
         generator = build_generator()
         if generator is None:

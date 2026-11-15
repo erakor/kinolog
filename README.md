@@ -29,7 +29,7 @@ A personal vector search, ingestion, and evaluation engine built over personal w
   - Zero-dependency CLI (`kinolog`) with clean terminal output.
   - Interactive match review queue CLI (`kinolog ingest review`).
   - MCP Server (`src/kinolog/interfaces/mcp_server.py`) with 6 tools: `search`, `rank_watchlist`, `similar_to`, `filmography`, `crew_overlap`, `stats`.
-  - Chat Agent (`src/kinolog/interfaces/chat/agent.py`) with token-budgeted context assembly and citations.
+  - Chat Agent (`src/kinolog/rag/agent.py`) with token-budgeted context assembly and citations.
 
 ---
 

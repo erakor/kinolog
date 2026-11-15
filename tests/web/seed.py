@@ -1,6 +1,6 @@
 """Seed data for web tests: invented titles, two directors, mixed status."""
 
-from kinolog.core.chunkers import chunk_document
+from kinolog.index.chunking import chunk_document
 
 
 def seed(db):

@@ -7,8 +7,9 @@ import threading
 from collections.abc import Callable
 from typing import Any
 
-from kinolog.core import taste as taste_core
+from kinolog import taste as taste_core
 from kinolog.store import Database
+from kinolog.taste.cache import TasteCache
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ class AppState:
         # Rerank weights stay 0 (pure retrieval) until `eval concierge` justifies more.
         self.w_taste = w_taste
         self.w_comp = w_comp
-        self.taste_cache: dict[Any, Any] = {}
+        self.taste_cache = TasteCache()
         self._model: Any = None
         self._model_tried = False
         self._model_lock = threading.Lock()
@@ -45,7 +46,7 @@ class AppState:
             if not self._model_tried:
                 self._model_tried = True
                 try:
-                    from kinolog.core.embed import BGE_M3
+                    from kinolog.index.embedding import BGE_M3
 
                     self._model = BGE_M3()
                 except Exception as e:  # missing deps, no weights, no network

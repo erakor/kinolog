@@ -6,14 +6,13 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from kinolog.config import DEFAULT_RANKER
-from kinolog.core import collections as coll
-from kinolog.core.docfacts import item_facts
-from kinolog.core.taste import TasteUnavailableError
+from kinolog.features import collections as coll
+from kinolog.features.docfacts import item_facts
 from kinolog.interfaces.web.deps import card_or_404, get_db, get_state
 from kinolog.interfaces.web.schemas import ItemRef, WatchedBody
 from kinolog.interfaces.web.state import AppState
-from kinolog.interfaces.web.taste import cached_taste_scores
 from kinolog.store import Database
+from kinolog.taste import TasteUnavailableError
 
 router = APIRouter(prefix="/api/watchlist")
 
@@ -56,7 +55,7 @@ def list_watchlist(
     taste = None
     if sort == "taste":
         try:
-            taste = cached_taste_scores(state, [r["item_id"] for r in rows], ranker)
+            taste = state.taste_cache.scores(state.db, [r["item_id"] for r in rows], ranker)
         except TasteUnavailableError as e:
             raise HTTPException(409, {"code": "taste_unavailable", "message": str(e)}) from e
         rows.sort(key=lambda r: -taste.get(r["item_id"], -1.0))

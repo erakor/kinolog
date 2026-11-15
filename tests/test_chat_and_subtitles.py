@@ -1,12 +1,17 @@
 """Tests for subtitle processing, chat agent context assembly, and faithfulness."""
 
 import pytest
-from kinolog.store import Database
-from kinolog.core.chunkers import chunk_document
-from kinolog.ingest.enrichers.subtitles import clean_subtitle_text, parse_srt, chunk_subtitles_by_gap, chunk_subtitles_by_window
-from kinolog.interfaces.chat.agent import KinologChatAgent, assemble_context
-from kinolog.eval.faithfulness import eval_faithfulness
 
+from kinolog.eval.faithfulness import eval_faithfulness
+from kinolog.index.chunking import chunk_document
+from kinolog.ingest.enrichers.subtitles import (
+    chunk_subtitles_by_gap,
+    chunk_subtitles_by_window,
+    clean_subtitle_text,
+    parse_srt,
+)
+from kinolog.rag.agent import KinologChatAgent
+from kinolog.store import Database
 
 SAMPLE_SRT = """1
 00:01:20,000 --> 00:01:23,500
@@ -105,8 +110,8 @@ def _agent_db():
 
 
 def test_answer_query_uses_prefetched_results_without_searching(monkeypatch):
-    from kinolog.core.search import SearchResult
-    from kinolog.interfaces.chat import agent as agent_mod
+    from kinolog.rag import agent as agent_mod
+    from kinolog.retrieval import SearchResult
 
     db, ids = _agent_db()
 
@@ -121,7 +126,7 @@ def test_answer_query_uses_prefetched_results_without_searching(monkeypatch):
 
 
 def test_answer_query_forwards_filters():
-    from kinolog.core.search import SearchFilters
+    from kinolog.retrieval import SearchFilters
 
     db, ids = _agent_db()
     db.execute("UPDATE items SET runtime_min = 167 WHERE title = 'Solaris'")
@@ -156,19 +161,17 @@ def test_scoped_mention_check_and_citation_validation():
     assert out2["is_fully_grounded"] and out2["citations_valid"]
 
 
-def test_grounding_module_is_core_and_agent_reexports():
-    import kinolog.core.grounding as g
-    from kinolog.interfaces.chat import agent as agent_mod
+def test_context_module_is_core_and_agent_reexports():
+    from kinolog.rag import agent as agent_mod
+    from kinolog.rag import context
 
-    assert agent_mod.assemble_context is g.assemble_context
-    from kinolog.eval.metrics import groundedness
-
-    assert groundedness is g.groundedness
+    assert agent_mod.assemble_context is context.assemble_context
 
 
 def test_check_grounding_directly():
-    from kinolog.core.grounding import assemble_context, check_grounding
-    from kinolog.core.search import SearchResult
+    from kinolog.rag.context import assemble_context
+    from kinolog.rag.grounding import check_grounding
+    from kinolog.retrieval import SearchResult
 
     db, ids = _agent_db()
     ctx = assemble_context([SearchResult(

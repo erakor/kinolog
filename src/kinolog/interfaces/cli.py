@@ -3,11 +3,7 @@
 from __future__ import annotations
 
 import argparse
-import json
 import logging
-import sys
-from pathlib import Path
-from typing import Any
 
 from kinolog.config import DEFAULT_DB_PATH, DEFAULT_MODEL, DEFAULT_RANKER, DEFAULT_STRATEGY
 from kinolog.store import Database
@@ -114,7 +110,7 @@ def handle_ingest_review(db_path: str):
 def handle_ingest_chunk(
     db_path: str, strategy: str = DEFAULT_STRATEGY, item_type: str | None = None
 ):
-    from kinolog.core.chunkers import chunk_all_documents
+    from kinolog.index.chunking import chunk_all_documents
     db = Database(db_path)
     stats = chunk_all_documents(db, strategy=strategy, item_type=item_type)
     print(f"Chunked {stats['total']} documents -> {stats['chunks_created']} chunks")
@@ -122,7 +118,7 @@ def handle_ingest_chunk(
 
 
 def handle_ingest_embed(db_path: str, model: str = DEFAULT_MODEL, strategy: str = DEFAULT_STRATEGY, device: str | None = None):
-    from kinolog.core.embed import BGE_M3, MultilingualE5, embed_chunks
+    from kinolog.index.embedding import BGE_M3, MultilingualE5, embed_chunks
     db = Database(db_path)
     if model == "bge_m3":
         embed_model = BGE_M3(device=device)
@@ -138,13 +134,14 @@ def handle_ingest_embed(db_path: str, model: str = DEFAULT_MODEL, strategy: str 
 
 def handle_search(db_path: str, query: str, mode: str = "bm25", limit: int = 10,
                   item_type: str | None = None, seen: bool | None = None):
-    from kinolog.core.search import SearchFilters, search as do_search
+    from kinolog.retrieval import SearchFilters
+    from kinolog.retrieval import search as do_search
     db = Database(db_path)
     filters = SearchFilters(item_type=item_type, seen=seen)
     model = None
     if mode in ("vector", "rrf"):
         try:
-            from kinolog.core.embed import BGE_M3
+            from kinolog.index.embedding import BGE_M3
             model = BGE_M3()
         except Exception as e:
             print(f"Vector model not available ({e}), falling back to BM25")
@@ -169,7 +166,7 @@ def handle_stats(db_path: str):
 
 
 def handle_filmography(db_path: str, name: str, role: str | None = None):
-    from kinolog.core.crew import filmography as get_filmography
+    from kinolog.features.crew import filmography as get_filmography
     db = Database(db_path)
     entries = get_filmography(db, person_name=name, role=role)
     for entry in entries:
@@ -181,7 +178,7 @@ def handle_filmography(db_path: str, name: str, role: str | None = None):
 
 
 def handle_crew_overlap(db_path: str, role: str = "Director", min_overlap: int = 2):
-    from kinolog.core.crew import crew_overlap_with_hearts
+    from kinolog.features.crew import crew_overlap_with_hearts
     db = Database(db_path)
     results = crew_overlap_with_hearts(db, role=role, min_overlap=min_overlap)
     rows = []
@@ -195,12 +192,12 @@ def handle_crew_overlap(db_path: str, role: str = "Director", min_overlap: int =
 
 
 def handle_eval_known_items(db_path: str, mode: str = "bm25"):
-    from kinolog.core.search import search as do_search
     from kinolog.eval.harness import eval_known_items, log_results
+    from kinolog.retrieval import search as do_search
     db = Database(db_path)
     model = None
     if mode in ("vector", "rrf"):
-        from kinolog.core.embed import BGE_M3
+        from kinolog.index.embedding import BGE_M3
         model = BGE_M3()
 
     def search_fn(query):
@@ -214,8 +211,8 @@ def handle_eval_known_items(db_path: str, mode: str = "bm25"):
 
 
 def handle_eval_hearts(db_path: str, ranker: str = "mean_heart", splits: int = 10):
-    from kinolog.core.taste import RANKERS
     from kinolog.eval.harness import eval_hearts_recall, log_results
+    from kinolog.taste import RANKERS
     db = Database(db_path)
     if ranker not in RANKERS:
         print(f"Unknown ranker: {ranker}. Available: {list(RANKERS.keys())}")
@@ -232,16 +229,16 @@ def handle_eval_concierge(
     db_path: str, mode: str = "bm25", ranker: str = DEFAULT_RANKER,
     w_taste: float = 0.0, w_comp: float = 0.0, hearts: bool = False, splits: int = 5,
 ):
-    from kinolog.core.taste import RANKERS, taste_scores
     from kinolog.eval.concierge import eval_concierge, eval_concierge_hearts
     from kinolog.eval.harness import log_results
+    from kinolog.taste import RANKERS, taste_scores
     db = Database(db_path)
     if ranker not in RANKERS:
         print(f"Unknown ranker: {ranker}. Available: {list(RANKERS.keys())}")
         return
     model = None
     if mode in ("vector", "rrf"):
-        from kinolog.core.embed import BGE_M3
+        from kinolog.index.embedding import BGE_M3
         model = BGE_M3()
 
     def taste_fn(ids):

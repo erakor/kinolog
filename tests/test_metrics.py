@@ -1,6 +1,7 @@
 """Tests for evaluation metrics."""
 
-from kinolog.eval.metrics import recall_at_k, hit_at_k, mrr, groundedness
+from kinolog.eval.metrics import hit_at_k, mrr, recall_at_k
+from kinolog.rag.grounding import groundedness
 
 
 def test_recall_at_k():

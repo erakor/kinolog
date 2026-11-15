@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from kinolog.interfaces.web.llm import SYSTEM_PROMPT, build_generator
+from kinolog.rag.llm import SYSTEM_PROMPT, build_generator
 
 
 class FakeClient:

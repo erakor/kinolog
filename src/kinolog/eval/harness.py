@@ -9,7 +9,7 @@ import statistics
 from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
-from typing import Any, Callable
+from typing import Callable
 
 try:
     import numpy as np
