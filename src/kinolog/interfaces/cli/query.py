@@ -98,8 +98,8 @@ def handle_completion(
                 for r in results]
         print_table("Director completion", ["Director", "Seen", "Total", "%", "Coverage"], rows)
     if any(r["coverage"] == "index_only" for r in results):
-        print("Some totals come from your index only and may be low. "
-              "Run `ingest filmographies` to fetch full filmographies.")
+        print("Some totals come from your index only, or lack film details, and may be low. "
+              "Run `ingest filmographies` (without --no-details) to fetch full filmographies.")
     db.close()
 
 

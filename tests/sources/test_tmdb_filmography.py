@@ -189,3 +189,38 @@ def test_cli_parser_accepts_filmographies_options():
     )
     assert (args.min_seen, args.person, args.limit) == (3, "Fellini", 5)
     assert args.no_details and args.refresh and args.db == "x.db"
+
+
+def _http_error(code):
+    import httpx
+
+    req = httpx.Request("GET", "http://tmdb.test")
+    return httpx.HTTPStatusError("x", request=req, response=httpx.Response(code, request=req))
+
+
+class RateLimitedClient(StubClient):
+    def get_details(self, tmdb_id):
+        self.detail_calls.append(tmdb_id)
+        raise _http_error(429)
+
+
+def test_rate_limit_stops_the_run_and_rolls_back_the_directors_rows(db, ann):
+    db.upsert_person("Bob", tmdb_person_id=78)
+    client = RateLimitedClient()
+    stats = enrich_all_filmographies(db, client, min_seen=0, person_name="")
+    assert stats["errors"] == 1 and stats["aborted_http_status"] == 429
+    assert len(client.person_calls) == 1  # the second director was never tried
+    assert rows(db, "tmdb_movies") == [] and rows(db, "person_filmography") == []
+
+
+def test_failed_details_keep_the_stored_movie_row(db, ann):
+    enrich_director_filmography(db, StubClient(), ann)
+    enrich_director_filmography(db, StubClient(fail_details={1}), ann, refresh=True)
+    row = db.execute("SELECT status, runtime FROM tmdb_movies WHERE tmdb_id = 1").fetchone()
+    assert (row["status"], row["runtime"]) == ("Released", 100)
+
+
+def test_credits_without_crew_do_not_wipe_the_stored_filmography(db, ann):
+    enrich_director_filmography(db, StubClient(), ann)
+    enrich_director_filmography(db, StubClient(credits={77: {}}), ann, refresh=True)
+    assert [r["tmdb_id"] for r in rows(db, "person_filmography")] == [1, 3]

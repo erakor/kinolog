@@ -28,6 +28,11 @@ def _year(release_date: str | None) -> int | None:
     return None
 
 
+def _is_fatal(e: Exception) -> bool:
+    """Auth or rate-limit failures hit every request, so they should stop the whole run."""
+    return isinstance(e, httpx.HTTPStatusError) and e.response.status_code in (401, 403, 429)
+
+
 def _details_for(client: TMDBClient, tmdb_id: int, fetch: bool) -> dict | None:
     """Movie details: fetched (and cached) when ``fetch``, else only if already on disk."""
     if fetch:
@@ -99,13 +104,9 @@ def enrich_director_filmography(
         tmdb_id = credit["id"]
         try:
             details = _details_for(client, tmdb_id, fetch_details)
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code in (401, 403, 429):
-                raise  # auth or rate limit affects every film: fail the director, not store gaps
-            logger.warning("TMDB details failed for %d: %s", tmdb_id, e)
-            detail_errors += 1
-            details = None
         except Exception as e:  # one bad film must not abort the director
+            if _is_fatal(e):
+                raise
             logger.warning("TMDB details failed for %d: %s", tmdb_id, e)
             detail_errors += 1
             details = None
@@ -128,7 +129,8 @@ def enrich_director_filmography(
             commit=False,
         )
 
-    db.set_person_filmography(person_id, director_ids, "Director", commit=False)
+    if "crew" in credits:  # a degraded response without crew must not wipe stored credits
+        db.set_person_filmography(person_id, director_ids, "Director", commit=False)
     db.conn.commit()
     return {
         "status": "success",
@@ -196,8 +198,12 @@ def enrich_all_filmographies(
                 db, client, p["id"], fetch_details=fetch_details, refresh=refresh
             )
         except Exception as e:
+            db.conn.rollback()  # drop this director's half-written rows
             logger.error("Filmography failed for %s: %s", p["name"], e)
             stats["errors"] += 1
+            if _is_fatal(e):
+                stats["aborted_http_status"] = e.response.status_code
+                break
             continue
         stats["enriched"] += 1
         stats["director_credits"] += res["director_films"]

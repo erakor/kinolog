@@ -14,8 +14,8 @@ Feature-film rules (same short/TV policy as ``collections.py``):
 - Only ``Director`` credits count; direct-to-video and TV movies (``is_tv`` or genre 10770,
   unless ``include_tv_movies``) are excluded.
 - Shorts (``runtime <= SHORT_MAX_MIN``) are excluded even when seen.
-- Unreleased films (status other than "Released", no release date, or a date after ``today``)
-  are excluded. Documentaries are included.
+- Unseen films that are unreleased (status other than "Released", no release date, or a date
+  after ``today``) are excluded; a seen film always counts. Documentaries are included.
 - A missing runtime still counts toward the total; it is excluded from runtime-filtered
   candidate lists unless ``include_unknown_runtime``.
 """
@@ -331,6 +331,13 @@ def _all_directors(db: Database) -> list:
     ).fetchall()
 
 
+def _people_by_ids(db: Database, person_ids: Iterable[int]) -> list:
+    return db.execute(
+        "SELECT id, name FROM people WHERE id IN (SELECT value FROM json_each(?)) ORDER BY name",
+        (json.dumps(list(person_ids)),),
+    ).fetchall()
+
+
 def director_completions(
     db: Database,
     *,
@@ -349,12 +356,12 @@ def director_completions(
     """
     today = today or date.today()
     if not name and person_id is None:
-        people = _all_directors(db)
+        people = _all_directors(db) if person_ids is None else _people_by_ids(db, person_ids)
     else:
         people = find_people(db, name=name, person_id=person_id)
-    if person_ids is not None:
-        wanted = set(person_ids)
-        people = [p for p in people if p["id"] in wanted]
+        if person_ids is not None:
+            wanted = set(person_ids)
+            people = [p for p in people if p["id"] in wanted]
     results = []
     for p in people:
         films, coverage = load_director_films(db, p["id"])
