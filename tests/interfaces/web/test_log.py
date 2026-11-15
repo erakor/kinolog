@@ -1,4 +1,4 @@
-from tests.web.seed import seed
+from tests.interfaces.web.seed import seed
 
 
 def test_list_with_summary_and_filters(client, db):

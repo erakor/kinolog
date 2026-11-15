@@ -2,13 +2,6 @@
 
 import pytest
 
-from kinolog.store import Database
-
-
-@pytest.fixture
-def db():
-    return Database(":memory:")
-
 
 def test_set_match_tmdb(db):
     i = db.upsert_item("film", "A", 2000)

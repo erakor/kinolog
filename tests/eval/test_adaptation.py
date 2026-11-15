@@ -2,7 +2,7 @@
 
 import pytest
 
-from kinolog.eval.adaptation import eval_adaptation_pairs, find_adaptation_pairs
+from kinolog.eval.suites.adaptation import eval_adaptation_pairs, find_adaptation_pairs
 from kinolog.index.chunking import chunk_document
 from kinolog.retrieval import SearchFilters, search_bm25
 from kinolog.store import Database

@@ -1,7 +1,7 @@
 import pytest
 
 from kinolog.taste import TasteScore
-from tests.web.seed import seed
+from tests.interfaces.web.seed import seed
 
 
 def test_list_default_sorted_by_director_impact(client, db):

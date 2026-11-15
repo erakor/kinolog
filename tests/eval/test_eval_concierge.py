@@ -2,13 +2,13 @@
 
 import pytest
 
-from kinolog.eval.concierge import (
+from kinolog.eval.runner import log_results
+from kinolog.eval.suites.concierge import (
     eval_concierge,
     eval_concierge_hearts,
     load_concierge_prompts,
     violates,
 )
-from kinolog.eval.harness import log_results
 from kinolog.index.chunking import chunk_document
 from kinolog.store import Database
 from kinolog.taste import TasteScore

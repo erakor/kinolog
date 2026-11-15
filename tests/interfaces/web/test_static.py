@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from kinolog.interfaces.web.app import BUILD_HINT, create_app
 
-FRONTEND_DIR = Path(__file__).resolve().parents[2] / "frontend"
+FRONTEND_DIR = Path(__file__).resolve().parents[3] / "frontend"
 EXTERNAL_URL = re.compile(
     r"""(?:src|href)=["']https?://|url\(\s*["']?https?://|@import\s+["']?https?://"""
     r"""|fetch\(\s*["'`]https?://|from\s+["']https?://"""

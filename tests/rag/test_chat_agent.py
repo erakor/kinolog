@@ -2,7 +2,7 @@
 
 import pytest
 
-from kinolog.eval.faithfulness import eval_faithfulness
+from kinolog.eval.suites.faithfulness import eval_faithfulness
 from kinolog.index.chunking import chunk_document
 from kinolog.rag.agent import KinologChatAgent
 from kinolog.store import Database

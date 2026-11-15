@@ -17,8 +17,8 @@ from importlib import resources
 from pathlib import Path
 from typing import Any
 
-from kinolog.eval.harness import EvalResult
 from kinolog.eval.metrics import hit_at_k, mrr, ndcg_at_k
+from kinolog.eval.runner import EvalResult
 from kinolog.features.concierge import parse_constraints, pick, to_search_filters
 from kinolog.store import Database
 

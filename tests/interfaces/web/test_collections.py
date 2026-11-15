@@ -1,4 +1,4 @@
-from tests.web.seed import seed
+from tests.interfaces.web.seed import seed
 
 
 def test_empty_db_returns_empty_list(client):

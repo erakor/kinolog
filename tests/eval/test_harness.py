@@ -2,7 +2,9 @@
 
 import pytest
 
-from kinolog.eval.harness import eval_hearts_recall, eval_known_items, log_results
+from kinolog.eval.runner import log_results
+from kinolog.eval.suites.hearts import eval_hearts_recall
+from kinolog.eval.suites.known_items import eval_known_items
 from kinolog.index.chunking import chunk_document
 from kinolog.retrieval import search_bm25
 from kinolog.store import Database

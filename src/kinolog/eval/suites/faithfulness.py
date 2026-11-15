@@ -8,7 +8,7 @@ from importlib import resources
 from pathlib import Path
 from typing import Callable
 
-from kinolog.eval.harness import EvalResult
+from kinolog.eval.runner import EvalResult
 from kinolog.rag.agent import KinologChatAgent
 from kinolog.store import Database
 

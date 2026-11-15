@@ -8,7 +8,8 @@ from kinolog.store import Database
 
 
 def handle_eval_known_items(db_path: str, mode: str = "bm25"):
-    from kinolog.eval.harness import eval_known_items, log_results
+    from kinolog.eval.runner import log_results
+    from kinolog.eval.suites.known_items import eval_known_items
     from kinolog.retrieval import search as do_search
     db = Database(db_path)
     model = None
@@ -27,7 +28,8 @@ def handle_eval_known_items(db_path: str, mode: str = "bm25"):
 
 
 def handle_eval_hearts(db_path: str, ranker: str = "mean_heart", splits: int = 10):
-    from kinolog.eval.harness import eval_hearts_recall, log_results
+    from kinolog.eval.runner import log_results
+    from kinolog.eval.suites.hearts import eval_hearts_recall
     from kinolog.taste import RANKERS
     db = Database(db_path)
     if ranker not in RANKERS:
@@ -45,8 +47,8 @@ def handle_eval_concierge(
     db_path: str, mode: str = "bm25", ranker: str = DEFAULT_RANKER,
     w_taste: float = 0.0, w_comp: float = 0.0, hearts: bool = False, splits: int = 5,
 ):
-    from kinolog.eval.concierge import eval_concierge, eval_concierge_hearts
-    from kinolog.eval.harness import log_results
+    from kinolog.eval.runner import log_results
+    from kinolog.eval.suites.concierge import eval_concierge, eval_concierge_hearts
     from kinolog.taste import RANKERS, taste_scores
     db = Database(db_path)
     if ranker not in RANKERS:

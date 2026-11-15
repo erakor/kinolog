@@ -1,6 +1,6 @@
 """Tests for vector store benchmark."""
 
-from kinolog.eval.vector_stores import VectorStoreBenchmark
+from kinolog.eval.suites.vector_stores import VectorStoreBenchmark
 from kinolog.store import Database
 
 

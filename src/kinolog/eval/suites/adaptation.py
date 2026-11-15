@@ -6,7 +6,7 @@ import logging
 from dataclasses import dataclass
 from typing import Callable
 
-from kinolog.eval.harness import EvalResult
+from kinolog.eval.runner import EvalResult
 from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
