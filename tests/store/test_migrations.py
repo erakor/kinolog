@@ -10,13 +10,14 @@ from kinolog.store import Database, migrations
 
 FIXTURES = Path(__file__).parent / "fixtures"
 V3 = FIXTURES / "schema_v3.sql"  # the schema before migrations existed (+ columns)
-V4 = FIXTURES / "schema_v4.sql"  # the current schema
+V4 = FIXTURES / "schema_v4.sql"  # the schema before migration 005
+V5 = FIXTURES / "schema_v5.sql"  # the current schema
 SEPARATOR = "\n-- ---\n"
 _ORDER = ("CREATE TABLE", "CREATE VIRTUAL TABLE", "CREATE UNIQUE INDEX", "CREATE INDEX",
           "CREATE TRIGGER")
 
 
-def fixture_statements(path: Path = V4) -> list[str]:
+def fixture_statements(path: Path = V5) -> list[str]:
     return [s.strip() for s in path.read_text(encoding="utf-8").split(SEPARATOR) if s.strip()]
 
 
@@ -50,11 +51,11 @@ def test_fresh_schema_matches_baseline():
 
 def test_fresh_database_is_at_latest_version():
     db = Database(":memory:")
-    assert db.conn.execute("PRAGMA user_version").fetchone()[0] == migrations.latest_version() == 4
+    assert db.conn.execute("PRAGMA user_version").fetchone()[0] == migrations.latest_version() == 5
 
 
 def test_migration_numbers_are_contiguous():
-    assert [m.number for m in migrations.discover()] == [1, 2, 3, 4]
+    assert [m.number for m in migrations.discover()] == [1, 2, 3, 4, 5]
 
 
 def test_upgrade_of_database_created_by_old_code(tmp_path):
@@ -65,7 +66,7 @@ def test_upgrade_of_database_created_by_old_code(tmp_path):
     old.close()
 
     db = Database(path)
-    assert db.conn.execute("PRAGMA user_version").fetchone()[0] == 4
+    assert db.conn.execute("PRAGMA user_version").fetchone()[0] == 5
     row = db.conn.execute("SELECT title, year FROM items").fetchone()
     assert (row["title"], row["year"]) == ("La Dolce Vita", 1960)
     assert schema_dump(db.conn) == fixture_statements()
@@ -81,20 +82,20 @@ def test_opening_twice_is_a_noop(tmp_path):
 
     second = Database(path)
     assert schema_dump(second.conn) == before
-    assert second.conn.execute("PRAGMA user_version").fetchone()[0] == 4
+    assert second.conn.execute("PRAGMA user_version").fetchone()[0] == 5
     assert second.conn.execute("SELECT COUNT(*) FROM items").fetchone()[0] == 1
 
 
 def test_apply_returns_version_and_skips_applied():
     conn = sqlite3.connect(":memory:")
-    assert migrations.apply(conn) == 4
-    assert migrations.apply(conn) == 4
+    assert migrations.apply(conn) == 5
+    assert migrations.apply(conn) == 5
 
 
 def test_failed_python_migration_rolls_back(tmp_path, monkeypatch):
     conn = sqlite3.connect(":memory:")
     migrations.apply(conn)
-    mig = migrations.Migration(5, "m005_boom.py", "py")
+    mig = migrations.Migration(6, "m006_boom.py", "py")
 
     class Boom:
         @staticmethod
@@ -102,11 +103,12 @@ def test_failed_python_migration_rolls_back(tmp_path, monkeypatch):
             c.execute("CREATE TABLE half_done (x)")
             raise RuntimeError("boom")
 
-    monkeypatch.setattr(migrations, "discover", lambda: [*migrations.discover(), mig])
+    shipped = migrations.discover()
+    monkeypatch.setattr(migrations, "discover", lambda: [*shipped, mig])
     monkeypatch.setattr(migrations.importlib, "import_module", lambda name: Boom)
     with pytest.raises(RuntimeError):
         migrations.apply(conn)
-    assert conn.execute("PRAGMA user_version").fetchone()[0] == 4
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == 5
     assert not conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'half_done'").fetchall()
 
 
@@ -141,5 +143,5 @@ def test_database_from_the_pre_migration_omdb_code_upgrades_in_place(tmp_path):
     conn.close()
 
     db = Database(path)
-    assert db.conn.execute("PRAGMA user_version").fetchone()[0] == 4
-    assert schema_dump(db.conn) == fixture_statements(V4)
+    assert db.conn.execute("PRAGMA user_version").fetchone()[0] == 5
+    assert schema_dump(db.conn) == fixture_statements(V5)

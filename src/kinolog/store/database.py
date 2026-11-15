@@ -5,6 +5,7 @@ from __future__ import annotations
 from kinolog.store.connection import ConnectionBase
 from kinolog.store.documents import DocumentsMixin
 from kinolog.store.eval_runs import EvalRunsMixin
+from kinolog.store.filmography import FilmographyMixin
 from kinolog.store.ingest_meta import IngestMetaMixin
 from kinolog.store.items import ItemsMixin
 from kinolog.store.people import PeopleMixin
@@ -18,6 +19,7 @@ class Database(
     ItemsMixin,
     DocumentsMixin,
     PeopleMixin,
+    FilmographyMixin,
     RatingsMixin,
     IngestMetaMixin,
     UserStateMixin,
