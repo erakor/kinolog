@@ -7,7 +7,8 @@ import sqlite3
 from pathlib import Path
 
 from kinolog.config import DEFAULT_DB_PATH
-from kinolog.store.schema import ensure_column, init_schema
+from kinolog.store import migrations
+from kinolog.store.migrations.m002_added_columns import ensure_column
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ class ConnectionBase:
         self.conn.execute("PRAGMA busy_timeout=5000")
 
         self._vec_available = self._try_load_vec()
-        init_schema(self.conn)
+        migrations.apply(self.conn)
 
     def _try_load_vec(self) -> bool:
         """Try to load the sqlite-vec extension."""
@@ -53,7 +54,9 @@ class ConnectionBase:
 
     def _ensure_column(self, table: str, column: str, decl: str) -> bool:
         """Add a column if missing. Returns True if added."""
-        return ensure_column(self.conn, table, column, decl)
+        added = ensure_column(self.conn, table, column, decl)
+        self.conn.commit()
+        return added
 
     def execute(self, sql: str, params: tuple = ()) -> sqlite3.Cursor:
         return self.conn.execute(sql, params)

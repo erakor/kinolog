@@ -43,6 +43,7 @@ where = ["src"]
 [tool.setuptools.package-data]
 "kinolog.eval" = ["datasets/*.json"]
 "kinolog.interfaces.web" = ["dist/**/*"]
+"kinolog.store" = ["migrations/*.sql"]
 
 [tool.ruff]
 line-length = 100
