@@ -42,6 +42,14 @@ class OMDbQuotaError(RuntimeError):
     """Daily request limit reached, or the key is invalid/inactive: stop the batch."""
 
 
+class OMDbUnavailableError(RuntimeError):
+    """Transport failure or server error (5xx / non-JSON); repeated ones stop the batch."""
+
+
+# Consecutive OMDbUnavailableErrors after which a batch stops making requests.
+MAX_CONSECUTIVE_FAILURES = 3
+
+
 def _parse_score(raw: str) -> float | None:
     """'8.1/10' -> 81.0, '94%' -> 94.0, '73/100' -> 73.0; None for 'N/A' or junk."""
     raw = (raw or "").strip()
@@ -96,6 +104,8 @@ class OMDbClient:
         transport: httpx.BaseTransport | None = None,
     ):
         self.api_key = api_key or get_api_key("OMDB_API_KEY")
+        # httpx logs each request URL at INFO, and OMDb takes the key as a query parameter.
+        logging.getLogger("httpx").setLevel(logging.WARNING)
         self.rate_limit = rate_limit
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
@@ -127,11 +137,17 @@ class OMDbClient:
             resp = self.client.get("", params={"i": imdb_id, "apikey": self.api_key})
         except httpx.HTTPError as e:
             # Don't log str(e) for a request error: the URL in it carries the API key.
-            raise RuntimeError(f"OMDb request failed for {imdb_id}: {type(e).__name__}") from None
+            raise OMDbUnavailableError(
+                f"OMDb request failed for {imdb_id}: {type(e).__name__}"
+            ) from None
         try:
             data = resp.json()
         except ValueError:
-            raise RuntimeError(f"OMDb returned HTTP {resp.status_code} for {imdb_id}") from None
+            raise OMDbUnavailableError(
+                f"OMDb returned HTTP {resp.status_code} for {imdb_id}"
+            ) from None
+        if resp.status_code >= 500:
+            raise OMDbUnavailableError(f"OMDb returned HTTP {resp.status_code} for {imdb_id}")
 
         if data.get("Response") != "True":
             error = str(data.get("Error", ""))
@@ -159,8 +175,10 @@ def enrich_item(
     Raises OMDbQuotaError when OMDb stops answering.
     """
     data = client.get_by_imdb_id(imdb_id, refresh=refresh)
+    # raw_cache marks this IMDb id as checked, so later runs skip it (rated or not).
     db.cache_put(PROVIDER, imdb_id, str(client.cache_path(imdb_id)))
     if data.get("Response") != "True":
+        db.set_external_ratings(item_id, PROVIDER, [])  # drop scores OMDb no longer has
         return {"status": "not_found", "imdb_id": imdb_id}
     ratings = parse_ratings(data)
     db.set_external_ratings(item_id, PROVIDER, ratings)
@@ -176,17 +194,19 @@ def enrich_all(
 ) -> dict:
     """Store OMDb ratings for all resolved films with an IMDb id.
 
-    Films already rated are skipped unless ``refresh``. Cached responses are applied
-    without a request. Network calls stop after ``max_requests`` or when OMDb reports its
-    daily limit; re-run tomorrow to continue. IMDb ids come from the TMDB step
-    (``ingest enrich``, or ``ingest backfill-runtime`` for cached TMDB data).
+    IMDb ids already checked (recorded in ``raw_cache``, whether they had scores or not)
+    are skipped unless ``refresh``. Cached responses are applied without a request.
+    Network calls stop after ``max_requests``, when OMDb reports its daily limit, or after
+    ``MAX_CONSECUTIVE_FAILURES`` transport/server errors in a row; re-run later to
+    continue. IMDb ids come from the TMDB step (``ingest enrich``, or
+    ``ingest backfill-runtime`` for cached TMDB data).
     """
     items = db.execute(
         """SELECT i.id, i.imdb_id FROM items i
            WHERE i.item_type = ? AND i.imdb_id IS NOT NULL
              AND i.match_status IN ('auto', 'manual')
-             AND (? OR NOT EXISTS (SELECT 1 FROM external_ratings r
-                                   WHERE r.item_id = i.id AND r.provider = ?))
+             AND (? OR NOT EXISTS (SELECT 1 FROM raw_cache c
+                                   WHERE c.source = ? AND c.external_id = i.imdb_id))
            ORDER BY i.id""",
         (item_type, int(refresh), PROVIDER),
     ).fetchall()
@@ -199,16 +219,19 @@ def enrich_all(
     stats = {
         "total": len(items), "no_imdb_id": missing, "rated": 0, "ratings": 0,
         "not_found": 0, "errors": 0, "requests": 0, "deferred": 0, "quota_hit": 0,
+        "unavailable": 0,
     }
     start_requests = client.requests_made
     quota_hit = False
+    failures_in_row = 0
     logger.info("Fetching OMDb ratings for %d %ss (max %d requests)...",
                 len(items), item_type, max_requests)
 
     for i, row in enumerate(items):
         needs_request = refresh or not client.is_cached(row["imdb_id"])
         if needs_request and (
-            quota_hit or client.requests_made - start_requests >= max_requests
+            quota_hit or failures_in_row >= MAX_CONSECUTIVE_FAILURES
+            or client.requests_made - start_requests >= max_requests
         ):
             stats["deferred"] += 1
             continue
@@ -219,10 +242,19 @@ def enrich_all(
             quota_hit = True
             stats["deferred"] += 1
             continue
+        except OMDbUnavailableError as e:
+            failures_in_row += 1
+            stats["errors"] += 1
+            logger.error("OMDb error for item %d: %s", row["id"], e)
+            if failures_in_row == MAX_CONSECUTIVE_FAILURES:
+                logger.warning("OMDb unreachable %d times in a row; deferring the rest",
+                               failures_in_row)
+            continue
         except Exception as e:
             logger.error("OMDb error for item %d: %s", row["id"], e)
             stats["errors"] += 1
             continue
+        failures_in_row = 0
         if result["status"] == "ok":
             stats["rated"] += 1
             stats["ratings"] += result["ratings"]
@@ -235,5 +267,6 @@ def enrich_all(
     db.conn.commit()
     stats["requests"] = client.requests_made - start_requests
     stats["quota_hit"] = int(quota_hit)
+    stats["unavailable"] = int(failures_in_row >= MAX_CONSECUTIVE_FAILURES)
     logger.info("OMDb enrichment complete: %s", stats)
     return stats

@@ -29,4 +29,11 @@ describe('externalRatingLabel', () => {
       title: 'Metacritic 73/100',
     })
   })
+
+  it("falls back to the provider's own text for an unknown source", () => {
+    expect(externalRatingLabel({ source: 'letterboxd', score: 76, raw: '3.8/5', votes: null })).toEqual({
+      text: 'letterboxd 3.8/5',
+      title: 'letterboxd 3.8/5',
+    })
+  })
 })

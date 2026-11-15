@@ -102,8 +102,12 @@ def handle_ingest_omdb(
     refresh: bool = False,
 ):
     from src.ingest.enrichers.omdb import DAILY_LIMIT, OMDbClient, enrich_all
+    try:
+        client = OMDbClient()
+    except ValueError as e:
+        print(e)
+        return
     db = Database(db_path)
-    client = OMDbClient()
     try:
         stats = enrich_all(db, client, item_type=item_type, refresh=refresh,
                            max_requests=DAILY_LIMIT if max_requests is None else max_requests)

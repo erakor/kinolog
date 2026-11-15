@@ -64,31 +64,44 @@ def imdb_id_from_details(details: dict) -> str | None:
     return None
 
 
-def apply_details_columns(db: Database, item_id: int, details: dict) -> None:
+def apply_details_columns(
+    db: Database, item_id: int, details: dict, overwrite: bool = True,
+) -> None:
     """Write the structured item columns TMDB details provide (no commit).
 
     Shared by enrichment and the offline cache backfill so a new TMDB-derived column
-    is added in one place.
+    is added in one place. With ``overwrite=False`` only empty columns are filled.
     """
     wikidata_id = (details.get("external_ids") or {}).get("wikidata_id")
     if wikidata_id:
+        # wikidata_id is UNIQUE: skip it if another item already holds it.
         db.execute(
-            "UPDATE items SET wikidata_id = ? WHERE id = ? AND wikidata_id IS NULL",
-            (wikidata_id, item_id),
+            """UPDATE items SET wikidata_id = ? WHERE id = ? AND wikidata_id IS NULL
+               AND NOT EXISTS (SELECT 1 FROM items WHERE wikidata_id = ?)""",
+            (wikidata_id, item_id, wikidata_id),
         )
+    set_value = "{col} = ?" if overwrite else "{col} = COALESCE({col}, ?)"
     imdb_id = imdb_id_from_details(details)  # the key for the OMDb ratings enricher
     if imdb_id:
-        db.execute("UPDATE items SET imdb_id = ? WHERE id = ?", (imdb_id, item_id))
+        db.execute(
+            f"UPDATE items SET {set_value.format(col='imdb_id')} WHERE id = ?", (imdb_id, item_id)
+        )
     # Structured runtime / TV flag (used for filters and collection completion)
     runtime = details.get("runtime")
     if runtime:
-        db.execute("UPDATE items SET runtime_min = ? WHERE id = ?", (int(runtime), item_id))
+        db.execute(
+            f"UPDATE items SET {set_value.format(col='runtime_min')} WHERE id = ?",
+            (int(runtime), item_id),
+        )
     if is_tv_movie([g.get("name", "") for g in details.get("genres", [])]):
         db.execute("UPDATE items SET is_tv = 1 WHERE id = ?", (item_id,))
 
 
 def backfill_imdb_ids(db: Database, cache_dir: Path = CACHE_DIR) -> dict:
-    """Apply cached TMDB details to items that have no IMDb id yet (no network)."""
+    """Fill empty TMDB-derived columns from cached details for items lacking an IMDb id.
+
+    No network; existing values (runtime, ids) are never overwritten.
+    """
     stats = {"scanned": 0, "imdb_ids": 0}
     rows = db.execute(
         "SELECT id, tmdb_id FROM items WHERE tmdb_id IS NOT NULL AND imdb_id IS NULL"
@@ -103,7 +116,7 @@ def backfill_imdb_ids(db: Database, cache_dir: Path = CACHE_DIR) -> dict:
         except (OSError, ValueError) as e:
             logger.warning("Unreadable TMDB cache %s: %s", path, e)
             continue
-        apply_details_columns(db, r["id"], details)
+        apply_details_columns(db, r["id"], details, overwrite=False)
         stats["imdb_ids"] += imdb_id_from_details(details) is not None
     db.conn.commit()
     return stats

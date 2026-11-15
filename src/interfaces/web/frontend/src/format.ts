@@ -35,10 +35,12 @@ export function externalRatingLabel(r: {
   raw: string | null
   votes: number | null
 }): { text: string; title: string } {
-  const meta = RATING_SOURCES[r.source] ?? { short: r.source, name: r.source, value: fmtPct }
-  const value = meta.value(r.score)
+  const meta = RATING_SOURCES[r.source]
+  // Unknown source: its scale is unknown too, so show the provider's own text.
+  const value = meta ? meta.value(r.score) : (r.raw ?? String(Math.round(r.score)))
+  const name = meta?.name ?? r.source
   const votes = r.votes ? ` from ${r.votes.toLocaleString('en-US')} votes` : ''
-  return { text: `${meta.short} ${value}`, title: `${meta.name} ${r.raw ?? value}${votes}` }
+  return { text: `${meta?.short ?? r.source} ${value}`, title: `${name} ${r.raw ?? value}${votes}` }
 }
 
 export function directorNames(directors: { name: string }[]): string {

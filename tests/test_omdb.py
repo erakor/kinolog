@@ -1,18 +1,25 @@
 """Tests for the OMDb ratings enricher (mocked transport, no network)."""
 
 import json
+import logging
 
 import httpx
 import pytest
 
 from src.core.db import Database
 from src.ingest.enrichers.omdb import (
+    MAX_CONSECUTIVE_FAILURES,
     OMDbClient,
     OMDbQuotaError,
     enrich_all,
     parse_ratings,
 )
-from src.ingest.enrichers.tmdb import backfill_imdb_ids, enrich_item, imdb_id_from_details
+from src.ingest.enrichers.tmdb import (
+    apply_details_columns,
+    backfill_imdb_ids,
+    enrich_item,
+    imdb_id_from_details,
+)
 
 MATRIX = {
     "Title": "The Matrix", "Year": "1999", "Response": "True",
@@ -107,8 +114,8 @@ def test_enrich_all_stores_ratings_and_uses_cache(tmp_path):
     assert by_source(db.get_external_ratings([i])[i])["rotten_tomatoes"]["score"] == 83.0
     assert db.get_external_ratings([gone])[gone] == []
 
-    again = enrich_all(db, client)  # rated film skipped; "not found" answer is cached
-    assert again["requests"] == 0 and again["not_found"] == 1 and len(calls) == 2
+    again = enrich_all(db, client)  # both ids already checked: nothing to do
+    assert again["total"] == 0 and again["requests"] == 0 and len(calls) == 2
     assert db.stats()["external_ratings"] == 3
 
 
@@ -175,3 +182,96 @@ def test_item_cards_include_external_ratings():
         {"source": "imdb", "score": 81.0, "raw": "8.1/10", "votes": 5}
     ]
     assert cards[j]["external_ratings"] == []
+
+
+def test_client_silences_httpx_request_logging(tmp_path):
+    logging.getLogger("httpx").setLevel(logging.INFO)
+    make_client(tmp_path, {})
+    assert logging.getLogger("httpx").getEffectiveLevel() >= logging.WARNING
+
+
+def test_resolve_review_forgets_old_match_ratings(tmp_path):
+    db = Database(":memory:")
+    i = add_film(db, "Wrong", "tt0133093", 603)
+    client, _ = make_client(tmp_path, {})
+    enrich_all(db, client)
+    assert db.get_external_ratings([i])[i]
+    db.resolve_review(i, tmdb_id=604)
+    assert db.get_item(i)["imdb_id"] is None and not db.get_external_ratings([i])[i]
+    # Re-matched to a film with the same IMDb id: it is picked up again (from disk cache).
+    db.execute("UPDATE items SET imdb_id = 'tt0133093' WHERE id = ?", (i,))
+    assert enrich_all(db, client)["rated"] == 1
+
+    db.resolve_review(i, reject=True)
+    assert db.get_item(i)["imdb_id"] is None and not db.get_external_ratings([i])[i]
+
+
+def test_resolve_review_same_tmdb_id_keeps_ratings():
+    db = Database(":memory:")
+    i = add_film(db, "Right", "tt0133093", 603)
+    db.set_external_ratings(i, "omdb", [{"source": "imdb", "score": 80}])
+    db.resolve_review(i, tmdb_id=603)
+    assert db.get_item(i)["imdb_id"] == "tt0133093" and db.get_external_ratings([i])[i]
+
+
+def test_repeated_server_errors_stop_the_batch(tmp_path):
+    db = Database(":memory:")
+    for n in range(6):
+        add_film(db, f"F{n}", f"tt100000{n}", n)
+    client, calls = make_client(tmp_path, {f"tt100000{n}": (503, {}) for n in range(6)})
+    stats = enrich_all(db, client)
+    assert len(calls) == MAX_CONSECUTIVE_FAILURES and stats["unavailable"] == 1
+    assert stats["errors"] == MAX_CONSECUTIVE_FAILURES
+    assert stats["deferred"] == 6 - MAX_CONSECUTIVE_FAILURES
+
+
+def test_na_only_and_not_found_are_not_reprocessed(tmp_path):
+    db = Database(":memory:")
+    add_film(db, "NA", "tt1000001", 1)
+    add_film(db, "Gone", "tt1000002", 2)
+    na = {"Response": "True", "imdbRating": "N/A", "Metascore": "N/A", "Ratings": []}
+    client, _ = make_client(tmp_path, {"tt1000001": (200, na), "tt1000002": (200, NOT_FOUND)})
+    first = enrich_all(db, client)
+    assert first["rated"] == 1 and first["ratings"] == 0 and first["not_found"] == 1
+    assert enrich_all(db, client)["total"] == 0
+
+
+def test_refresh_not_found_clears_old_scores(tmp_path):
+    db = Database(":memory:")
+    i = add_film(db, "Retired", "tt1000001", 1)
+    db.set_external_ratings(i, "omdb", [{"source": "imdb", "score": 70}])
+    client, _ = make_client(tmp_path, {"tt1000001": (200, NOT_FOUND)})
+    assert enrich_all(db, client, refresh=True)["not_found"] == 1
+    assert db.get_external_ratings([i])[i] == []
+
+
+def test_backfill_fills_only_and_tolerates_wikidata_conflict(tmp_path):
+    (tmp_path / "movie_603.json").write_text(json.dumps({
+        "imdb_id": "tt0133093", "runtime": 999,
+        "external_ids": {"wikidata_id": "Q83495"},
+    }))
+    db = Database(":memory:")
+    db.upsert_item("film", "Holder", 1998, wikidata_id="Q83495")
+    i = db.upsert_item("film", "The Matrix", 1999, tmdb_id=603, runtime_min=136)
+    assert backfill_imdb_ids(db, tmp_path)["imdb_ids"] == 1
+    item = db.get_item(i)
+    assert item["imdb_id"] == "tt0133093" and item["runtime_min"] == 136
+    assert item["wikidata_id"] is None
+
+
+def test_apply_details_columns_overwrites_by_default():
+    db = Database(":memory:")
+    i = db.upsert_item("film", "X", 2000, runtime_min=90, imdb_id="tt1111111")
+    apply_details_columns(db, i, {"imdb_id": "tt2222222", "runtime": 95})
+    item = db.get_item(i)
+    assert item["imdb_id"] == "tt2222222" and item["runtime_min"] == 95
+
+
+def test_cli_omdb_without_key_prints_hint(tmp_path, monkeypatch, capsys):
+    from src.interfaces.cli import handle_ingest_omdb
+
+    monkeypatch.delenv("OMDB_API_KEY", raising=False)
+    monkeypatch.chdir(tmp_path)  # no .env here
+    handle_ingest_omdb(str(tmp_path / "x.db"))
+    assert "OMDB_API_KEY not set" in capsys.readouterr().out
+    assert not (tmp_path / "x.db").exists()
