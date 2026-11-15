@@ -59,7 +59,7 @@ describe('Modal', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
 
     await userEvent.click(screen.getByText('open'))
-    await userEvent.click(screen.getByTestId('modal-backdrop'))
+    await userEvent.click(document.querySelector<HTMLElement>('[data-slot="dialog-overlay"]')!)
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 })

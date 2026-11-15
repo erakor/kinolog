@@ -1,13 +1,11 @@
-import { useId, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { api } from '../api'
 import { useAction } from '../hooks/useAction'
 import type { LogEntry } from '../types'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { DialogFooter } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
+import { CheckField } from './CheckField'
 import { Modal } from './Modal'
-import { fieldCheck } from './styles'
 import { WatchFields } from './WatchFields'
 
 interface EditLogDialogProps {
@@ -21,7 +19,6 @@ export function EditLogDialog({ entry, reload, onClose }: EditLogDialogProps) {
   const [rating, setRating] = useState<number | null>(entry.rating)
   const [rewatch, setRewatch] = useState(entry.rewatch)
   const run = useAction(reload)
-  const id = useId()
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -36,10 +33,7 @@ export function EditLogDialog({ entry, reload, onClose }: EditLogDialogProps) {
     <Modal title={`Edit ${entry.item.title}`} onClose={onClose}>
       <form onSubmit={submit}>
         <WatchFields date={date} onDate={setDate} rating={rating} onRating={setRating} />
-        <div className={fieldCheck}>
-          <Checkbox id={`${id}-rewatch`} checked={rewatch} onCheckedChange={(v) => setRewatch(v === true)} />
-          <Label htmlFor={`${id}-rewatch`}>Rewatch</Label>
-        </div>
+        <CheckField label="Rewatch" checked={rewatch} onChange={setRewatch} />
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Cancel

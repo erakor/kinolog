@@ -1,14 +1,12 @@
-import { useId, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { api } from '../api'
 import { today } from '../format'
 import { useAction } from '../hooks/useAction'
 import type { ItemRef } from './ItemActions'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { DialogFooter } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
+import { CheckField } from './CheckField'
 import { Modal } from './Modal'
-import { fieldCheck } from './styles'
 import { WatchFields } from './WatchFields'
 
 interface LogDialogProps {
@@ -24,7 +22,6 @@ export function LogDialog({ item, reload, onClose }: LogDialogProps) {
   const [keep, setKeep] = useState(false)
   const [busy, setBusy] = useState(false)
   const run = useAction(reload)
-  const id = useId()
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -41,14 +38,8 @@ export function LogDialog({ item, reload, onClose }: LogDialogProps) {
     <Modal title={`Log ${item.title}`} onClose={onClose}>
       <form onSubmit={submit}>
         <WatchFields date={date} onDate={setDate} rating={rating} onRating={setRating} max={today()} />
-        <div className={fieldCheck}>
-          <Checkbox id={`${id}-liked`} checked={liked} onCheckedChange={(v) => setLiked(v === true)} />
-          <Label htmlFor={`${id}-liked`}>Add a heart</Label>
-        </div>
-        <div className={fieldCheck}>
-          <Checkbox id={`${id}-keep`} checked={keep} onCheckedChange={(v) => setKeep(v === true)} />
-          <Label htmlFor={`${id}-keep`}>Keep on Watch List</Label>
-        </div>
+        <CheckField label="Add a heart" checked={liked} onChange={setLiked} />
+        <CheckField label="Keep on Watch List" checked={keep} onChange={setKeep} />
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Cancel

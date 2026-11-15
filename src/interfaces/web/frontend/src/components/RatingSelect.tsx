@@ -12,6 +12,7 @@ interface RatingSelectProps {
 
 // Radix Select forbids '' as an item value, so "No rating" uses a sentinel.
 const NONE = 'none'
+const RATINGS = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
 
 /** Half-star rating picker; ratings are integers 1..10. */
 export function RatingSelect({ value, onChange, id, className, 'aria-label': ariaLabel }: RatingSelectProps) {
@@ -22,7 +23,7 @@ export function RatingSelect({ value, onChange, id, className, 'aria-label': ari
       </SelectTrigger>
       <SelectContent>
         <SelectItem value={NONE}>No rating</SelectItem>
-        {Array.from({ length: 10 }, (_, i) => 10 - i).map((r) => (
+        {RATINGS.map((r) => (
           <SelectItem key={r} value={String(r)}>
             {ratingLabel(r)}
             <Star className="size-3.5 fill-brand text-brand" aria-hidden="true" />

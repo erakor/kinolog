@@ -3,6 +3,10 @@ import type * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
+/** Percent of `max`, clamped to 0..100 (0 when `max` is not positive). */
+export const pct = (value: number, max: number): number =>
+  max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0
+
 /** Children render under the indicator, e.g. a lighter "planned" segment. Width (not translateX) keeps both ends rounded. */
 function Progress({
   className,
@@ -11,7 +15,6 @@ function Progress({
   children,
   ...props
 }: React.ComponentProps<typeof ProgressPrimitive.Root>) {
-  const pct = max > 0 ? Math.min(100, Math.max(0, ((value ?? 0) / max) * 100)) : 0
   return (
     <ProgressPrimitive.Root
       data-slot="progress"
@@ -24,7 +27,7 @@ function Progress({
       <ProgressPrimitive.Indicator
         data-slot="progress-indicator"
         className="absolute inset-y-0 left-0 rounded-full bg-primary transition-[width]"
-        style={{ width: `${pct}%` }}
+        style={{ width: `${pct(value ?? 0, max)}%` }}
       />
     </ProgressPrimitive.Root>
   )

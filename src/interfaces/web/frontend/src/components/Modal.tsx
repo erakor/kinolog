@@ -22,8 +22,6 @@ export function Modal({ title, onClose, children }: ModalProps) {
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         ref={content}
-        aria-describedby={undefined}
-        overlayProps={{ 'data-testid': 'modal-backdrop' } as object}
         onCloseAutoFocus={(e) => {
           e.preventDefault()
           if (opener?.isConnected) opener.focus()

@@ -1,4 +1,4 @@
-import { Progress } from '@/components/ui/progress'
+import { Progress, pct } from '@/components/ui/progress'
 
 interface ProgressBarProps {
   seen: number
@@ -9,11 +9,10 @@ interface ProgressBarProps {
 
 /** Two-segment bar: shadcn Progress for `seen`, plus a lighter overlay for `afterSeen`. */
 export function ProgressBar({ seen, total, afterSeen = null }: ProgressBarProps) {
-  const pct = (n: number) => (total ? Math.min(100, (n / total) * 100) : 0)
   return (
     <Progress value={seen} max={total || 1}>
       {afterSeen != null && (
-        <div className="absolute inset-y-0 left-0 rounded-full bg-brand-soft" style={{ width: `${pct(afterSeen)}%` }} />
+        <div className="absolute inset-y-0 left-0 rounded-full bg-brand-soft" style={{ width: `${pct(afterSeen, total)}%` }} />
       )}
     </Progress>
   )

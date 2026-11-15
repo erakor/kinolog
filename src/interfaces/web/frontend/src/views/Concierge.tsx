@@ -53,7 +53,7 @@ function Results({ data, onChanged }: { data: ConciergeResponse; onChanged: (ite
       </p>
       <div className="flex flex-wrap gap-2 mb-3">
         {data.parsed.chips.map((c, i) => (
-          <Badge variant="secondary" key={i}>
+          <Badge key={i}>
             {c.label}
           </Badge>
         ))}
