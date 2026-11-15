@@ -1,6 +1,6 @@
 # Repository reorganisation plan
 
-Status: not started. Written 2026-11-15 against commit `c8a2c1b` (main) plus `b692e10`
+Status: done (executed 2026-11-15, one commit per phase on `claude/quirky-goldberg-23uslx`; see "Deferred / notes"). Written 2026-11-15 against commit `c8a2c1b` (main) plus `b692e10`
 (packaging fix on branch `claude/quirky-goldberg-23uslx`).
 
 This plan is meant to be executed by a session that has none of the conversation that produced
@@ -523,4 +523,40 @@ kinolog/
 
 ## Deferred / notes
 
-(Fill in during execution.)
+Baseline before Phase 1: 235 passed, 1 skipped; 139 ruff findings; 21 frontend tests. End state: 287
+passed, 1 skipped; 90 ruff findings (the count only went down: unused-import and import-order fixes
+were applied to files that were touched); the same frontend checks pass.
+
+Deviations from the plan, and why:
+
+- `SearchResult` lives in `retrieval/results.py` (re-exported from `retrieval/search.py` and the
+  package), because `search.py` imports the BM25, vector and fusion modules, which all need it.
+- Phase 8a and 8b are one commit (services and the interface split were done together).
+- `RANKERS` key order is now `mean_heart, top_3_mean, nearest_exemplar, prototypes_4..6` (the
+  registration order of the modules); the key set is unchanged and pinned by `tests/test_registries.py`.
+  Only the "Available: [...]" text of the CLI's unknown-ranker message shows the order.
+- `taste_scores` looks up `taste_available` in `taste/scores.py`, so two tests that patched
+  `taste.taste_available` also patch `kinolog.taste.scores.taste_available`.
+- `eval.metrics` no longer re-exports `groundedness` (as the plan says); `test_metrics.py` and one
+  chat test import it from `kinolog.rag.grounding` instead.
+- The MCP entry point is now `python -m kinolog.interfaces.mcp` (was `kinolog.interfaces.mcp_server`).
+  The README config snippet is updated; an existing MCP client configuration must change its `args`.
+- `ingest/review_cli.py` moved straight to `interfaces/cli/review.py` in Phase 8 (it stayed in
+  `ingest/` through Phases 6 and 7).
+- `tests/web/` moved to `tests/interfaces/web/`; `test_llm.py` was split into a unit test under
+  `tests/rag/` and an end-to-end test under `tests/interfaces/web/`.
+
+Verified against `main` (c8a2c1b) on a seeded database: `stats`, `search`, `filmography`, `crew-overlap`,
+`eval known-items` and `eval concierge` print identical output from both code bases, and the MCP
+`handle_tool` results (search, filmography, crew_overlap, stats, error cases) are byte-identical. A
+database created by the old code opens with the new code, ends at `user_version = 3`, and has an
+identical schema. There was no real `data/index.db` in the cloud container, so the plan's final
+comparison against the user's own index was not run; do it locally.
+
+Noticed, not changed (out of scope for a pure refactor):
+
+- `create_mcp_app` fails with the installed `mcp` 2.3.0 (`Server` has no `list_tools` decorator). It
+  fails the same way on `main`. `KinologServer.handle_tool` and its tests are unaffected.
+- sqlite-vec `vec0` tables reject `INSERT OR REPLACE` on an existing `chunk_id` (UNIQUE error), so
+  `upsert_embedding` only works for chunks without a vector; `embed_chunks` already skips those.
+- `chunk_document` has an unused `c_hash` variable (pre-existing lint finding).
