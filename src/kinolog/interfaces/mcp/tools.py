@@ -123,6 +123,60 @@ TOOLS = [
         },
     },
     {
+        "name": "director_completion",
+        "description": (
+            "How much of each director's filmography you have seen. With `name`, lists that "
+            "director's feature films and what watching each unseen one would do to the "
+            "percentage. Uses the full TMDB filmography where `ingest filmographies` has been "
+            "run; `coverage: index_only` means the total comes from your index and may be low."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Director's name (partial match). Omit to list directors.",
+                },
+                "min_seen": {
+                    "type": "integer",
+                    "description": "Minimum films seen (default 1, or 0 when a name is given)",
+                },
+                "min_total": {
+                    "type": "integer",
+                    "description": "Minimum feature films (default 2, or 1 when a name is given)",
+                },
+                "limit": {"type": "integer", "default": 25, "description": "Max directors"},
+            },
+        },
+    },
+    {
+        "name": "watchlist_by_director_impact",
+        "description": (
+            "Rank watchlist films by how much watching them advances a director's completion "
+            "(e.g. 5/7 -> 6/7). Films that finish a director come first."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "max_runtime": {
+                    "type": "integer",
+                    "description": "Only films up to this many minutes (e.g. 90, 105, 120)",
+                },
+                "include_unseen": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": "Also consider unseen films not on the watchlist",
+                },
+                "include_unknown_runtime": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": "Keep films with no known runtime when max_runtime is set",
+                },
+                "limit": {"type": "integer", "default": 20, "description": "Max films"},
+            },
+        },
+    },
+    {
         "name": "stats",
         "description": "Show database statistics: item counts, match status, review queue size.",
         "inputSchema": {

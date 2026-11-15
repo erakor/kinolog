@@ -2,7 +2,12 @@
 
 import pytest
 
-from kinolog.features.crew import crew_overlap_with_hearts, directors_by_heart_count, filmography
+from kinolog.features.crew import (
+    crew_overlap_with_hearts,
+    directors_by_heart_count,
+    filmography,
+    find_people,
+)
 from kinolog.store import Database
 
 
@@ -77,3 +82,18 @@ def test_directors_by_heart_count(db_with_crew):
     top = directors[0]
     assert top["name"] == "Federico Fellini"
     assert top["heart_count"] == 2
+
+
+def test_find_people(db_with_crew):
+    matches = find_people(db_with_crew, name="Fellini")
+    assert [m["name"] for m in matches] == ["Federico Fellini"]
+    by_id = find_people(db_with_crew, person_id=matches[0]["id"])
+    assert [m["id"] for m in by_id] == [matches[0]["id"]]
+    with pytest.raises(ValueError, match="Provide name or person_id"):
+        find_people(db_with_crew)
+
+
+def test_find_people_treats_like_wildcards_literally_and_accepts_id_zero(db_with_crew):
+    assert find_people(db_with_crew, name="%") == []
+    assert find_people(db_with_crew, name="F_derico") == []
+    assert find_people(db_with_crew, person_id=0) == []

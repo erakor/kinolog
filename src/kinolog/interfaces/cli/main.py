@@ -16,6 +16,7 @@ from kinolog.interfaces.cli.ingest import (
     handle_ingest_chunk,
     handle_ingest_embed,
     handle_ingest_enrich,
+    handle_ingest_filmographies,
     handle_ingest_goodreads,
     handle_ingest_letterboxd,
     handle_ingest_omdb,
@@ -23,10 +24,12 @@ from kinolog.interfaces.cli.ingest import (
     handle_ingest_review,
 )
 from kinolog.interfaces.cli.query import (
+    handle_completion,
     handle_crew_overlap,
     handle_filmography,
     handle_search,
     handle_stats,
+    handle_watchlist_impact,
 )
 
 
@@ -67,6 +70,21 @@ def build_parser() -> argparse.ArgumentParser:
     omdb_parser.add_argument("--refresh", action="store_true",
                              help="Re-fetch cached responses (counts against the cap)")
 
+    film_ing = ingest_subs.add_parser(
+        "filmographies",
+        help="Fetch full TMDB director filmographies (for completion beyond the index)",
+        parents=[base_parser],
+    )
+    film_ing.add_argument("--min-seen", type=int, default=2,
+                          help="Only directors with at least this many seen films")
+    film_ing.add_argument("--person", default=None, help="Only people whose name matches")
+    film_ing.add_argument("--limit", type=int, default=None, help="Cap on directors this run")
+    film_ing.add_argument("--no-details", action="store_true",
+                          help="Skip per-film detail requests (films not already cached are "
+                               "not counted until details are fetched)")
+    film_ing.add_argument("--refresh", action="store_true",
+                          help="Re-fetch cached person credits (filmographies grow)")
+
     ingest_subs.add_parser(
         "backfill-runtime",
         help="Set runtime/TV flag/IMDb id from stored TMDB documents and cache (no network)",
@@ -94,6 +112,33 @@ def build_parser() -> argparse.ArgumentParser:
 
     # Stats
     subparsers.add_parser("stats", help="Show database statistics", parents=[base_parser])
+
+    # Completion against full filmographies
+    comp_parser = subparsers.add_parser(
+        "completion",
+        help="Director completion (run `ingest filmographies` first for full filmographies)",
+        parents=[base_parser],
+    )
+    comp_parser.add_argument("name", nargs="?", default=None,
+                             help="Director name (partial match); omit to list directors")
+    comp_parser.add_argument("--min-seen", type=int, default=None,
+                             help="Minimum seen films (default 1, or 0 with a name)")
+    comp_parser.add_argument("--min-total", type=int, default=None,
+                             help="Minimum feature films (default 2, or 1 with a name)")
+    comp_parser.add_argument("--limit", type=int, default=25)
+
+    impact_parser = subparsers.add_parser(
+        "watchlist-impact",
+        help="Rank watchlist films by how much they advance a director's completion",
+        parents=[base_parser],
+    )
+    impact_parser.add_argument("--max-runtime", type=int, default=None,
+                               help="Only films up to N minutes (presets: 90, 105, 120)")
+    impact_parser.add_argument("--include-unseen", action="store_true",
+                               help="Also consider unseen films that are not on the watchlist")
+    impact_parser.add_argument("--include-unknown-runtime", action="store_true",
+                               help="Keep films with no known runtime under --max-runtime")
+    impact_parser.add_argument("--limit", type=int, default=20)
 
     # Filmography
     film_parser = subparsers.add_parser("filmography", help="Show person's filmography", parents=[base_parser])
@@ -143,6 +188,10 @@ def run_argparse_cli():
             handle_ingest_enrich(args.db, args.type)
         elif args.ingest_cmd == "omdb":
             handle_ingest_omdb(args.db, args.type, args.max_requests, args.refresh)
+        elif args.ingest_cmd == "filmographies":
+            handle_ingest_filmographies(
+                args.db, args.min_seen, args.person, args.limit, not args.no_details, args.refresh
+            )
         elif args.ingest_cmd == "backfill-runtime":
             handle_ingest_backfill_runtime(args.db)
         elif args.ingest_cmd == "review":
@@ -158,6 +207,11 @@ def run_argparse_cli():
         handle_stats(args.db)
     elif args.command == "filmography":
         handle_filmography(args.db, args.name, args.role)
+    elif args.command == "completion":
+        handle_completion(args.db, args.name, args.min_seen, args.min_total, args.limit)
+    elif args.command == "watchlist-impact":
+        handle_watchlist_impact(args.db, args.max_runtime, args.include_unseen,
+                                args.include_unknown_runtime, args.limit)
     elif args.command == "crew-overlap":
         handle_crew_overlap(args.db, role=args.role, min_overlap=args.min_overlap)
     elif args.command == "eval":

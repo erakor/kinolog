@@ -20,6 +20,7 @@ A personal vector search, ingestion, and evaluation engine built over personal w
   - **Hybrid RRF**: Reciprocal Rank Fusion combining BM25 and vector similarity.
   - **Taste Rankers**: Mean of heart vectors, Nearest-exemplar (max cosine), Top-3 mean, and K-means prototypes ($k=4..6$).
   - **Crew Queries**: Filmography completion tracking and crew overlap with hearted films.
+  - **Director Completion**: How much of each director's full TMDB filmography you have seen, and which watchlist film would advance one most (`completion`, `watchlist-impact`).
 - **Evaluation Harness**:
   - **Hearts Recall**: Cross-validated multi-split evaluations on post-first-heart candidates (Recall@20, Recall@50, MRR, standard deviation).
   - **Known-Item Retrieval**: 30 hand-written benchmark queries (factual, thematic, named entity) scoring Hit@5, Hit@10, Hit@20, MRR.
@@ -28,7 +29,7 @@ A personal vector search, ingestion, and evaluation engine built over personal w
 - **Interfaces**:
   - Zero-dependency CLI (`kinolog`) with clean terminal output.
   - Interactive match review queue CLI (`kinolog ingest review`).
-  - MCP Server (`src/kinolog/interfaces/mcp/`) with 6 tools: `search`, `rank_watchlist`, `similar_to`, `filmography`, `crew_overlap`, `stats`.
+  - MCP Server (`src/kinolog/interfaces/mcp/`) with 8 tools: `search`, `rank_watchlist`, `similar_to`, `filmography`, `crew_overlap`, `director_completion`, `watchlist_by_director_impact`, `stats`.
   - Chat Agent (`src/kinolog/rag/agent.py`) with token-budgeted context assembly and citations.
 
 ---
@@ -57,6 +58,9 @@ python3 -m kinolog.interfaces.cli ingest review
 # Enrich matched films with TMDB metadata & credits
 python3 -m kinolog.interfaces.cli ingest enrich
 
+# Fetch full director filmographies so completion counts films you have not logged
+python3 -m kinolog.interfaces.cli ingest filmographies --min-seen 2
+
 # Chunk all documents (whole, fixed_256_50, section)
 python3 -m kinolog.interfaces.cli ingest chunk --strategy whole
 
@@ -76,6 +80,21 @@ python3 -m kinolog.interfaces.cli filmography "Fellini" --role Director
 # Check crew overlap with hearted films
 python3 -m kinolog.interfaces.cli crew-overlap --role Director --min-overlap 2
 ```
+
+### Director Completion
+
+```bash
+# Directors ranked by how much of their filmography you have seen
+python3 -m kinolog.interfaces.cli completion --min-seen 1 --min-total 2
+
+# One director: every feature film, and what watching each unseen one would do
+python3 -m kinolog.interfaces.cli completion "Fellini"
+
+# Watchlist films ranked by how much they advance a director (runtime cap: 90, 105, 120, ...)
+python3 -m kinolog.interfaces.cli watchlist-impact --max-runtime 105 --include-unseen
+```
+
+Without `ingest filmographies`, totals come from your index only (`index_only` coverage) and may be low; the commands print a hint when that applies. Shorts (40 minutes or less), TV movies, direct-to-video and unreleased films are excluded.
 
 ### Running Evaluations
 
@@ -144,6 +163,8 @@ To expose the Kinolog index tools to Claude or Antigravity via Model Context Pro
 - `similar_to(title, limit, item_type)`: Vector similarity recommendations.
 - `filmography(name, role)`: Person's filmography with seen/unseen counts.
 - `crew_overlap(role, min_overlap)`: Auteurs and crew patterns in hearted films.
+- `director_completion(name, min_seen, min_total, limit)`: Share of each director's filmography seen, with per-film "if watched" previews for one director.
+- `watchlist_by_director_impact(max_runtime, include_unseen, limit)`: Watchlist films ranked by how much they advance a director's completion.
 - `stats()`: Index inventory and review queue metrics.
 
 ---

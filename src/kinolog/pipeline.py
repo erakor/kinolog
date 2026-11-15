@@ -45,6 +45,31 @@ def enrich(db: Database, item_type: str = "film") -> dict:
     return stats
 
 
+def filmographies(
+    db: Database,
+    min_seen: int = 2,
+    person_name: str | None = None,
+    limit: int | None = None,
+    fetch_details: bool = True,
+    refresh: bool = False,
+) -> dict:
+    """Fetch full TMDB director filmographies (needs TMDB_API_KEY).
+
+    Covers directors with at least ``min_seen`` seen films, or those matching ``person_name``.
+    """
+    from kinolog.sources.tmdb.client import TMDBClient
+    from kinolog.sources.tmdb.filmography import enrich_all_filmographies
+
+    client = TMDBClient()
+    try:
+        return enrich_all_filmographies(
+            db, client, min_seen=min_seen, person_name=person_name, limit=limit,
+            fetch_details=fetch_details, refresh=refresh,
+        )
+    finally:
+        client.close()
+
+
 def omdb(
     db: Database,
     item_type: str = "film",

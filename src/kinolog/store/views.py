@@ -176,7 +176,7 @@ class ViewsMixin:
         """Quick table row counts."""
         tables = [
             "items", "user_status", "documents", "chunks", "people", "credits", "eval_runs",
-            "watch_log", "external_ratings",
+            "watch_log", "external_ratings", "tmdb_movies", "person_filmography",
         ]
         result = {}
         for t in tables:

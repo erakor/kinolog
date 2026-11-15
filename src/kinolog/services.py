@@ -16,6 +16,7 @@ from typing import Any
 
 from kinolog.config import DEFAULT_RANKER
 from kinolog.features import collections as coll
+from kinolog.features import completion as fcomp
 from kinolog.features.concierge import pick
 from kinolog.features.crew import crew_overlap_with_hearts
 from kinolog.features.crew import filmography as crew_filmography
@@ -173,6 +174,116 @@ def crew_overlap(db: Database, role: str = "Director", min_overlap: int = 2) -> 
             "films": [f["title"] for f in r.films],
         }
         for r in results
+    ]
+
+
+def _positive(name: str, value: int | None, minimum: int = 1) -> None:
+    if value is not None and value < minimum:
+        raise InvalidInputError(f"{name} must be at least {minimum}")
+
+
+def filmography_completion(
+    db: Database,
+    *,
+    name: str | None = None,
+    min_seen: int | None = None,
+    min_total: int | None = None,
+    limit: int | None = 25,
+    today: date | None = None,
+) -> list[dict]:
+    """Director completion against the full TMDB filmography, where it has been fetched.
+
+    Directors without a fetched filmography use their indexed credits and report
+    ``coverage="index_only"`` (the total may be low; run ``ingest filmographies``). With a
+    ``name`` the result carries each director's feature films with an ``if_watched`` preview for
+    the unseen ones, and the default thresholds drop to 0 seen / 1 film.
+    """
+    min_seen = (0 if name else 1) if min_seen is None else min_seen
+    min_total = (1 if name else 2) if min_total is None else min_total
+    _positive("min_seen", min_seen, 0)
+    _positive("min_total", min_total)
+    _positive("limit", limit)
+    found = fcomp.director_completions(
+        db, name=name, min_seen=min_seen, min_total=min_total, today=today
+    )
+    if limit is not None:
+        found = found[:limit]
+    out = []
+    for c in found:
+        row: dict[str, Any] = {
+            "person_id": c.person_id,
+            "person": c.name,
+            "seen": c.seen,
+            "total": c.total,
+            "percent": fcomp.format_pct(c.ratio),
+            "coverage": c.coverage,
+        }
+        if name:
+            preview = {d.film: d for d in fcomp.completion_deltas(c)}
+            row["films"] = [_completion_film(f, preview.get(f)) for f in c.films]
+        out.append(row)
+    return out
+
+
+def _completion_film(f: fcomp.FilmographyFilm, d: fcomp.FilmDelta | None) -> dict:
+    return {
+        "title": f.title,
+        "year": f.year,
+        "runtime": f.runtime,
+        "seen": f.seen,
+        "on_watchlist": f.on_watchlist,
+        "in_index": f.item_id is not None,
+        "if_watched": None if d is None else {
+            "before": f"{d.before_seen}/{d.total}",
+            "after": f"{d.after_seen}/{d.total}",
+            "before_pct": fcomp.format_pct(d.before_ratio),
+            "after_pct": fcomp.format_pct(d.after_ratio),
+            "completes": d.completes,
+        },
+    }
+
+
+def watchlist_director_impact(
+    db: Database,
+    *,
+    max_runtime: int | None = None,
+    include_unseen: bool = False,
+    include_unknown_runtime: bool = False,
+    limit: int | None = 20,
+    today: date | None = None,
+) -> list[dict]:
+    """Watchlist films ranked by how much they would advance their directors' completion.
+
+    ``include_unseen`` also considers unseen films that are not on the watchlist (including ones
+    outside the index). ``max_runtime`` narrows candidates only, never a director's total.
+    """
+    _positive("max_runtime", max_runtime)
+    _positive("limit", limit)
+    ranked = fcomp.watchlist_by_director_impact(
+        db, max_runtime=max_runtime, include_unseen=include_unseen,
+        include_unknown_runtime=include_unknown_runtime, limit=limit, today=today,
+    )
+    return [
+        {
+            "title": fi.film.title,
+            "year": fi.film.year,
+            "runtime": fi.film.runtime,
+            "on_watchlist": fi.film.on_watchlist,
+            "in_index": fi.film.item_id is not None,
+            "impact": round(fi.impact, 4),
+            "directors": [
+                {
+                    "person": d.director,
+                    "before": f"{d.before_seen}/{d.total}",
+                    "after": f"{d.after_seen}/{d.total}",
+                    "before_pct": fcomp.format_pct(d.before_ratio),
+                    "after_pct": fcomp.format_pct(d.after_ratio),
+                    "completes": d.completes,
+                }
+                for d in fi.deltas
+            ],
+        }
+        for fi in ranked
     ]
 
 

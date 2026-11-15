@@ -199,3 +199,48 @@ def test_concierge_pick_returns_picks_for_a_filtered_query(db):
     out = services.concierge_pick(db, "strangers on a platform under 100 minutes", limit=2)
     assert [p["item"]["title"] for p in out["picks"]] == ["Brief Encounter"]
     assert out["query"] == "strangers on a platform under 100 minutes"
+
+
+# --- Filmography completion and watchlist impact ---
+
+
+def test_filmography_completion_lists_directors_and_flags_index_only(db):
+    (row,) = services.filmography_completion(db)
+    assert (row["person"], row["seen"], row["total"], row["percent"]) == ("Ann Auteur", 2, 4, 50)
+    assert row["coverage"] == "index_only" and "films" not in row
+
+
+def test_filmography_completion_with_a_name_previews_each_unseen_film(db):
+    (row,) = services.filmography_completion(db, name="Ann")
+    films = {f["title"]: f for f in row["films"]}
+    assert films["Quiet Harbor"]["if_watched"] is None
+    w = films["Brief Encounter"]["if_watched"]
+    assert (w["before"], w["after"], w["before_pct"], w["after_pct"]) == ("2/4", "3/4", 50, 75)
+    assert films["Brief Encounter"]["on_watchlist"] and films["Brief Encounter"]["in_index"]
+
+
+def test_filmography_completion_name_defaults_do_not_hide_small_filmographies(db):
+    solo = db.upsert_person("Solo Director", tmdb_person_id=9)
+    i = db.upsert_item("film", "Only One", 2001, runtime_min=100)
+    db.upsert_credit(i, solo, "Director", "Directing")
+    assert [r["person"] for r in services.filmography_completion(db)] == ["Ann Auteur"]
+    (r,) = services.filmography_completion(db, name="Solo")
+    assert (r["seen"], r["total"]) == (0, 1)
+
+
+def test_filmography_completion_validates_arguments(db):
+    with pytest.raises(InvalidInputError):
+        services.filmography_completion(db, limit=0)
+    with pytest.raises(InvalidInputError):
+        services.filmography_completion(db, min_total=0)
+
+
+def test_watchlist_director_impact_ranks_and_filters_by_runtime(db):
+    rows = services.watchlist_director_impact(db)
+    assert {r["title"] for r in rows} == {"The Long Corridor", "Brief Encounter"}
+    d = rows[0]["directors"][0]
+    assert (d["before"], d["after"], d["before_pct"], d["after_pct"]) == ("2/4", "3/4", 50, 75)
+    (short,) = services.watchlist_director_impact(db, max_runtime=90)
+    assert short["title"] == "Brief Encounter" and short["impact"] == 0.25
+    with pytest.raises(InvalidInputError):
+        services.watchlist_director_impact(db, max_runtime=0)
