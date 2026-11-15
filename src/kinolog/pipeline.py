@@ -67,12 +67,8 @@ def embed(
     device: str | None = None,
 ) -> dict:
     """Embed chunks of one strategy. Raises ValueError for an unknown model name."""
-    from kinolog.index.embedding import BGE_M3, MultilingualE5, embed_chunks
+    from kinolog.index.embedding import EMBEDDERS, embed_chunks
 
-    if model == "bge_m3":
-        embed_model = BGE_M3(device=device)
-    elif model == "multilingual_e5":
-        embed_model = MultilingualE5(device=device)
-    else:
+    if model not in EMBEDDERS:
         raise ValueError(f"Unknown model: {model}")
-    return embed_chunks(db, embed_model, strategy=strategy)
+    return embed_chunks(db, EMBEDDERS[model](device=device), strategy=strategy)

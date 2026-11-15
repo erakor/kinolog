@@ -42,8 +42,11 @@ def test_bad_sort_422_and_taste_409_without_vec(client, db):
 def test_taste_sort_with_stubbed_ranker(client, db, monkeypatch):
     ids = seed(db)
     from kinolog import taste
+    from kinolog.taste import scores as taste_scores_module
 
     monkeypatch.setattr(taste, "taste_available", lambda db, model_name="bge_m3": True)
+    # taste_scores looks the check up in its own module, the web state through the package
+    monkeypatch.setattr(taste_scores_module, "taste_available", lambda db, model_name="bge_m3": True)
 
     def fake(db_, cands, hearts, **kw):
         order = {ids["Brief Encounter Again"]: 0.9, ids["Glass Orchard"]: 0.5}

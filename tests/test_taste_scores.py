@@ -5,6 +5,7 @@ import pytest
 from kinolog import taste
 from kinolog.store import Database
 from kinolog.taste import TasteScore, TasteUnavailableError, taste_scores
+from kinolog.taste import scores as taste_scores_module
 
 
 @pytest.fixture
@@ -20,6 +21,8 @@ def db():
 @pytest.fixture
 def available(monkeypatch):
     monkeypatch.setattr(taste, "taste_available", lambda db, model_name="bge_m3": True)
+    # taste_scores looks the check up in its own module, the web state through the package
+    monkeypatch.setattr(taste_scores_module, "taste_available", lambda db, model_name="bge_m3": True)
 
 
 def test_unavailable_without_vectors(db):
