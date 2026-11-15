@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import logging
 
+import httpx
+
 from kinolog.sources.http_cache import read_json
 from kinolog.sources.tmdb.client import TMDBClient, person_credits_cache_path, tmdb_cache_path
 from kinolog.store import Database
@@ -24,6 +26,11 @@ def _year(release_date: str | None) -> int | None:
     if release_date and len(release_date) >= 4 and release_date[:4].isdigit():
         return int(release_date[:4])
     return None
+
+
+def _is_fatal(e: Exception) -> bool:
+    """Auth or rate-limit failures hit every request, so they should stop the whole run."""
+    return isinstance(e, httpx.HTTPStatusError) and e.response.status_code in (401, 403, 429)
 
 
 def _details_for(client: TMDBClient, tmdb_id: int, fetch: bool) -> dict | None:
@@ -98,11 +105,16 @@ def enrich_director_filmography(
         try:
             details = _details_for(client, tmdb_id, fetch_details)
         except Exception as e:  # one bad film must not abort the director
+            if _is_fatal(e):
+                raise
             logger.warning("TMDB details failed for %d: %s", tmdb_id, e)
             detail_errors += 1
             details = None
-        if details is not None and fetch_details:
-            db.cache_put("tmdb", str(tmdb_id), tmdb_cache_path(tmdb_id).as_posix())
+        director_ids.append(tmdb_id)
+        if details is None and db.execute(
+            "SELECT 1 FROM tmdb_movies WHERE tmdb_id = ?", (tmdb_id,)
+        ).fetchone():
+            continue  # keep the facts stored earlier rather than replace them with less
         facts = _movie_facts(credit, details)
         db.upsert_tmdb_movie(
             tmdb_id,
@@ -116,9 +128,9 @@ def enrich_director_filmography(
             genre_ids=facts["genre_ids"],
             commit=False,
         )
-        director_ids.append(tmdb_id)
 
-    db.set_person_filmography(person_id, director_ids, "Director", commit=False)
+    if "crew" in credits:  # a degraded response without crew must not wipe stored credits
+        db.set_person_filmography(person_id, director_ids, "Director", commit=False)
     db.conn.commit()
     return {
         "status": "success",
@@ -186,8 +198,12 @@ def enrich_all_filmographies(
                 db, client, p["id"], fetch_details=fetch_details, refresh=refresh
             )
         except Exception as e:
+            db.conn.rollback()  # drop this director's half-written rows
             logger.error("Filmography failed for %s: %s", p["name"], e)
             stats["errors"] += 1
+            if _is_fatal(e):
+                stats["aborted_http_status"] = e.response.status_code
+                break
             continue
         stats["enriched"] += 1
         stats["director_credits"] += res["director_films"]

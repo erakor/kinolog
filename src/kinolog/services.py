@@ -177,10 +177,6 @@ def crew_overlap(db: Database, role: str = "Director", min_overlap: int = 2) -> 
     ]
 
 
-def _pct(ratio: float) -> int:
-    return fcomp.format_pct(ratio)
-
-
 def _positive(name: str, value: int | None, minimum: int = 1) -> None:
     if value is not None and value < minimum:
         raise InvalidInputError(f"{name} must be at least {minimum}")
@@ -219,7 +215,7 @@ def filmography_completion(
             "person": c.name,
             "seen": c.seen,
             "total": c.total,
-            "percent": _pct(c.ratio),
+            "percent": fcomp.format_pct(c.ratio),
             "coverage": c.coverage,
         }
         if name:
@@ -240,8 +236,8 @@ def _completion_film(f: fcomp.FilmographyFilm, d: fcomp.FilmDelta | None) -> dic
         "if_watched": None if d is None else {
             "before": f"{d.before_seen}/{d.total}",
             "after": f"{d.after_seen}/{d.total}",
-            "before_pct": _pct(d.before_ratio),
-            "after_pct": _pct(d.after_ratio),
+            "before_pct": fcomp.format_pct(d.before_ratio),
+            "after_pct": fcomp.format_pct(d.after_ratio),
             "completes": d.completes,
         },
     }
@@ -280,8 +276,8 @@ def watchlist_director_impact(
                     "person": d.director,
                     "before": f"{d.before_seen}/{d.total}",
                     "after": f"{d.after_seen}/{d.total}",
-                    "before_pct": _pct(d.before_ratio),
-                    "after_pct": _pct(d.after_ratio),
+                    "before_pct": fcomp.format_pct(d.before_ratio),
+                    "after_pct": fcomp.format_pct(d.after_ratio),
                     "completes": d.completes,
                 }
                 for d in fi.deltas

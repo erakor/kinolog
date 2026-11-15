@@ -28,13 +28,13 @@ def test_upsert_tmdb_movie_is_idempotent_and_normalizes():
     assert json.loads(row["genre_ids"]) == []
 
 
-def test_set_person_filmography_is_idempotent_and_additive():
+def test_set_person_filmography_is_idempotent_and_replaces():
     db = Database(":memory:")
     p = db.upsert_person("Ann", tmdb_person_id=1)
     db.set_person_filmography(p, [10, 11, 10])
     db.set_person_filmography(p, [11, 12])
     ids = {r["tmdb_id"] for r in db.execute("SELECT tmdb_id FROM person_filmography")}
-    assert ids == {10, 11, 12}
+    assert ids == {11, 12}
 
 
 def test_reopening_a_file_database_keeps_rows(tmp_path):

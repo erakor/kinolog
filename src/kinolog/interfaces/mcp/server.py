@@ -111,6 +111,7 @@ class KinologServer:
                 self.db,
                 max_runtime=args.get("max_runtime"),
                 include_unseen=bool(args.get("include_unseen", False)),
+                include_unknown_runtime=bool(args.get("include_unknown_runtime", False)),
                 limit=args.get("limit", 20),
             )
         except (InvalidInputError, TypeError, ValueError) as e:

@@ -14,8 +14,8 @@ Feature-film rules (same short/TV policy as ``collections.py``):
 - Only ``Director`` credits count; direct-to-video and TV movies (``is_tv`` or genre 10770,
   unless ``include_tv_movies``) are excluded.
 - Shorts (``runtime <= SHORT_MAX_MIN``) are excluded even when seen.
-- Unreleased films (status other than "Released", no release date, or a date after ``today``)
-  are excluded. Documentaries are included.
+- Unseen films that are unreleased (status other than "Released", no release date, or a date
+  after ``today``) are excluded; a seen film always counts. Documentaries are included.
 - A missing runtime still counts toward the total; it is excluded from runtime-filtered
   candidate lists unless ``include_unknown_runtime``.
 """
@@ -88,7 +88,7 @@ class FilmImpact:
 
 def format_pct(ratio: float) -> int:
     """Whole-number percentage, halves rounded up: 5/7 -> 71, 6/7 -> 86, 1/8 -> 13."""
-    return int(ratio * 100 + 0.5)
+    return int(ratio * 100 + 0.5 + 1e-9)  # epsilon: 0.145 * 100 is 14.499999999999998
 
 
 def _released_by(release_date: str, today: date) -> bool:
@@ -114,6 +114,8 @@ def is_feature(
         return False
     if film.runtime is not None and film.runtime <= max_short_runtime:
         return False
+    if film.seen:
+        return True  # watched, so it was released whatever TMDB's status says
     if film.status != "Released" or not film.release_date:
         return False
     return _released_by(film.release_date, today)
@@ -207,7 +209,8 @@ def _film_key(film: FilmographyFilm) -> tuple:
 
 def director_impact_key(fi: FilmImpact) -> tuple:
     """Sort key: completions first, then impact, then the highest reached ratio, then year/title."""
-    n_completes = sum(1 for d in fi.deltas if d.completes)
+    # A debut by an unseen director (0/1 -> 1/1) is not a completion worth promoting.
+    n_completes = sum(1 for d in fi.deltas if d.completes and d.before_seen >= 1)
     max_after = max((d.after_ratio for d in fi.deltas), default=0.0)
     year = fi.film.year if fi.film.year is not None else 9999
     return (-n_completes, -fi.impact, -max_after, year, fi.film.title)
@@ -306,6 +309,9 @@ def load_director_films(db: Database, person_id: int) -> tuple[list[FilmographyF
     tmdb = _tmdb_director_films(db, person_id)
     if not tmdb:
         return indexed, "index_only"
+    # Unindexed films without a status (details never fetched) are not counted, so the total
+    # may be low: say so rather than claim full coverage.
+    undescribed = any(f.status is None and f.item_id is None for f in tmdb)
     known_tmdb = {f.tmdb_id for f in tmdb if f.tmdb_id is not None}
     known_items = {f.item_id for f in tmdb if f.item_id is not None}
     extra = [
@@ -313,7 +319,7 @@ def load_director_films(db: Database, person_id: int) -> tuple[list[FilmographyF
         for f in indexed
         if f.item_id not in known_items and (f.tmdb_id is None or f.tmdb_id not in known_tmdb)
     ]
-    return [*tmdb, *extra], "tmdb"
+    return [*tmdb, *extra], "index_only" if undescribed else "tmdb"
 
 
 def _all_directors(db: Database) -> list:
@@ -325,6 +331,13 @@ def _all_directors(db: Database) -> list:
     ).fetchall()
 
 
+def _people_by_ids(db: Database, person_ids: Iterable[int]) -> list:
+    return db.execute(
+        "SELECT id, name FROM people WHERE id IN (SELECT value FROM json_each(?)) ORDER BY name",
+        (json.dumps(list(person_ids)),),
+    ).fetchall()
+
+
 def director_completions(
     db: Database,
     *,
@@ -332,6 +345,7 @@ def director_completions(
     person_id: int | None = None,
     min_seen: int = 0,
     min_total: int = 1,
+    person_ids: Iterable[int] | None = None,
     today: date | None = None,
     **feature_kw: Any,
 ) -> list[FilmographyCompletion]:
@@ -341,10 +355,13 @@ def director_completions(
     ``compute_completion`` (``max_short_runtime``, ``include_tv_movies``).
     """
     today = today or date.today()
-    if name is None and person_id is None:
-        people = _all_directors(db)
+    if not name and person_id is None:
+        people = _all_directors(db) if person_ids is None else _people_by_ids(db, person_ids)
     else:
         people = find_people(db, name=name, person_id=person_id)
+        if person_ids is not None:
+            wanted = set(person_ids)
+            people = [p for p in people if p["id"] in wanted]
     results = []
     for p in people:
         films, coverage = load_director_films(db, p["id"])
@@ -355,6 +372,22 @@ def director_completions(
             results.append(c)
     results.sort(key=lambda c: (-c.ratio, -c.seen, -c.total, c.name))
     return results
+
+
+def _watchlist_director_ids(db: Database) -> list[int]:
+    """Directors with at least one unseen watchlist film (the only candidates without
+    ``include_unseen``)."""
+    rows = db.execute(
+        """SELECT person_id FROM credits c
+           JOIN user_status us ON us.item_id = c.item_id
+           WHERE c.role = 'Director' AND us.on_watchlist = 1 AND COALESCE(us.seen, 0) = 0
+           UNION
+           SELECT pf.person_id FROM person_filmography pf
+           JOIN items i ON i.tmdb_id = pf.tmdb_id AND i.item_type = 'film'
+           JOIN user_status us ON us.item_id = i.id
+           WHERE pf.job = 'Director' AND us.on_watchlist = 1 AND COALESCE(us.seen, 0) = 0"""
+    ).fetchall()
+    return [r["person_id"] for r in rows]
 
 
 def watchlist_by_director_impact(
@@ -373,7 +406,8 @@ def watchlist_by_director_impact(
     """
     today = today or date.today()
     deltas: list[FilmDelta] = []
-    for c in director_completions(db, today=today):
+    person_ids = None if include_unseen else _watchlist_director_ids(db)
+    for c in director_completions(db, person_ids=person_ids, today=today):
         deltas += completion_deltas(
             c,
             max_runtime=max_runtime,

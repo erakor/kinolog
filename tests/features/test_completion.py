@@ -273,3 +273,43 @@ def test_watchlist_impact_defaults_to_watchlist_and_include_unseen_adds_the_rest
     assert watchlist_by_director_impact(db, include_unseen=True, limit=1, today=TODAY)[0]
     short = watchlist_by_director_impact(db, max_runtime=80, include_unseen=True, today=TODAY)
     assert short == []
+
+
+def test_seen_film_counts_whatever_its_status():
+    assert is_feature(film(status="Post Production", seen=True), today=TODAY)
+    assert is_feature(film(release_date=None, seen=True), today=TODAY)
+    assert not is_feature(film(runtime=30, seen=True), today=TODAY)
+
+
+def test_format_pct_rounds_float_halves_up():
+    assert format_pct(29 / 200) == 15
+
+
+def test_a_debut_by_an_unseen_director_does_not_outrank_a_real_advance():
+    debut = comp([film("Debut", 2000, wl=True)], person_id=1, name="New")
+    veteran = comp(seen_films(2, 1, wl=True), person_id=2, name="Old")
+    ranked = aggregate_impact(completion_deltas(debut) + completion_deltas(veteran))
+    assert [i.film.title for i in ranked][0] == "U0"
+    assert ranked[-1].film.title == "Debut" and ranked[-1].impact == 0
+
+
+def test_unindexed_film_without_status_flags_partial_coverage(db):
+    ann = director(db, "Ann", 2)
+    indexed(db, ann, "Seen", 1990, tmdb_id=10, seen=1)
+    db.upsert_tmdb_movie(10, "Seen", year=1990, release_date="1990-01-01", status="Released")
+    db.upsert_tmdb_movie(11, "NoDetails", year=2001, release_date="2001-01-01")  # status None
+    db.set_person_filmography(ann, [10, 11])
+    (c,) = director_completions(db, name="Ann", today=TODAY)
+    assert c.coverage == "index_only" and c.total == 1
+
+
+def test_person_ids_limits_the_directors_considered(db):
+    ids = {}
+    for n, tid in (("Ann", 2), ("Bob", 3)):
+        ids[n] = director(db, n, tid)
+        indexed(db, ids[n], f"Film {n}", 1950, seen=1)
+    res = director_completions(db, person_ids=[ids["Ann"]], today=TODAY)
+    assert [c.name for c in res] == ["Ann"]
+    assert director_completions(db, person_ids=[], today=TODAY) == []
+    by_name = director_completions(db, name="o", person_ids=[ids["Bob"]], today=TODAY)
+    assert [c.name for c in by_name] == ["Bob"]
