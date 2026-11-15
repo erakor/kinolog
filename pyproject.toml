@@ -33,6 +33,19 @@ llm = [
 [project.scripts]
 kinolog = "src.interfaces.cli:cli"
 
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+# The import package is literally named `src`, so turn off setuptools' src-layout
+# auto-discovery (which would install core/, eval/, ... as top-level packages).
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src", "src.*"]
+
+[tool.setuptools.package-data]
+"src.eval" = ["datasets/*.json"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"
