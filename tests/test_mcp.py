@@ -3,7 +3,8 @@
 import pytest
 
 from kinolog.index.chunking import chunk_document
-from kinolog.interfaces.mcp_server import TOOLS, KinologServer
+from kinolog.interfaces.mcp.server import KinologServer
+from kinolog.interfaces.mcp.tools import TOOLS
 from kinolog.store import Database
 
 

@@ -1,21 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import asdict
+from fastapi import APIRouter, Depends, Query
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-
-from kinolog.features import collections as coll
+from kinolog import services
 from kinolog.interfaces.web.deps import get_db
 from kinolog.store import Database
 
 router = APIRouter(prefix="/api/collections")
-
-
-def _summary(d: coll.DirectorCompletion, *, with_films: bool) -> dict:
-    out = {k: v for k, v in asdict(d).items() if k != "films"}
-    if with_films:
-        out["films"] = [asdict(f) for f in (d.films or [])]
-    return out
 
 
 @router.get("/directors")
@@ -29,23 +20,12 @@ def list_directors(
     include_films: bool = False,
     db: Database = Depends(get_db),
 ):
-    allc = coll.director_completion(db, sort=sort, status=status, q=q, min_films=min_films)
-    page = allc[offset:offset + limit]
-    if include_films:
-        coll.attach_films(db, page)
-    return {
-        "total": len(allc),
-        "summary": coll.collection_summary(db, min_films=min_films),
-        "items": [_summary(d, with_films=include_films) for d in page],
-    }
+    return services.directors_view(
+        db, sort=sort, status=status, q=q, min_films=min_films,
+        limit=limit, offset=offset, include_films=include_films,
+    )
 
 
 @router.get("/directors/{person_id}")
 def director(person_id: int, db: Database = Depends(get_db)):
-    d = coll.director_detail(db, person_id)
-    if d is None:
-        raise HTTPException(404, {"code": "not_found", "message": "No such director"})
-    out = _summary(d, with_films=True)
-    for f in out["films"]:
-        f["after_pct"] = None if f["seen"] else coll.pct(d.seen + 1, d.total)
-    return out
+    return services.director_view(db, person_id)

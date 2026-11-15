@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query, Response
 
-from kinolog.interfaces.web.deps import card_or_404, get_db, get_state
+from kinolog import services
+from kinolog.interfaces.web.deps import get_db, get_state
 from kinolog.interfaces.web.schemas import LogCreate, LogPatch
 from kinolog.interfaces.web.state import AppState
 from kinolog.store import Database
@@ -30,15 +31,12 @@ def list_log(
 def create_entry(
     body: LogCreate, state: AppState = Depends(get_state), db: Database = Depends(get_db)
 ):
-    card = card_or_404(db, body.item_id)
-    entry_id = db.log_watch(
-        body.item_id, body.watched_on, rating=body.rating, liked=body.liked, rewatch=body.rewatch
+    entry = services.create_log_entry(
+        db, body.item_id, body.watched_on,
+        rating=body.rating, liked=body.liked, rewatch=body.rewatch,
     )
-    # a logged film is no longer queued
-    if card["status"]["on_watchlist"]:
-        db.set_watchlist(body.item_id, False)
     state.invalidate()
-    return db.get_watch_entry_view(entry_id)
+    return entry
 
 
 @router.patch("/{entry_id}")

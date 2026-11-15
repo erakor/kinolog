@@ -28,7 +28,7 @@ A personal vector search, ingestion, and evaluation engine built over personal w
 - **Interfaces**:
   - Zero-dependency CLI (`kinolog`) with clean terminal output.
   - Interactive match review queue CLI (`kinolog ingest review`).
-  - MCP Server (`src/kinolog/interfaces/mcp_server.py`) with 6 tools: `search`, `rank_watchlist`, `similar_to`, `filmography`, `crew_overlap`, `stats`.
+  - MCP Server (`src/kinolog/interfaces/mcp/`) with 6 tools: `search`, `rank_watchlist`, `similar_to`, `filmography`, `crew_overlap`, `stats`.
   - Chat Agent (`src/kinolog/rag/agent.py`) with token-budgeted context assembly and citations.
 
 ---
@@ -131,7 +131,7 @@ To expose the Kinolog index tools to Claude or Antigravity via Model Context Pro
   "mcpServers": {
     "kinolog": {
       "command": "python3",
-      "args": ["-m", "kinolog.interfaces.mcp_server"],
+      "args": ["-m", "kinolog.interfaces.mcp"],
       "cwd": "/Users/amaurymouldron/Sites/Me/kinolog"
     }
   }

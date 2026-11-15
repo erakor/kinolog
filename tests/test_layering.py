@@ -10,7 +10,6 @@ LAYERS = {
     "config": 0,
     "domain": 0,
     "store": 1,
-    "ingest": 2,  # becomes `sources` in the sources phase
     "sources": 2,
     "index": 2,
     "retrieval": 3,

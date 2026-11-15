@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
 
-from kinolog.interfaces.web.deps import card_or_404, get_db, get_state
+from kinolog import services
+from kinolog.interfaces.web.deps import get_db, get_state
 from kinolog.interfaces.web.schemas import LikedBody, RatingBody
 from kinolog.interfaces.web.state import AppState
 from kinolog.store import Database
@@ -21,7 +22,7 @@ def lookup(
 
 @router.get("/{item_id}")
 def get_item(item_id: int, db: Database = Depends(get_db)):
-    return {**card_or_404(db, item_id), "sources": db.get_item_sources(item_id)}
+    return services.item_detail(db, item_id)
 
 
 @router.put("/{item_id}/rating")
@@ -31,10 +32,9 @@ def set_rating(
     state: AppState = Depends(get_state),
     db: Database = Depends(get_db),
 ):
-    card_or_404(db, item_id)
-    db.set_rating(item_id, body.rating)
+    card = services.rate_item(db, item_id, body.rating)
     state.invalidate()
-    return db.get_item_card(item_id)
+    return card
 
 
 @router.put("/{item_id}/liked")
@@ -44,7 +44,6 @@ def set_liked(
     state: AppState = Depends(get_state),
     db: Database = Depends(get_db),
 ):
-    card_or_404(db, item_id)
-    db.set_liked(item_id, body.liked)
+    card = services.like_item(db, item_id, body.liked)
     state.invalidate()  # hearts feed taste ranking
-    return db.get_item_card(item_id)
+    return card
