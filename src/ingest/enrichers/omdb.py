@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 import time
 from pathlib import Path
@@ -22,7 +21,7 @@ from pathlib import Path
 import httpx
 
 from src.core.db import Database
-from src.ingest.enrichers.tmdb import backfill_imdb_ids
+from src.ingest.resolvers.tmdb import get_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -41,19 +40,6 @@ _SOURCE_KEYS = {
 
 class OMDbQuotaError(RuntimeError):
     """Daily request limit reached, or the key is invalid/inactive: stop the batch."""
-
-
-def _get_api_key() -> str:
-    key = os.environ.get("OMDB_API_KEY", "")
-    if not key:
-        env_file = Path(".env")
-        if env_file.exists():
-            for line in env_file.read_text().splitlines():
-                if line.startswith("OMDB_API_KEY="):
-                    key = line.split("=", 1)[1].strip().strip('"').strip("'")
-    if not key:
-        raise ValueError("OMDB_API_KEY not set. Set it as an environment variable or in .env")
-    return key
 
 
 def _parse_score(raw: str) -> float | None:
@@ -87,18 +73,15 @@ def parse_ratings(data: dict) -> list[dict]:
         score = _parse_score(entry.get("Value", ""))
         if key and score is not None:
             out[key] = {"source": key, "score": score, "raw": entry["Value"].strip()}
-    if "imdb" not in out:
-        score = _parse_score(f"{data.get('imdbRating', '')}/10")
-        if score is not None:
-            out["imdb"] = {"source": "imdb", "score": score, "raw": f"{data['imdbRating']}/10"}
-    if "metacritic" not in out:
-        score = _parse_score(f"{data.get('Metascore', '')}/100")
-        if score is not None:
-            out["metacritic"] = {
-                "source": "metacritic", "score": score, "raw": f"{data['Metascore']}/100",
-            }
+    for key, field, scale in (("imdb", "imdbRating", 10), ("metacritic", "Metascore", 100)):
+        raw = f"{data.get(field, '')}/{scale}"
+        score = _parse_score(raw)
+        if key not in out and score is not None:
+            out[key] = {"source": key, "score": score, "raw": raw}
     for r in out.values():
-        r["votes"] = _parse_votes(data.get("imdbVotes")) if r["source"] == "imdb" else None
+        r["votes"] = None
+    if "imdb" in out:
+        out["imdb"]["votes"] = _parse_votes(data.get("imdbVotes"))
     return [out[k] for k in sorted(out)]
 
 
@@ -112,7 +95,7 @@ class OMDbClient:
         cache_dir: Path = CACHE_DIR,
         transport: httpx.BaseTransport | None = None,
     ):
-        self.api_key = api_key or _get_api_key()
+        self.api_key = api_key or get_api_key("OMDB_API_KEY")
         self.rate_limit = rate_limit
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
@@ -168,12 +151,13 @@ class OMDbClient:
         self.client.close()
 
 
-def enrich_item(db: Database, client: OMDbClient, item_id: int, refresh: bool = False) -> dict:
-    """Fetch OMDb ratings for one item and store them. Raises OMDbQuotaError on quota."""
-    item = db.get_item(item_id)
-    if not item or not item.get("imdb_id"):
-        return {"status": "skipped", "reason": "no_imdb_id"}
-    imdb_id = item["imdb_id"]
+def enrich_item(
+    db: Database, client: OMDbClient, item_id: int, imdb_id: str, refresh: bool = False,
+) -> dict:
+    """Fetch OMDb ratings for one item and store them (no commit).
+
+    Raises OMDbQuotaError when OMDb stops answering.
+    """
     data = client.get_by_imdb_id(imdb_id, refresh=refresh)
     db.cache_put(PROVIDER, imdb_id, str(client.cache_path(imdb_id)))
     if data.get("Response") != "True":
@@ -192,20 +176,19 @@ def enrich_all(
 ) -> dict:
     """Store OMDb ratings for all resolved films with an IMDb id.
 
-    Cached responses are applied without a request. Network calls stop after
-    ``max_requests`` or when OMDb reports its daily limit; re-run tomorrow to continue
-    (items without ratings are visited first, so each run makes progress).
+    Films already rated are skipped unless ``refresh``. Cached responses are applied
+    without a request. Network calls stop after ``max_requests`` or when OMDb reports its
+    daily limit; re-run tomorrow to continue. IMDb ids come from the TMDB step
+    (``ingest enrich``, or ``ingest backfill-runtime`` for cached TMDB data).
     """
-    backfill = backfill_imdb_ids(db)
     items = db.execute(
-        """SELECT i.id, i.imdb_id,
-                  EXISTS (SELECT 1 FROM external_ratings r
-                          WHERE r.item_id = i.id AND r.provider = ?) AS has_ratings
-           FROM items i
+        """SELECT i.id, i.imdb_id FROM items i
            WHERE i.item_type = ? AND i.imdb_id IS NOT NULL
              AND i.match_status IN ('auto', 'manual')
-           ORDER BY has_ratings, i.id""",
-        (PROVIDER, item_type),
+             AND (? OR NOT EXISTS (SELECT 1 FROM external_ratings r
+                                   WHERE r.item_id = i.id AND r.provider = ?))
+           ORDER BY i.id""",
+        (item_type, int(refresh), PROVIDER),
     ).fetchall()
     missing = db.execute(
         """SELECT COUNT(*) AS c FROM items WHERE item_type = ? AND tmdb_id IS NOT NULL
@@ -214,27 +197,26 @@ def enrich_all(
     ).fetchone()["c"]
 
     stats = {
-        "total": len(items), "imdb_ids_backfilled": backfill["imdb_ids"],
-        "no_imdb_id": missing, "rated": 0, "ratings": 0, "not_found": 0, "errors": 0,
-        "requests": 0, "deferred": 0, "quota_hit": 0,
+        "total": len(items), "no_imdb_id": missing, "rated": 0, "ratings": 0,
+        "not_found": 0, "errors": 0, "requests": 0, "deferred": 0, "quota_hit": 0,
     }
     start_requests = client.requests_made
+    quota_hit = False
     logger.info("Fetching OMDb ratings for %d %ss (max %d requests)...",
                 len(items), item_type, max_requests)
 
     for i, row in enumerate(items):
         needs_request = refresh or not client.is_cached(row["imdb_id"])
-        if needs_request and client.requests_made - start_requests >= max_requests:
-            stats["deferred"] += 1
-            continue
-        if needs_request and stats["quota_hit"]:
+        if needs_request and (
+            quota_hit or client.requests_made - start_requests >= max_requests
+        ):
             stats["deferred"] += 1
             continue
         try:
-            result = enrich_item(db, client, row["id"], refresh=refresh)
+            result = enrich_item(db, client, row["id"], row["imdb_id"], refresh=refresh)
         except OMDbQuotaError as e:
             logger.warning("OMDb stopped answering (%s); deferring the rest", e)
-            stats["quota_hit"] = 1
+            quota_hit = True
             stats["deferred"] += 1
             continue
         except Exception as e:
@@ -244,11 +226,14 @@ def enrich_all(
         if result["status"] == "ok":
             stats["rated"] += 1
             stats["ratings"] += result["ratings"]
-        elif result["status"] == "not_found":
+        else:
             stats["not_found"] += 1
         if (i + 1) % 100 == 0:
+            db.conn.commit()
             logger.info("OMDb progress: %d/%d", i + 1, len(items))
 
+    db.conn.commit()
     stats["requests"] = client.requests_made - start_requests
+    stats["quota_hit"] = int(quota_hit)
     logger.info("OMDb enrichment complete: %s", stats)
     return stats

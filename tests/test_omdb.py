@@ -107,8 +107,8 @@ def test_enrich_all_stores_ratings_and_uses_cache(tmp_path):
     assert by_source(db.get_external_ratings(i))["rotten_tomatoes"]["score"] == 83.0
     assert db.get_external_ratings(gone) == []
 
-    again = enrich_all(db, client)  # both answers cached, including "not found"
-    assert again["requests"] == 0 and again["rated"] == 1 and len(calls) == 2
+    again = enrich_all(db, client)  # rated film skipped; "not found" answer is cached
+    assert again["requests"] == 0 and again["not_found"] == 1 and len(calls) == 2
     assert db.stats()["external_ratings"] == 3
 
 
@@ -150,5 +150,6 @@ def test_set_external_ratings_replaces_provider_rows():
     db.set_external_ratings(i, "omdb", [{"source": "imdb", "score": 70},
                                         {"source": "metacritic", "score": 60}])
     db.set_external_ratings(i, "omdb", [{"source": "imdb", "score": 72, "votes": 10}])
+    db.conn.commit()
     assert [(r["source"], r["score"], r["votes"]) for r in db.get_external_ratings(i)] \
         == [("imdb", 72.0, 10)]

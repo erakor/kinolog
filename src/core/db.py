@@ -171,7 +171,6 @@ CREATE INDEX IF NOT EXISTS idx_credits_item ON credits(item_id);
 CREATE INDEX IF NOT EXISTS idx_credits_person ON credits(person_id);
 CREATE INDEX IF NOT EXISTS idx_watch_log_item ON watch_log(item_id);
 CREATE INDEX IF NOT EXISTS idx_watch_log_date ON watch_log(watched_on);
-CREATE INDEX IF NOT EXISTS idx_items_imdb ON items(imdb_id);
 """
 
 
@@ -568,17 +567,18 @@ class Database:
 
     # --- External ratings ---
 
-    def set_external_ratings(self, item_id: int, provider: str, ratings: list[dict]) -> int:
+    def set_external_ratings(self, item_id: int, provider: str, ratings: list[dict]) -> None:
         """Replace an item's ratings from one provider (sources it no longer reports are dropped).
 
-        Each rating is {"source", "score" (0..100), "raw", "votes"}. Returns rows written.
+        Each rating is {"source", "score" (0..100), "raw", "votes"}. Does not commit, so
+        batch callers commit once.
         """
         now = _now()
         self.conn.execute(
             "DELETE FROM external_ratings WHERE item_id = ? AND provider = ?", (item_id, provider)
         )
         self.conn.executemany(
-            """INSERT OR REPLACE INTO external_ratings
+            """INSERT INTO external_ratings
                (item_id, source, score, raw, votes, provider, fetched_at)
                VALUES (?, ?, ?, ?, ?, ?, ?)""",
             [
@@ -587,8 +587,6 @@ class Database:
                 for r in ratings
             ],
         )
-        self.conn.commit()
-        return len(ratings)
 
     def get_external_ratings(self, item_id: int) -> list[dict]:
         rows = self.conn.execute(
