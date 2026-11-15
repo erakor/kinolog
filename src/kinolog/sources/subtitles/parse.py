@@ -1,16 +1,11 @@
-"""Subtitle parser and cleaner: cleans SRT files and creates scene-level chunks with timestamps."""
+"""Subtitle parsing: SRT entries, text cleaning and scene-level chunking with timestamps."""
 
 from __future__ import annotations
 
-import logging
 import re
 from dataclasses import dataclass
-from pathlib import Path
 
 from kinolog.domain import Chunk
-from kinolog.store import Database
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -192,51 +187,3 @@ def chunk_subtitles_by_window(
         t_start += stride_ms
 
     return chunks
-
-
-def load_and_chunk_subtitle_file(
-    db: Database,
-    item_id: int,
-    srt_path: str | Path,
-    lang: str = "fr",
-    strategy: str = "sub_gap",
-) -> list[int]:
-    """
-    Load an SRT file, store as a document, and chunk with subtitle timestamps into chunks table.
-    """
-    path = Path(srt_path)
-    if not path.exists():
-        raise FileNotFoundError(f"Subtitle file not found: {path}")
-
-    content = path.read_text(encoding="utf-8", errors="replace")
-    entries = parse_srt(content)
-    if not entries:
-        return []
-
-    full_text = "\n".join(f"[{ms_to_time(e.start_ms)}] {e.text}" for e in entries)
-    doc_id = db.upsert_document(item_id, source="subtitle", lang=lang, text=full_text)
-
-    if strategy == "sub_gap":
-        sub_chunks = chunk_subtitles_by_gap(entries)
-    else:
-        sub_chunks = chunk_subtitles_by_window(entries)
-
-    chunk_ids = []
-    for c in sub_chunks:
-        cid = db.upsert_chunk(
-            item_id=item_id,
-            document_id=doc_id,
-            strategy=strategy,
-            ord=c.ord,
-            text=c.text,
-            section_name=c.section_name,
-            lang=lang,
-            token_count=c.token_count,
-            start_ms=c.start_ms,
-            end_ms=c.end_ms,
-        )
-        chunk_ids.append(cid)
-
-    logger.info("Loaded and chunked subtitle for item %d (%d chunks, strategy '%s')",
-                item_id, len(chunk_ids), strategy)
-    return chunk_ids

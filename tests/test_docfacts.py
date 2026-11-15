@@ -1,5 +1,5 @@
 from kinolog.features.docfacts import item_facts, parse_tmdb_text
-from kinolog.ingest.enrichers.tmdb import _build_document_text
+from kinolog.sources.tmdb.enrich import _build_document_text
 from kinolog.store import Database
 
 DETAILS = {

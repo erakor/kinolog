@@ -4,7 +4,7 @@ import csv
 
 import pytest
 
-from kinolog.ingest.goodreads import _clean_isbn, load_goodreads
+from kinolog.sources.goodreads.load import _clean_isbn, load_goodreads
 from kinolog.store import Database
 
 

@@ -6,7 +6,7 @@ import logging
 import re
 
 from kinolog.config import TMDB_CACHE_DIR
-from kinolog.ingest.resolvers.tmdb import TMDBResolver
+from kinolog.sources.tmdb.client import TMDBClient
 from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
@@ -169,7 +169,7 @@ def _build_document_text(details: dict, lang: str = "en") -> str:
 
 def enrich_item(
     db: Database,
-    resolver: TMDBResolver,
+    client: TMDBClient,
     item_id: int,
     languages: tuple[str, ...] = ("en", "fr", "it"),
 ) -> dict:
@@ -187,7 +187,7 @@ def enrich_item(
 
     # Fetch details (cached on disk)
     try:
-        details = resolver.get_details(tmdb_id)
+        details = client.get_details(tmdb_id)
     except Exception as e:
         logger.error("Failed to fetch TMDB details for %d: %s", tmdb_id, e)
         return {"status": "error", "error": str(e)}
@@ -243,7 +243,7 @@ def enrich_item(
 
 def enrich_all(
     db: Database,
-    resolver: TMDBResolver,
+    client: TMDBClient,
     item_type: str = "film",
     languages: tuple[str, ...] = ("en", "fr", "it"),
 ) -> dict:
@@ -260,7 +260,7 @@ def enrich_all(
 
     for i, item in enumerate(items):
         try:
-            stats = enrich_item(db, resolver, item["id"], languages=languages)
+            stats = enrich_item(db, client, item["id"], languages=languages)
             if stats.get("status") != "error":
                 total_stats["enriched"] += 1
                 total_stats["credits"] += stats.get("credits", 0)

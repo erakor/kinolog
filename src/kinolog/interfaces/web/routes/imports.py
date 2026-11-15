@@ -6,7 +6,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 
-from kinolog.ingest.letterboxd import load_letterboxd
+from kinolog import pipeline
 from kinolog.interfaces.web.deps import get_state
 from kinolog.interfaces.web.state import AppState
 from kinolog.store import Database
@@ -65,7 +65,7 @@ def import_letterboxd(  # sync: runs in the threadpool, so the import never bloc
 
 def _load(db: Database, root: Path, state: AppState) -> dict:
     try:
-        stats = load_letterboxd(db, root)
+        stats = pipeline.load_letterboxd(db, root)
     except FileNotFoundError as e:
         raise _bad(str(e)) from e
     except (ValueError, UnicodeDecodeError, zipfile.BadZipFile) as e:

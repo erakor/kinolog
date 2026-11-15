@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import logging
 
+from kinolog import pipeline
 from kinolog.config import DEFAULT_DB_PATH, DEFAULT_MODEL, DEFAULT_RANKER, DEFAULT_STRATEGY
 from kinolog.store import Database
 
@@ -54,50 +55,40 @@ def print_table(title: str, headers: list[str], rows: list[list[str]]):
 # --- Core command handlers ---
 
 def handle_ingest_letterboxd(db_path: str, export_dir: str):
-    from kinolog.ingest.letterboxd import load_letterboxd
     db = Database(db_path)
-    stats = load_letterboxd(db, export_dir)
+    stats = pipeline.load_letterboxd(db, export_dir)
     rows = [[k, str(v)] for k, v in stats.items()]
     print_table("Letterboxd Import", ["Metric", "Count"], rows)
     db.close()
 
 
 def handle_ingest_goodreads(db_path: str, csv_path: str):
-    from kinolog.ingest.goodreads import load_goodreads
     db = Database(db_path)
-    stats = load_goodreads(db, csv_path)
+    stats = pipeline.load_goodreads(db, csv_path)
     rows = [[k, str(v)] for k, v in stats.items()]
     print_table("Goodreads Import", ["Metric", "Count"], rows)
     db.close()
 
 
 def handle_ingest_resolve(db_path: str, item_type: str = "film"):
-    from kinolog.ingest.resolvers.tmdb import TMDBResolver
     db = Database(db_path)
-    resolver = TMDBResolver()
-    stats = resolver.resolve_all(db, item_type=item_type)
+    stats = pipeline.resolve(db, item_type=item_type)
     rows = [[k, str(v)] for k, v in stats.items()]
     print_table("TMDB Resolution", ["Metric", "Count"], rows)
-    resolver.close()
     db.close()
 
 
 def handle_ingest_enrich(db_path: str, item_type: str = "film"):
-    from kinolog.ingest.enrichers.tmdb import enrich_all
-    from kinolog.ingest.resolvers.tmdb import TMDBResolver
     db = Database(db_path)
-    resolver = TMDBResolver()
-    stats = enrich_all(db, resolver, item_type=item_type)
+    stats = pipeline.enrich(db, item_type=item_type)
     rows = [[k, str(v)] for k, v in stats.items()]
     print_table("TMDB Enrichment", ["Metric", "Count"], rows)
-    resolver.close()
     db.close()
 
 
 def handle_ingest_backfill_runtime(db_path: str):
-    from kinolog.ingest.enrichers.tmdb import backfill_runtime_and_tv
     db = Database(db_path)
-    stats = backfill_runtime_and_tv(db)
+    stats = pipeline.backfill_runtime(db)
     print_table("Runtime backfill", ["Metric", "Count"], [[k, str(v)] for k, v in stats.items()])
     db.close()
 
@@ -110,24 +101,24 @@ def handle_ingest_review(db_path: str):
 def handle_ingest_chunk(
     db_path: str, strategy: str = DEFAULT_STRATEGY, item_type: str | None = None
 ):
-    from kinolog.index.chunking import chunk_all_documents
     db = Database(db_path)
-    stats = chunk_all_documents(db, strategy=strategy, item_type=item_type)
+    stats = pipeline.chunk(db, strategy=strategy, item_type=item_type)
     print(f"Chunked {stats['total']} documents -> {stats['chunks_created']} chunks")
     db.close()
 
 
-def handle_ingest_embed(db_path: str, model: str = DEFAULT_MODEL, strategy: str = DEFAULT_STRATEGY, device: str | None = None):
-    from kinolog.index.embedding import BGE_M3, MultilingualE5, embed_chunks
+def handle_ingest_embed(
+    db_path: str,
+    model: str = DEFAULT_MODEL,
+    strategy: str = DEFAULT_STRATEGY,
+    device: str | None = None,
+):
     db = Database(db_path)
-    if model == "bge_m3":
-        embed_model = BGE_M3(device=device)
-    elif model == "multilingual_e5":
-        embed_model = MultilingualE5(device=device)
-    else:
-        print(f"Unknown model: {model}")
+    try:
+        stats = pipeline.embed(db, model=model, strategy=strategy, device=device)
+    except ValueError as e:
+        print(e)
         return
-    stats = embed_chunks(db, embed_model, strategy=strategy)
     print(f"Embedded {stats['embedded']}/{stats['total']} chunks")
     db.close()
 

@@ -4,7 +4,7 @@ import csv
 
 import pytest
 
-from kinolog.ingest.letterboxd import compute_first_heart_date, load_letterboxd
+from kinolog.sources.letterboxd.load import compute_first_heart_date, load_letterboxd
 from kinolog.store import Database
 
 

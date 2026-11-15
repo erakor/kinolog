@@ -1,71 +1,20 @@
-"""TMDB resolver: match items to TMDB movies."""
+"""TMDB resolver: match items to TMDB movies (the matching logic; HTTP lives in the client)."""
 
 from __future__ import annotations
 
-import json
 import logging
-import time
 
-import httpx
-
-from kinolog.config import TMDB_CACHE_DIR, get_tmdb_api_key
+from kinolog.sources.tmdb.client import TMDBClient
 from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
-
-TMDB_BASE = "https://api.themoviedb.org/3"
-CACHE_DIR = TMDB_CACHE_DIR
-
-
-_get_api_key = get_tmdb_api_key
 
 
 class TMDBResolver:
     """Resolve film titles to TMDB IDs."""
 
-    def __init__(self, api_key: str | None = None, rate_limit: float = 0.25):
-        self.api_key = api_key or _get_api_key()
-        self.rate_limit = rate_limit  # seconds between requests
-        self._last_request = 0.0
-        self.client = httpx.Client(
-            base_url=TMDB_BASE,
-            params={"api_key": self.api_key},
-            timeout=30.0,
-        )
-        CACHE_DIR.mkdir(parents=True, exist_ok=True)
-
-    def _throttle(self):
-        elapsed = time.time() - self._last_request
-        if elapsed < self.rate_limit:
-            time.sleep(self.rate_limit - elapsed)
-        self._last_request = time.time()
-
-    def _get(self, path: str, **params) -> dict:
-        self._throttle()
-        resp = self.client.get(path, params=params)
-        resp.raise_for_status()
-        return resp.json()
-
-    def search(self, title: str, year: int | None = None, language: str = "en-US") -> list[dict]:
-        """Search TMDB for a movie by title, optionally constrained by year."""
-        params = {"query": title, "language": language}
-        if year:
-            params["year"] = str(year)
-        data = self._get("/search/movie", **params)
-        return data.get("results", [])
-
-    def get_details(self, tmdb_id: int) -> dict:
-        """Get full movie details with credits, keywords, and alternative titles."""
-        cache_path = CACHE_DIR / f"movie_{tmdb_id}.json"
-        if cache_path.exists():
-            return json.loads(cache_path.read_text(encoding="utf-8"))
-
-        data = self._get(
-            f"/movie/{tmdb_id}",
-            append_to_response="credits,keywords,external_ids,alternative_titles,translations",
-        )
-        cache_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-        return data
+    def __init__(self, client: TMDBClient | None = None):
+        self.client = client or TMDBClient()
 
     def _score_candidate(
         self,
@@ -139,7 +88,7 @@ class TMDBResolver:
         seen_ids = set()
 
         for lang in ["en-US", "fr-FR", "it-IT"]:
-            results = self.search(title, year=year, language=lang)
+            results = self.client.search(title, year=year, language=lang)
             for r in results:
                 if r["id"] not in seen_ids:
                     seen_ids.add(r["id"])
@@ -147,7 +96,7 @@ class TMDBResolver:
 
             # Also try without year if we got no results
             if not results and year:
-                results = self.search(title, year=None, language=lang)
+                results = self.client.search(title, year=None, language=lang)
                 for r in results:
                     if r["id"] not in seen_ids:
                         seen_ids.add(r["id"])
@@ -174,7 +123,7 @@ class TMDBResolver:
         # Also check alternative titles for the top candidate
         if best_score < 0.7 and len(scored) > 0:
             try:
-                details = self.get_details(best["id"])
+                details = self.client.get_details(best["id"])
                 alt_titles = [
                     a["title"]
                     for a in details.get("alternative_titles", {}).get("titles", [])

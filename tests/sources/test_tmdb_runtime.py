@@ -1,6 +1,6 @@
 """Tests for runtime/TV extraction from TMDB data."""
 
-from kinolog.ingest.enrichers.tmdb import (
+from kinolog.sources.tmdb.enrich import (
     _build_document_text,
     backfill_runtime_and_tv,
     enrich_item,

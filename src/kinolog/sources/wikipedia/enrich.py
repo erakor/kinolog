@@ -2,74 +2,12 @@
 
 from __future__ import annotations
 
-import json
 import logging
-import urllib.parse
 
-from kinolog.config import WIKI_CACHE_DIR, WIKIDATA_CACHE_DIR
+from kinolog.sources.wikipedia.client import _fetch_wikidata_sitelinks, _fetch_wikipedia_sections
 from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
-
-
-
-def _fetch_wikidata_sitelinks(wikidata_id: str) -> dict[str, str]:
-    """
-    Fetch sitelinks for a Wikidata entity (e.g., 'Q18411' -> {'en': 'La Dolce Vita', 'it': '...', 'fr': '...'}).
-    Caches raw JSON in data/cache/wikidata/{wikidata_id}.json.
-    """
-    WIKIDATA_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    cache_file = WIKIDATA_CACHE_DIR / f"{wikidata_id}.json"
-
-    if cache_file.exists():
-        data = json.loads(cache_file.read_text(encoding="utf-8"))
-    else:
-        import urllib.request
-
-        url = f"https://www.wikidata.org/w/api.php?action=wbgetentities&ids={wikidata_id}&props=sitelinks&format=json"
-        req = urllib.request.Request(url, headers={"User-Agent": "Kinolog/1.0 (personal-film-index)"})
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-        cache_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    sitelinks = {}
-    entity = data.get("entities", {}).get(wikidata_id, {})
-    links = entity.get("sitelinks", {})
-
-    for lang in ("en", "fr", "it"):
-        wiki_key = f"{lang}wiki"
-        if wiki_key in links:
-            sitelinks[lang] = links[wiki_key]["title"]
-
-    return sitelinks
-
-
-def _fetch_wikipedia_sections(title: str, lang: str = "en") -> dict:
-    """
-    Fetch Wikipedia mobile-sections for a page title.
-    Caches raw JSON in data/cache/wiki/{lang}_{clean_title}.json.
-    """
-    WIKI_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    safe_name = urllib.parse.quote(title.replace(" ", "_"), safe="")
-    cache_file = WIKI_CACHE_DIR / f"{lang}_{safe_name}.json"
-
-    if cache_file.exists():
-        return json.loads(cache_file.read_text(encoding="utf-8"))
-
-    import urllib.request
-
-    encoded_title = urllib.parse.quote(title.replace(" ", "_"))
-    url = f"https://{lang}.wikipedia.org/api/rest_v1/page/mobile-sections/{encoded_title}"
-    req = urllib.request.Request(url, headers={"User-Agent": "Kinolog/1.0 (personal-film-index)"})
-
-    try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-        cache_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-        return data
-    except Exception as e:
-        logger.warning("Failed to fetch Wikipedia (%s) for '%s': %s", lang, title, e)
-        return {}
 
 
 def _clean_html_text(html: str) -> str:
