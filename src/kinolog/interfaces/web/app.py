@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 DIST_DIR = Path(__file__).parent / "dist"
 BUILD_HINT = (
-    "npm --prefix frontend ci && "
-    "npm --prefix frontend run build"
+    "pnpm -C frontend install --frozen-lockfile && "
+    "pnpm -C frontend build"
 )
 MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
 LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
