@@ -113,13 +113,15 @@ python3 -m kinolog.interfaces.cli eval hearts --ranker nearest_exemplar --splits
 A local, single-user web UI (Concierge, Watch List, Watching Log, Director Collections) runs on top of
 the same index. It binds to `127.0.0.1` only and makes no external requests from the browser.
 
-The frontend is Vite + React + TypeScript and needs Node to build (once, and after frontend changes);
-the build output is not committed.
+The frontend is Vite + React + TypeScript and needs Node 26 (see `.nvmrc`) and pnpm 12 to build
+(once, and after frontend changes); the build output is not committed. Node 26 no longer ships
+Corepack, so install pnpm with `npm install -g pnpm@12` (the exact version is pinned in
+`frontend/package.json` under `packageManager`).
 
 ```bash
 pip install -e '.[web]'
-npm --prefix frontend ci
-npm --prefix frontend run build
+pnpm -C frontend install --frozen-lockfile
+pnpm -C frontend build
 python3 -m kinolog.interfaces.web --db data/index.db          # http://127.0.0.1:8765
 python3 -m kinolog.interfaces.web --no-model                  # keyword search only, no embedding model
 python3 -m kinolog.interfaces.web --llm                       # optional LLM rationales (pip install '.[llm]')
@@ -132,7 +134,7 @@ To work on the UI, run the Python server and the Vite dev server in two terminal
 
 ```bash
 python3 -m kinolog.interfaces.web --db data/index.db --no-model
-npm --prefix frontend run dev
+pnpm -C frontend dev
 ```
 
 `--llm` sends the query and retrieved chunk text to the Anthropic API, so it is opt-in; the
