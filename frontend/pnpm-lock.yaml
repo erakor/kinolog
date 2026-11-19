@@ -204,8 +204,8 @@ importers:
         version: 1.4.0
     devDependencies:
       '@erakor/toolchain':
-        specifier: github:erakor/toolchain#f1b5fee4e8d1d7a3df29460710db1808f5523d6f
-        version: https://codeload.github.com/erakor/toolchain/tar.gz/f1b5fee4e8d1d7a3df29460710db1808f5523d6f(oxfmt@0.79.0)(oxlint@1.94.0)
+        specifier: github:erakor/toolchain#7b648f778dfc2e4f0753ef20bb5a0a9484f9377a
+        version: https://codeload.github.com/erakor/toolchain/tar.gz/7b648f778dfc2e4f0753ef20bb5a0a9484f9377a(oxfmt@0.79.0)(oxlint@1.94.0)
       '@tailwindcss/vite':
         specifier: ^4.3.5
         version: 4.3.5(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0))
@@ -278,9 +278,9 @@ packages:
   '@emnapi/wasi-threads@2.2.0':
     resolution: {integrity: sha512-JP7OYH38Q7+pyTAe14raZHLQIK7BDKbdwji+Xi3pcd/6QkJYQH3SX4wu6EplGrGJWRepoNzedfm0G3B9Z4e9Rw==}
 
-  '@erakor/toolchain@https://codeload.github.com/erakor/toolchain/tar.gz/f1b5fee4e8d1d7a3df29460710db1808f5523d6f':
-    resolution: {gitHosted: true, integrity: sha512-PHbvjwMNLa88gBOzTF08997S/gNRofS+iUM9Np4KwCcI+xhLL7vCcdNyEG3BJHIG4OlRzScPe6S2sDhx6XyrjA==, tarball: https://codeload.github.com/erakor/toolchain/tar.gz/f1b5fee4e8d1d7a3df29460710db1808f5523d6f}
-    version: 1.0.0
+  '@erakor/toolchain@https://codeload.github.com/erakor/toolchain/tar.gz/7b648f778dfc2e4f0753ef20bb5a0a9484f9377a':
+    resolution: {gitHosted: true, integrity: sha512-v0x7i3w6kzKk1k02PXzk6fm483GJHELo6EU5oSDOyNTcppOlhqUuZ6LvCIaBiVTx1iUkSzwAtBtUBivbGRDmFA==, tarball: https://codeload.github.com/erakor/toolchain/tar.gz/7b648f778dfc2e4f0753ef20bb5a0a9484f9377a}
+    version: 1.2.1
     engines: {node: '>=26'}
     peerDependencies:
       oxfmt: '>=0.79.0'
@@ -2293,7 +2293,7 @@ snapshots:
       tslib: 2.9.1
     optional: true
 
-  '@erakor/toolchain@https://codeload.github.com/erakor/toolchain/tar.gz/f1b5fee4e8d1d7a3df29460710db1808f5523d6f(oxfmt@0.79.0)(oxlint@1.94.0)':
+  '@erakor/toolchain@https://codeload.github.com/erakor/toolchain/tar.gz/7b648f778dfc2e4f0753ef20bb5a0a9484f9377a(oxfmt@0.79.0)(oxlint@1.94.0)':
     dependencies:
       oxfmt: 0.79.0
       oxlint: 1.94.0
