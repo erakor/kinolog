@@ -1,0 +1,5 @@
+# Reformats that change no behavior. GitHub skips these in blame;
+# locally: git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# The frontend moving to the shared oxfmt style (erakor/toolchain).
+5e1c06147f5a20d615787bfc5f916b4a23d52d97
