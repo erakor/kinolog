@@ -3,3 +3,6 @@
 
 # The frontend moving to the shared oxfmt style (erakor/toolchain).
 5e1c06147f5a20d615787bfc5f916b4a23d52d97
+
+# The Python code moving to ruff format.
+56c6b9a9f7a44fd9bbdf25083a46a674997122b5
