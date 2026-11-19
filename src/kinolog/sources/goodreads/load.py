@@ -11,8 +11,18 @@ from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
 
-EXPECTED_COLS = {"Book Id", "Title", "Author", "ISBN", "ISBN13", "My Rating",
-                 "Exclusive Shelf", "Date Read", "Date Added", "Bookshelves"}
+EXPECTED_COLS = {
+    "Book Id",
+    "Title",
+    "Author",
+    "ISBN",
+    "ISBN13",
+    "My Rating",
+    "Exclusive Shelf",
+    "Date Read",
+    "Date Added",
+    "Bookshelves",
+}
 
 
 def _clean_isbn(raw: str | None) -> str | None:
@@ -20,12 +30,12 @@ def _clean_isbn(raw: str | None) -> str | None:
     if not raw:
         return None
     # ='0451524934' or ="0451524934"
-    cleaned = re.sub(r'[="\']+', '', raw).strip()
+    cleaned = re.sub(r'[="\']+', "", raw).strip()
     return cleaned if cleaned else None
 
 
 def _parse_csv(path: Path) -> list[dict]:
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
     if rows:
@@ -75,7 +85,9 @@ def load_goodreads(db: Database, csv_path: str | Path) -> dict:
         original_title = f"{title} — {author}" if author else title
 
         item_id = db.upsert_item(
-            "book", title, year,
+            "book",
+            title,
+            year,
             original_title=original_title,
             isbn=best_isbn,
         )
@@ -100,6 +112,11 @@ def load_goodreads(db: Database, csv_path: str | Path) -> dict:
             stats["with_isbn"] += 1
 
     db.conn.commit()
-    logger.info("Loaded %d books (%d read, %d to-read, %d with ISBN)",
-                stats["total"], stats["read"], stats["to_read"], stats["with_isbn"])
+    logger.info(
+        "Loaded %d books (%d read, %d to-read, %d with ISBN)",
+        stats["total"],
+        stats["read"],
+        stats["to_read"],
+        stats["with_isbn"],
+    )
     return stats

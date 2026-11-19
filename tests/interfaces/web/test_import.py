@@ -13,8 +13,18 @@ def _csv(fields, rows):
 
 DIARY = _csv(
     ["Date", "Name", "Year", "Letterboxd URI", "Rating", "Rewatch", "Tags", "Watched Date"],
-    [{"Date": "2024-01-02", "Name": "Tiny Film", "Year": "1999", "Letterboxd URI": "u/tiny",
-      "Rating": "4", "Rewatch": "", "Tags": "", "Watched Date": "2024-01-01"}],
+    [
+        {
+            "Date": "2024-01-02",
+            "Name": "Tiny Film",
+            "Year": "1999",
+            "Letterboxd URI": "u/tiny",
+            "Rating": "4",
+            "Rewatch": "",
+            "Tags": "",
+            "Watched Date": "2024-01-01",
+        }
+    ],
 )
 WATCHLIST = _csv(
     ["Date", "Name", "Year", "Letterboxd URI"],

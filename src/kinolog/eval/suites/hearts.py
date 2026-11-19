@@ -38,9 +38,7 @@ def eval_hearts_recall(
 
     rank_fn(db, candidate_ids, heart_ids, **kwargs) -> list[TasteScore]
     """
-    all_hearts = db.execute(
-        "SELECT item_id FROM user_status WHERE liked = 1"
-    ).fetchall()
+    all_hearts = db.execute("SELECT item_id FROM user_status WHERE liked = 1").fetchall()
     heart_ids = [r["item_id"] for r in all_hearts]
 
     if len(heart_ids) < min_hearts:
@@ -48,7 +46,9 @@ def eval_hearts_recall(
         return []
 
     # Get candidates: all seen films after first-heart date
-    candidates_sql = "SELECT i.id FROM items i JOIN user_status us ON i.id = us.item_id WHERE us.seen = 1"
+    candidates_sql = (
+        "SELECT i.id FROM items i JOIN user_status us ON i.id = us.item_id WHERE us.seen = 1"
+    )
     if first_heart_date:
         candidates_sql += " AND us.seen_date >= ?"
         all_candidates = [
@@ -96,17 +96,19 @@ def eval_hearts_recall(
             val = statistics.mean(values)
             sd = statistics.stdev(values) if len(values) > 1 else 0.0
 
-        eval_results.append(EvalResult(
-            suite="hearts_recall",
-            metric=metric_name,
-            value=val,
-            stdev=sd,
-            config={
-                "n_splits": n_splits,
-                "holdout_fraction": holdout_fraction,
-                "n_hearts": len(heart_ids),
-                "n_candidates": len(all_candidates),
-            },
-        ))
+        eval_results.append(
+            EvalResult(
+                suite="hearts_recall",
+                metric=metric_name,
+                value=val,
+                stdev=sd,
+                config={
+                    "n_splits": n_splits,
+                    "holdout_fraction": holdout_fraction,
+                    "n_hearts": len(heart_ids),
+                    "n_candidates": len(all_candidates),
+                },
+            )
+        )
 
     return eval_results

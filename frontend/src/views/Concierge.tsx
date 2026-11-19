@@ -8,7 +8,16 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Search } from 'lucide-react'
-import { eyebrow, grid2, heroArt, heroLede, heroSplit, heroTitle, num, toolbar } from '../components/styles'
+import {
+  eyebrow,
+  grid2,
+  heroArt,
+  heroLede,
+  heroSplit,
+  heroTitle,
+  num,
+  toolbar,
+} from '../components/styles'
 import { useHealth } from '../context/HealthContext'
 import { fmtHours, fmtPct } from '../format'
 import { useAsync } from '../hooks/useAsync'
@@ -28,7 +37,17 @@ type Result =
   | { status: 'error'; message: string }
   | { status: 'done'; data: ConciergeResponse }
 
-function Stat({ label, value, sub, accent = false }: { label: string; value: string; sub: string; accent?: boolean }) {
+function Stat({
+  label,
+  value,
+  sub,
+  accent = false,
+}: {
+  label: string
+  value: string
+  sub: string
+  accent?: boolean
+}) {
   return (
     <div>
       <div className="text-sm text-ink-muted">{label}</div>
@@ -38,7 +57,13 @@ function Stat({ label, value, sub, accent = false }: { label: string; value: str
   )
 }
 
-function Results({ data, onChanged }: { data: ConciergeResponse; onChanged: (itemId: number) => void }) {
+function Results({
+  data,
+  onChanged,
+}: {
+  data: ConciergeResponse
+  onChanged: (itemId: number) => void
+}) {
   const notes = data.degraded.filter((d) => !d.startsWith('no_llm'))
   if (data.excluded_unknown_runtime) {
     notes.push(`${data.excluded_unknown_runtime} film(s) with unknown runtime were skipped`)
@@ -48,20 +73,14 @@ function Results({ data, onChanged }: { data: ConciergeResponse; onChanged: (ite
   const relax = data.empty?.relax ?? []
   return (
     <>
-      <p className="text-ink-muted text-sm my-2">
-        Curated for “{data.query}”
-      </p>
-      <div className="flex flex-wrap gap-2 mb-3">
+      <p className="my-2 text-sm text-ink-muted">Curated for “{data.query}”</p>
+      <div className="mb-3 flex flex-wrap gap-2">
         {data.parsed.chips.map((c, i) => (
-          <Badge key={i}>
-            {c.label}
-          </Badge>
+          <Badge key={i}>{c.label}</Badge>
         ))}
       </div>
       {notes.length > 0 && (
-        <p className="text-ink-muted text-xs mb-3">
-          {notes.map(formatNote).join(' · ')}
-        </p>
+        <p className="mb-3 text-xs text-ink-muted">{notes.map(formatNote).join(' · ')}</p>
       )}
       {!first ? (
         <EmptyState
@@ -83,8 +102,12 @@ function Results({ data, onChanged }: { data: ConciergeResponse; onChanged: (ite
             </div>
           )}
           {tag && (
-            <p className="text-ink-muted text-xs mt-2">
-              Rationales: {tag === 'llm' ? 'written by the model, checked against the cited text' : 'template built from your index'}.
+            <p className="mt-2 text-xs text-ink-muted">
+              Rationales:{' '}
+              {tag === 'llm'
+                ? 'written by the model, checked against the cited text'
+                : 'template built from your index'}
+              .
             </p>
           )}
         </>
@@ -101,16 +124,13 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
   const seq = useRef(0)
   const started = useRef(false)
 
-  const { data: home } = useAsync(
-    async () => {
-      const [overview, suggestions] = await Promise.all([
-        api.get<ConciergeOverview>('/api/concierge/overview'),
-        api.get<{ prompts: string[] }>('/api/concierge/suggestions'),
-      ])
-      return { overview, prompts: suggestions.prompts }
-    },
-    [],
-  )
+  const { data: home } = useAsync(async () => {
+    const [overview, suggestions] = await Promise.all([
+      api.get<ConciergeOverview>('/api/concierge/overview'),
+      api.get<{ prompts: string[] }>('/api/concierge/suggestions'),
+    ])
+    return { overview, prompts: suggestions.prompts }
+  }, [])
 
   async function ask(raw: string) {
     const q = raw.trim()
@@ -120,10 +140,15 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
     history.replaceState(null, '', `#/concierge?q=${encodeURIComponent(q)}`)
     setResult({ status: 'loading' })
     try {
-      const data = await api.post<ConciergeResponse>('/api/concierge', { query: q, scope, limit: 5 })
+      const data = await api.post<ConciergeResponse>('/api/concierge', {
+        query: q,
+        scope,
+        limit: 5,
+      })
       if (my === seq.current) setResult({ status: 'done', data })
     } catch (e) {
-      if (my === seq.current) setResult({ status: 'error', message: e instanceof Error ? e.message : String(e) })
+      if (my === seq.current)
+        setResult({ status: 'error', message: e instanceof Error ? e.message : String(e) })
     } finally {
       // /api/health only changes here when the embedding model gets loaded by the first query
       if (my === seq.current && !health?.model_loaded) void refreshHealth()
@@ -136,6 +161,7 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
       started.current = true
       void ask(q)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs the ?q= query once on mount (started guards it), not on every change
   }, [])
 
   /** After queue/log, refresh just that pick's status instead of re-running the retrieval. */
@@ -144,7 +170,15 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
       const card = await api.get<Item>(`/api/items/${itemId}`)
       setResult((r) =>
         r.status === 'done'
-          ? { ...r, data: { ...r.data, picks: r.data.picks.map((p) => (p.item.item_id === itemId ? { ...p, item: { ...p.item, ...card } } : p)) } }
+          ? {
+              ...r,
+              data: {
+                ...r.data,
+                picks: r.data.picks.map((p) =>
+                  p.item.item_id === itemId ? { ...p, item: { ...p.item, ...card } } : p,
+                ),
+              },
+            }
           : r,
       )
     } catch {
@@ -165,10 +199,12 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
       <section className={heroSplit}>
         <div>
           <p className={eyebrow}>Personal cinema concierge</p>
-          <h1 className={heroTitle}>Tell me your window, mood, or the collection you want to finish.</h1>
+          <h1 className={heroTitle}>
+            Tell me your window, mood, or the collection you want to finish.
+          </h1>
           <p className={heroLede}>
-            Kinolog weighs your watch list runtimes, past ratings, and director completion milestones to recommend the exact
-            film for tonight.
+            Kinolog weighs your watch list runtimes, past ratings, and director completion
+            milestones to recommend the exact film for tonight.
           </p>
           <div className="mt-5">
             <form className="flex items-center gap-2" onSubmit={onSubmit}>
@@ -190,21 +226,24 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
                   onChange={(e) => setText(e.target.value)}
                 />
               </div>
-              <Button variant="brand" size="lg" type="submit" disabled={result.status === 'loading'}>
+              <Button
+                variant="brand"
+                size="lg"
+                type="submit"
+                disabled={result.status === 'loading'}
+              >
                 Find a Film →
               </Button>
             </form>
           </div>
           <div className={`${toolbar} my-3`}>
             <Segmented options={SCOPE_OPTIONS} value={scope} onChange={setScope} />
-            <span className={`${num} text-ink-muted text-xs`}>
+            <span className={`${num} text-xs text-ink-muted`}>
               {overview && `${overview.watchlist.short_count} queued ≤ 90 min`}
             </span>
           </div>
           <div>
-            <p className="text-ink-muted text-sm mb-2">
-              Try asking
-            </p>
+            <p className="mb-2 text-sm text-ink-muted">Try asking</p>
             <div className="flex flex-wrap gap-2">
               {home?.prompts.map((prompt) => (
                 <Button
@@ -223,9 +262,11 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
         <div className={`${heroArt} relative min-h-64`}>
           <BannerArt seed="concierge" />
           {overview && (
-            <div className="absolute inset-x-0 bottom-0 p-4 bg-linear-to-b from-transparent to-ink/80 text-white">
+            <div className="absolute inset-x-0 bottom-0 bg-linear-to-b from-transparent to-ink/80 p-4 text-white">
               <div className={`${num} text-xs opacity-80`}>
-                {c ? `Nearest director milestone · ${c.seen}/${c.total} (${fmtPct(c.pct)})` : 'Director milestones'}
+                {c
+                  ? `Nearest director milestone · ${c.seen}/${c.total} (${fmtPct(c.pct)})`
+                  : 'Director milestones'}
               </div>
               <div className="font-display text-2xl font-bold">
                 {c ? c.name : 'No collections yet'}
@@ -243,22 +284,43 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
       </section>
 
       <section aria-live="polite">
-        {result.status === 'loading' && <p className="text-ink-muted py-8">Searching your index…</p>}
-        {result.status === 'error' && <EmptyState title="Could not get a recommendation" text={result.message} />}
-        {result.status === 'done' && <Results data={result.data} onChanged={(id) => void refreshPick(id)} />}
+        {result.status === 'loading' && (
+          <p className="py-8 text-ink-muted">Searching your index…</p>
+        )}
+        {result.status === 'error' && (
+          <EmptyState title="Could not get a recommendation" text={result.message} />
+        )}
+        {result.status === 'done' && (
+          <Results data={result.data} onChanged={(id) => void refreshPick(id)} />
+        )}
       </section>
 
       {overview && (
         <>
-          <div className="grid grid-cols-2 gap-4 border-y border-rule py-5 my-8 md:grid-cols-4">
-            <Stat label="Watch List" value={`${overview.watchlist.count} films`} sub={`${fmtHours(overview.watchlist.total_minutes)} hrs queued`} />
+          <div className="my-8 grid grid-cols-2 gap-4 border-y border-rule py-5 md:grid-cols-4">
+            <Stat
+              label="Watch List"
+              value={`${overview.watchlist.count} films`}
+              sub={`${fmtHours(overview.watchlist.total_minutes)} hrs queued`}
+            />
             <Stat
               label="Watching Log"
               value={`${overview.log.count} logged`}
-              sub={overview.log.avg_rating ? `${overview.log.avg_rating} avg rating` : 'no ratings yet'}
+              sub={
+                overview.log.avg_rating ? `${overview.log.avg_rating} avg rating` : 'no ratings yet'
+              }
             />
-            <Stat label="Directors Tracked" value={`${overview.directors.tracked} active`} sub="Full feature filmographies" />
-            <Stat label="Closest Completion" value={c ? fmtPct(c.pct) : '–'} sub={c ? c.name : ''} accent />
+            <Stat
+              label="Directors Tracked"
+              value={`${overview.directors.tracked} active`}
+              sub="Full feature filmographies"
+            />
+            <Stat
+              label="Closest Completion"
+              value={c ? fmtPct(c.pct) : '–'}
+              sub={c ? c.name : ''}
+              accent
+            />
           </div>
           <Radar radar={overview.radar} onAsk={(q) => void ask(q)} />
         </>

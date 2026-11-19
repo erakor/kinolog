@@ -58,7 +58,11 @@ class OpenLibraryResolver:
 
         # Queue ambiguous
         candidates_json = [
-            {"openlibrary_id": c.get("key"), "title": c.get("title"), "author_name": c.get("author_name")}
+            {
+                "openlibrary_id": c.get("key"),
+                "title": c.get("title"),
+                "author_name": c.get("author_name"),
+            }
             for c in candidates[:5]
         ]
         db.queue_for_review(item_id, candidates_json, "ambiguous_openlibrary")

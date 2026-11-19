@@ -20,10 +20,7 @@ from kinolog.store import Database, InvalidInputError, NotFoundError
 logger = logging.getLogger(__name__)
 
 DIST_DIR = Path(__file__).parent / "dist"
-BUILD_HINT = (
-    "pnpm -C frontend install --frozen-lockfile && "
-    "pnpm -C frontend build"
-)
+BUILD_HINT = "pnpm -C frontend install --frozen-lockfile && pnpm -C frontend build"
 MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
 LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 
@@ -32,7 +29,7 @@ def _hostname(host_header: str) -> str:
     """Host without port, IPv6 brackets removed."""
     host = host_header.strip().lower()
     if host.startswith("["):
-        return host[1:host.find("]")] if "]" in host else host
+        return host[1 : host.find("]")] if "]" in host else host
     return host.split(":")[0]
 
 
@@ -60,7 +57,11 @@ def create_app(
 
     app = FastAPI(title="Kinolog", docs_url=None, redoc_url=None, openapi_url=None)
     app.state.kin = AppState(
-        db, load_model=load_model, generator=generator, w_taste=w_taste, w_comp=w_comp,
+        db,
+        load_model=load_model,
+        generator=generator,
+        w_taste=w_taste,
+        w_comp=w_comp,
     )
 
     @app.middleware("http")

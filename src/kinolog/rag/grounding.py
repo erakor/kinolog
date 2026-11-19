@@ -43,7 +43,8 @@ class MentionScope:
         titles = sorted(self._ids_by_title, key=len, reverse=True)
         self._pattern = (
             re.compile(r"\b(?:" + "|".join(re.escape(t) for t in titles) + r")\b", re.IGNORECASE)
-            if titles else None
+            if titles
+            else None
         )
 
     def mentioned(self, answer: str) -> list[int]:
@@ -65,8 +66,10 @@ def check_grounding(
     (``mention_scope`` limits which items' titles are looked for; None means every item in
     the DB), and every ``[^n]`` marker must refer to an assembled source.
     """
-    scope = mention_scope if isinstance(mention_scope, MentionScope) else MentionScope(
-        db, mention_scope
+    scope = (
+        mention_scope
+        if isinstance(mention_scope, MentionScope)
+        else MentionScope(db, mention_scope)
     )
     mentioned = scope.mentioned(answer)
     valid = {c.citation_id for c in assembled.chunks}

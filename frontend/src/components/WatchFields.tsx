@@ -23,7 +23,14 @@ export function WatchFields({ date, onDate, rating, onRating, max }: WatchFields
     <div className={fieldRow}>
       <div className={fieldBox}>
         <Label htmlFor={`${id}-date`}>Date watched</Label>
-        <Input id={`${id}-date`} type="date" value={date} max={max} required onChange={(e) => onDate(e.target.value)} />
+        <Input
+          id={`${id}-date`}
+          type="date"
+          value={date}
+          max={max}
+          required
+          onChange={(e) => onDate(e.target.value)}
+        />
       </div>
       <div className={fieldBox}>
         <Label htmlFor={`${id}-rating`}>Rating</Label>

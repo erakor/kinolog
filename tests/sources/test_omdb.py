@@ -17,8 +17,12 @@ from kinolog.sources.tmdb.enrich import (
 from kinolog.store import Database
 
 MATRIX = {
-    "Title": "The Matrix", "Year": "1999", "Response": "True",
-    "imdbRating": "8.7", "imdbVotes": "2,123,456", "Metascore": "73",
+    "Title": "The Matrix",
+    "Year": "1999",
+    "Response": "True",
+    "imdbRating": "8.7",
+    "imdbVotes": "2,123,456",
+    "Metascore": "73",
     "Ratings": [
         {"Source": "Internet Movie Database", "Value": "8.7/10"},
         {"Source": "Rotten Tomatoes", "Value": "83%"},
@@ -39,7 +43,9 @@ def make_client(tmp_path, responses: dict[str, tuple[int, dict]]):
         return httpx.Response(status, json=body)
 
     client = OMDbClient(
-        api_key="k", rate_limit=0, cache_dir=tmp_path / "omdb",
+        api_key="k",
+        rate_limit=0,
+        cache_dir=tmp_path / "omdb",
         transport=httpx.MockTransport(handler),
     )
     return client, calls
@@ -63,8 +69,13 @@ def test_parse_ratings_normalizes_all_sources():
 
 
 def test_parse_ratings_falls_back_to_top_level_and_skips_na():
-    data = {"Response": "True", "imdbRating": "6.4", "imdbVotes": "N/A",
-            "Metascore": "N/A", "Ratings": []}
+    data = {
+        "Response": "True",
+        "imdbRating": "6.4",
+        "imdbVotes": "N/A",
+        "Metascore": "N/A",
+        "Ratings": [],
+    }
     r = by_source(parse_ratings(data))
     assert set(r) == {"imdb"} and r["imdb"]["score"] == 64.0 and r["imdb"]["votes"] is None
     assert parse_ratings(NOT_FOUND) == []
@@ -72,16 +83,17 @@ def test_parse_ratings_falls_back_to_top_level_and_skips_na():
 
 def test_imdb_id_from_tmdb_details():
     assert imdb_id_from_details({"imdb_id": "tt0133093"}) == "tt0133093"
-    assert imdb_id_from_details({"imdb_id": "", "external_ids": {"imdb_id": "tt0133093"}}) \
+    assert (
+        imdb_id_from_details({"imdb_id": "", "external_ids": {"imdb_id": "tt0133093"}})
         == "tt0133093"
+    )
     assert imdb_id_from_details({"imdb_id": None}) is None
 
 
 def test_tmdb_enrich_stores_imdb_id():
     class Resolver:
         def get_details(self, tmdb_id):
-            return {"title": "The Matrix", "external_ids": {"imdb_id": "tt0133093"},
-                    "credits": {}}
+            return {"title": "The Matrix", "external_ids": {"imdb_id": "tt0133093"}, "credits": {}}
 
     db = Database(":memory:")
     i = db.upsert_item("film", "The Matrix", 1999, tmdb_id=603)
@@ -140,8 +152,9 @@ def test_quota_error_stops_network_but_keeps_cached(tmp_path):
 
 
 def test_quota_error_raised_by_client(tmp_path):
-    client, _ = make_client(tmp_path, {"tt1": (200, {"Response": "False",
-                                                     "Error": "Invalid API key!"})})
+    client, _ = make_client(
+        tmp_path, {"tt1": (200, {"Response": "False", "Error": "Invalid API key!"})}
+    )
     with pytest.raises(OMDbQuotaError):
         client.get_by_imdb_id("tt1")
 
@@ -149,29 +162,36 @@ def test_quota_error_raised_by_client(tmp_path):
 def test_set_external_ratings_replaces_provider_rows():
     db = Database(":memory:")
     i = db.upsert_item("film", "X", 2000)
-    db.set_external_ratings(i, "omdb", [{"source": "imdb", "score": 70},
-                                        {"source": "metacritic", "score": 60}])
+    db.set_external_ratings(
+        i, "omdb", [{"source": "imdb", "score": 70}, {"source": "metacritic", "score": 60}]
+    )
     db.set_external_ratings(i, "omdb", [{"source": "imdb", "score": 72, "votes": 10}])
     db.conn.commit()
-    assert [(r["source"], r["score"], r["votes"]) for r in db.get_external_ratings([i])[i]] \
-        == [("imdb", 72.0, 10)]
+    assert [(r["source"], r["score"], r["votes"]) for r in db.get_external_ratings([i])[i]] == [
+        ("imdb", 72.0, 10)
+    ]
 
 
 def test_external_ratings_come_back_in_display_order():
     db = Database(":memory:")
     i = db.upsert_item("film", "X", 2000)
-    db.set_external_ratings(i, "omdb", [{"source": s, "score": 50} for s in
-                                        ("metacritic", "rotten_tomatoes", "imdb")])
-    assert [r["source"] for r in db.get_external_ratings([i])[i]] \
-        == ["imdb", "rotten_tomatoes", "metacritic"]
+    db.set_external_ratings(
+        i, "omdb", [{"source": s, "score": 50} for s in ("metacritic", "rotten_tomatoes", "imdb")]
+    )
+    assert [r["source"] for r in db.get_external_ratings([i])[i]] == [
+        "imdb",
+        "rotten_tomatoes",
+        "metacritic",
+    ]
 
 
 def test_item_cards_include_external_ratings():
     db = Database(":memory:")
     i = db.upsert_item("film", "X", 2000)
     j = db.upsert_item("film", "Y", 2001)
-    db.set_external_ratings(i, "omdb", [{"source": "imdb", "score": 81, "raw": "8.1/10",
-                                         "votes": 5}])
+    db.set_external_ratings(
+        i, "omdb", [{"source": "imdb", "score": 81, "raw": "8.1/10", "votes": 5}]
+    )
     cards = db.get_item_cards([i, j])
     assert cards[i]["external_ratings"] == [
         {"source": "imdb", "score": 81.0, "raw": "8.1/10", "votes": 5}
@@ -241,10 +261,15 @@ def test_refresh_not_found_clears_old_scores(tmp_path):
 
 
 def test_backfill_fills_only_and_tolerates_wikidata_conflict(tmp_path):
-    (tmp_path / "movie_603.json").write_text(json.dumps({
-        "imdb_id": "tt0133093", "runtime": 999,
-        "external_ids": {"wikidata_id": "Q83495"},
-    }))
+    (tmp_path / "movie_603.json").write_text(
+        json.dumps(
+            {
+                "imdb_id": "tt0133093",
+                "runtime": 999,
+                "external_ids": {"wikidata_id": "Q83495"},
+            }
+        )
+    )
     db = Database(":memory:")
     db.upsert_item("film", "Holder", 1998, wikidata_id="Q83495")
     i = db.upsert_item("film", "The Matrix", 1999, tmdb_id=603, runtime_min=136)

@@ -27,7 +27,9 @@ def db():
             d.set_watchlist(i, True, at="2024-01-01", manual=False)
         if seen:
             d.log_watch(i, f"{year + 20}-05-01", rating=8, source="letterboxd", source_key=f"k{i}")
-        doc = d.upsert_document(i, "tmdb", "en", f"{title} ({year})\nRuntime: {rt} minutes\n\n{text}")
+        doc = d.upsert_document(
+            i, "tmdb", "en", f"{title} ({year})\nRuntime: {rt} minutes\n\n{text}"
+        )
         chunk_document(d, doc, strategy="whole")
         ids[title] = i
     d.ids = ids

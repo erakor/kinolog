@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 def _format_fts_query(query: str) -> str:
     """Format user query into safe and effective FTS5 query with OR terms."""
     import re
+
     tokens = re.findall(r"[\w\u00C0-\u017F]+", query)
     if not tokens:
         return '""'
@@ -65,13 +66,15 @@ def search_bm25(
 
     results = []
     for row in rows:
-        results.append(SearchResult(
-            item_id=row["item_id"],
-            chunk_id=row["chunk_id"],
-            score=-row["score"],  # BM25 returns negative scores in SQLite
-            title=row["title"],
-            year=row["year"],
-            chunk_text=row["chunk_text"],
-            source="bm25",
-        ))
+        results.append(
+            SearchResult(
+                item_id=row["item_id"],
+                chunk_id=row["chunk_id"],
+                score=-row["score"],  # BM25 returns negative scores in SQLite
+                title=row["title"],
+                year=row["year"],
+                chunk_text=row["chunk_text"],
+                source="bm25",
+            )
+        )
     return results

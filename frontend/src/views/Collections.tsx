@@ -50,20 +50,20 @@ function DirectorCard({ d, reload }: { d: DirectorCollection; reload: () => void
       <CardContent>
         <ProgressBar seen={d.seen} total={d.total} afterSeen={d.seen + queued} />
         <ul className="mt-4">
-        {d.films.map((f) => (
-          <FilmRow
-            key={f.item_id}
-            film={f}
-            actions={
-              f.seen ? null : (
-                <>
-                  {!f.on_watchlist && <QueueButton item={f} reload={reload} />}
-                  <LogButton item={f} reload={reload} small />
-                </>
-              )
-            }
-          />
-        ))}
+          {d.films.map((f) => (
+            <FilmRow
+              key={f.item_id}
+              film={f}
+              actions={
+                f.seen ? null : (
+                  <>
+                    {!f.on_watchlist && <QueueButton item={f} reload={reload} />}
+                    <LogButton item={f} reload={reload} small />
+                  </>
+                )
+              }
+            />
+          ))}
         </ul>
       </CardContent>
       <CardFooter className="mt-4 border-t pt-4">
@@ -97,10 +97,10 @@ export default function Collections() {
           <p className={eyebrow}>Filmography completion</p>
           <h1 className={heroTitle}>Director Collections</h1>
           <p className={heroLede}>
-            Track every feature in a director's body of work. See how close you are to completing each
-            filmography and queue or log the missing titles.
+            Track every feature in a director’s body of work. See how close you are to completing
+            each filmography and queue or log the missing titles.
           </p>
-          <div className={`${num} text-ink-muted flex gap-6 flex-wrap mt-6`}>
+          <div className={`${num} mt-6 flex flex-wrap gap-6 text-ink-muted`}>
             {s && (
               <>
                 <span>
@@ -128,7 +128,11 @@ export default function Collections() {
         {data && !data.items.length && (
           <EmptyState
             title={s!.tracked ? 'No directors match' : 'No collections yet'}
-            text={s!.tracked ? 'Try another filter.' : 'Run `ingest enrich` to load crew credits, then reload.'}
+            text={
+              s!.tracked
+                ? 'Try another filter.'
+                : 'Run `ingest enrich` to load crew credits, then reload.'
+            }
           />
         )}
         {data?.items.map((d) => (

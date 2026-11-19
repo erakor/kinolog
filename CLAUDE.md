@@ -13,7 +13,7 @@ The package lives in `src/kinolog/` and is imported as `kinolog.*`. Install it f
 ```bash
 .venv/bin/pytest -v                                   # full suite (fast, in-memory SQLite)
 .venv/bin/pytest tests/retrieval/test_search.py::test_bm25_search  # single test
-ruff check src tests                                  # lint (dev extra; not installed in .venv by default)
+ruff check src tests && ruff format --check src tests  # lint + format (dev extra, ruff pinned)
 
 python3 -m kinolog.interfaces.cli stats
 python3 -m kinolog.interfaces.cli ingest letterboxd data/raw_exports/letterboxd
@@ -34,7 +34,8 @@ pnpm -C frontend install --frozen-lockfile && pnpm -C frontend build  # build th
 python3 -m kinolog.interfaces.web --db data/index.db      # local web UI (needs `web` extra)
 pnpm -C frontend dev      # UI dev server on 127.0.0.1:5173, proxies /api to :8765
 pnpm -C frontend typecheck && pnpm -C frontend test  # frontend checks (Vitest)
-pnpm -C frontend lint     # oxlint (config: frontend/.oxlintrc.json; warnings only for now)
+pnpm -C frontend lint     # oxlint; CI adds --deny-warnings, and unused disable comments fail too
+pnpm -C frontend format   # oxfmt (format:check in CI)
 python3 -m kinolog.interfaces.cli eval concierge --hearts # concierge eval
 python3 -m kinolog.interfaces.cli ingest backfill-runtime # runtime_min / is_tv / imdb_id from stored TMDB data
 ```
@@ -88,4 +89,6 @@ tests/                          # mirrors src/kinolog, plus test_layering.py
 - `tests/` mirrors the package (`tests/store`, `sources`, `index`, `retrieval`, `rag`, `taste`, `features`, `eval`, `interfaces`, `interfaces/web`), with `test_layering.py`, `test_registries.py` and `test_services.py` at the top. Every test folder has an `__init__.py` (so equal basenames in different folders do not clash). `tests/conftest.py` provides an in-memory `db` fixture and `make_film` / `make_document` factories.
 - Tests build fixtures against `Database(":memory:")` with hand-inserted items/documents; none of them call external APIs or load embedding models, which keeps the suite under a second.
 - `data/raw_exports/`, `data/cache/`, and `data/*.db` are gitignored personal data — don't commit them.
-- Ruff: line length 100, target py311, rules `E,F,I,N,W,UP`.
+- Ruff: line length 100, target py311, rules `E,F,I,N,W,UP` (E501 off: `ruff format` owns line length). CI (`.github/workflows/ci.yml`) runs `ruff check`, `ruff format --check` and pytest, plus the frontend checks.
+- Frontend lint, format and tsconfig settings come from [erakor/toolchain](https://github.com/erakor/toolchain), pinned by commit in `frontend/package.json` and the CI workflow; change shared rules there, and only kinolog-specific ones here. A deliberate exception to a lint rule is an `eslint-disable-next-line <rule> -- <reason>` comment.
+- `.git-blame-ignore-revs` lists formatting-only commits; add a new mass reformat there.

@@ -11,6 +11,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode; resetKey?: s
 
   componentDidUpdate(prev: { resetKey?: string }) {
     // A refresh or navigation retries a view that failed to load.
+    // eslint-disable-next-line react/no-did-update-set-state -- guarded by the key change, so it runs once per reset
     if (this.state.error && prev.resetKey !== this.props.resetKey) this.setState({ error: null })
   }
 

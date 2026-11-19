@@ -1,6 +1,12 @@
 import { Star } from 'lucide-react'
 import { ratingLabel } from '../format'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface RatingSelectProps {
   value: number | null
@@ -15,9 +21,18 @@ const NONE = 'none'
 const RATINGS = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
 
 /** Half-star rating picker; ratings are integers 1..10. */
-export function RatingSelect({ value, onChange, id, className, 'aria-label': ariaLabel }: RatingSelectProps) {
+export function RatingSelect({
+  value,
+  onChange,
+  id,
+  className,
+  'aria-label': ariaLabel,
+}: RatingSelectProps) {
   return (
-    <Select value={value == null ? NONE : String(value)} onValueChange={(v) => onChange(v === NONE ? null : Number(v))}>
+    <Select
+      value={value == null ? NONE : String(value)}
+      onValueChange={(v) => onChange(v === NONE ? null : Number(v))}
+    >
       <SelectTrigger id={id} aria-label={ariaLabel} className={className}>
         <SelectValue />
       </SelectTrigger>

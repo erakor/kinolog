@@ -63,8 +63,11 @@ def test_no_relative_imports():
     bad = []
     for path in _source_files():
         tree = ast.parse(path.read_text(encoding="utf-8"))
-        bad += [f"{path.relative_to(ROOT)}:{n.lineno}" for n in ast.walk(tree)
-                if isinstance(n, ast.ImportFrom) and n.level]
+        bad += [
+            f"{path.relative_to(ROOT)}:{n.lineno}"
+            for n in ast.walk(tree)
+            if isinstance(n, ast.ImportFrom) and n.level
+        ]
     assert not bad, "relative imports are not allowed:\n" + "\n".join(bad)
 
 

@@ -26,11 +26,13 @@ def chunk_fixed_window(
         end = start + window_chars
         chunk_text = text[start:end].strip()
         if chunk_text:
-            chunks.append(Chunk(
-                text=chunk_text,
-                ord=ord_idx,
-                token_count=_estimate_tokens(chunk_text),
-            ))
+            chunks.append(
+                Chunk(
+                    text=chunk_text,
+                    ord=ord_idx,
+                    token_count=_estimate_tokens(chunk_text),
+                )
+            )
             ord_idx += 1
         start = end - overlap_chars
         if start >= len(text):

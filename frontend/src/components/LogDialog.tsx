@@ -29,7 +29,10 @@ export function LogDialog({ item, reload, onClose }: LogDialogProps) {
     const body: Record<string, unknown> = { watched_on: date, keep_on_watchlist: keep }
     if (rating) body.rating = rating
     if (liked) body.liked = true
-    const ok = await run(() => api.post(`/api/watchlist/${item.item_id}/watched`, body), `Logged ${item.title}`)
+    const ok = await run(
+      () => api.post(`/api/watchlist/${item.item_id}/watched`, body),
+      `Logged ${item.title}`,
+    )
     if (ok) onClose()
     else setBusy(false)
   }
@@ -37,7 +40,13 @@ export function LogDialog({ item, reload, onClose }: LogDialogProps) {
   return (
     <Modal title={`Log ${item.title}`} onClose={onClose}>
       <form onSubmit={submit}>
-        <WatchFields date={date} onDate={setDate} rating={rating} onRating={setRating} max={today()} />
+        <WatchFields
+          date={date}
+          onDate={setDate}
+          rating={rating}
+          onRating={setRating}
+          max={today()}
+        />
         <CheckField label="Add a heart" checked={liked} onChange={setLiked} />
         <CheckField label="Keep on Watch List" checked={keep} onChange={setKeep} />
         <DialogFooter>

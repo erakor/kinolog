@@ -21,9 +21,16 @@ class ItemsMixin:
         ).fetchone()
 
         allowed = {
-            "original_title", "tmdb_id", "wikidata_id", "isbn",
-            "openlibrary_id", "match_confidence", "match_status",
-            "runtime_min", "is_tv", "imdb_id",
+            "original_title",
+            "tmdb_id",
+            "wikidata_id",
+            "isbn",
+            "openlibrary_id",
+            "match_confidence",
+            "match_status",
+            "runtime_min",
+            "is_tv",
+            "imdb_id",
         }
         filtered = {k: v for k, v in kwargs.items() if k in allowed and v is not None}
 
@@ -161,8 +168,7 @@ class ItemsMixin:
         if not fields:
             return
         assignments = ", ".join(
-            f"{name} = COALESCE({name}, ?)" if keep else f"{name} = ?"
-            for name, _, keep in fields
+            f"{name} = COALESCE({name}, ?)" if keep else f"{name} = ?" for name, _, keep in fields
         )
         self.conn.execute(
             f"UPDATE items SET {assignments} WHERE id = ?",

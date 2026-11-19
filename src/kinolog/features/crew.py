@@ -80,14 +80,16 @@ def filmography(
         films = [dict(r) for r in db.execute(sql, tuple(params)).fetchall()]
         total_seen = sum(1 for f in films if f["seen"])
 
-        results.append(FilmographyEntry(
-            person_id=person["id"],
-            person_name=person["name"],
-            role=role or "all",
-            total_in_db=len(films),
-            total_seen=total_seen,
-            films=films,
-        ))
+        results.append(
+            FilmographyEntry(
+                person_id=person["id"],
+                person_name=person["name"],
+                role=role or "all",
+                total_in_db=len(films),
+                total_seen=total_seen,
+                films=films,
+            )
+        )
 
     return results
 
@@ -147,14 +149,16 @@ def crew_overlap_with_hearts(
             (row["person_id"], row["role"]),
         ).fetchone()
 
-        results.append(CrewOverlap(
-            person_id=row["person_id"],
-            person_name=row["person_name"],
-            role=row["role"],
-            overlap_count=row["overlap_count"],
-            total_seen=total_seen_row["cnt"] if total_seen_row else 0,
-            films=[dict(f) for f in films],
-        ))
+        results.append(
+            CrewOverlap(
+                person_id=row["person_id"],
+                person_name=row["person_name"],
+                role=row["role"],
+                overlap_count=row["overlap_count"],
+                total_seen=total_seen_row["cnt"] if total_seen_row else 0,
+                films=[dict(f) for f in films],
+            )
+        )
 
     return results
 

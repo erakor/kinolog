@@ -22,7 +22,9 @@ export function QueueButton({ item, reload }: ActionProps) {
     <Button
       variant="outline"
       size="sm"
-      onClick={() => run(() => api.post('/api/watchlist', { item_id: item.item_id }), `Queued ${item.title}`)}
+      onClick={() =>
+        run(() => api.post('/api/watchlist', { item_id: item.item_id }), `Queued ${item.title}`)
+      }
     >
       <Plus /> Queue
     </Button>

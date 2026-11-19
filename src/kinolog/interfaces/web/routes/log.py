@@ -32,8 +32,12 @@ def create_entry(
     body: LogCreate, state: AppState = Depends(get_state), db: Database = Depends(get_db)
 ):
     entry = services.create_log_entry(
-        db, body.item_id, body.watched_on,
-        rating=body.rating, liked=body.liked, rewatch=body.rewatch,
+        db,
+        body.item_id,
+        body.watched_on,
+        rating=body.rating,
+        liked=body.liked,
+        rewatch=body.rewatch,
     )
     state.invalidate()
     return entry

@@ -3,9 +3,13 @@ from kinolog.sources.tmdb.enrich import _build_document_text
 from kinolog.store import Database
 
 DETAILS = {
-    "title": "Okay", "original_title": "Okay", "release_date": "2017-06-01",
-    "genres": [{"name": "Drama"}, {"name": "Adventure"}], "runtime": 100,
-    "credits": {"crew": [], "cast": []}, "overview": "A girl crosses the world.",
+    "title": "Okay",
+    "original_title": "Okay",
+    "release_date": "2017-06-01",
+    "genres": [{"name": "Drama"}, {"name": "Adventure"}],
+    "runtime": 100,
+    "credits": {"crew": [], "cast": []},
+    "overview": "A girl crosses the world.",
 }
 
 

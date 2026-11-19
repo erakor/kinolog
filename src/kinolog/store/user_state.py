@@ -13,8 +13,16 @@ class UserStateMixin:
     def upsert_user_status(self, item_id: int, **kwargs: Any):
         """Insert or update user_status for an item."""
         allowed = {
-            "seen", "seen_date", "on_watchlist", "liked", "liked_date", "source",
-            "rating", "watchlist_added_at", "watchlist_removed_at", "manual_updated_at",
+            "seen",
+            "seen_date",
+            "on_watchlist",
+            "liked",
+            "liked_date",
+            "source",
+            "rating",
+            "watchlist_added_at",
+            "watchlist_removed_at",
+            "manual_updated_at",
         }
         filtered = {k: v for k, v in kwargs.items() if k in allowed}
 

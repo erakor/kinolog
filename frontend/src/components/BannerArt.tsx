@@ -24,7 +24,14 @@ export function BannerArt({ seed }: { seed: string }) {
     <svg viewBox="0 0 360 190" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <rect width={360} height={190} fill={PALETTE[hs % PALETTE.length]} />
       {dots.map((d, i) => (
-        <circle key={i} cx={d.cx} cy={d.cy} r={d.r} fill={d.light ? '#fff' : INK} opacity={d.light ? '.22' : '.08'} />
+        <circle
+          key={i}
+          cx={d.cx}
+          cy={d.cy}
+          r={d.r}
+          fill={d.light ? '#fff' : INK}
+          opacity={d.light ? '.22' : '.08'}
+        />
       ))}
       {perfs.map((x) => (
         <rect key={`t${x}`} x={x} y={6} width={14} height={9} rx={2} fill={INK} opacity=".35" />

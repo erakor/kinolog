@@ -13,6 +13,7 @@ export function SearchBox({ placeholder, onChange, initial = '' }: SearchBoxProp
   const [text, setText] = useState(initial)
   const emitted = useRef(initial.trim())
   const cb = useRef(onChange)
+  // eslint-disable-next-line react/refs -- latest-callback ref, so a new onChange doesn't restart the debounce
   cb.current = onChange
 
   useEffect(() => {
@@ -28,7 +29,10 @@ export function SearchBox({ placeholder, onChange, initial = '' }: SearchBoxProp
 
   return (
     <div className="relative max-w-lg flex-auto basis-64">
-      <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+      <Search
+        className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+        aria-hidden="true"
+      />
       <Input
         className="h-10 pl-9"
         type="search"

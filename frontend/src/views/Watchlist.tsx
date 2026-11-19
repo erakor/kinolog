@@ -8,8 +8,23 @@ import { ListRow } from '../components/ListRow'
 import { SearchBox } from '../components/SearchBox'
 import { Segmented } from '../components/Segmented'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { eyebrow, heroArt, heroLede, heroSplit, heroTitle, listBox, num, toolbar } from '../components/styles'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  eyebrow,
+  heroArt,
+  heroLede,
+  heroSplit,
+  heroTitle,
+  listBox,
+  num,
+  toolbar,
+} from '../components/styles'
 import { useToast } from '../context/ToastContext'
 import { useAsync } from '../hooks/useAsync'
 import type { WatchlistResponse, WatchlistSort } from '../types'
@@ -45,7 +60,8 @@ export default function Watchlist() {
   const shownSort: WatchlistSort = sort === 'taste' && tasteDown ? 'impact' : sort
 
   const { data, reload } = useAsync<WatchlistResponse>(async () => {
-    const get = (s: WatchlistSort) => api.get<WatchlistResponse>('/api/watchlist', { sort: s, runtime_max: runtime, q })
+    const get = (s: WatchlistSort) =>
+      api.get<WatchlistResponse>('/api/watchlist', { sort: s, runtime_max: runtime, q })
     try {
       return await get(shownSort)
     } catch (e) {
@@ -56,12 +72,16 @@ export default function Watchlist() {
     }
   }, [sort, runtime, q])
 
+  // eslint-disable-next-line react/set-state-in-effect -- new data clears the highlight once; deriving it would need the previous data
   useEffect(() => setHighlightedId(null), [data])
   useEffect(() => {
     highlightRef.current?.scrollIntoView?.({ block: 'center', behavior: 'smooth' })
   }, [highlightedId])
 
-  const sorts = data?.taste_available && !tasteDown ? [...SORT_OPTIONS, ['taste', 'Sort: Taste Match'] as [WatchlistSort, string]] : SORT_OPTIONS
+  const sorts =
+    data?.taste_available && !tasteDown
+      ? [...SORT_OPTIONS, ['taste', 'Sort: Taste Match'] as [WatchlistSort, string]]
+      : SORT_OPTIONS
 
   function pickShort() {
     const pick = data?.items.find((r) => r.runtime_min && r.runtime_min <= SHORT_MIN)
@@ -81,11 +101,14 @@ export default function Watchlist() {
           <p className={eyebrow}>Queued screenings</p>
           <h1 className={heroTitle}>Watch List</h1>
           <p className={heroLede}>
-            Filter by available runtime or prioritize films that push a director filmography toward completion.
+            Filter by available runtime or prioritize films that push a director filmography toward
+            completion.
           </p>
           <div className={`${toolbar} mt-6`}>
             <SearchBox placeholder="Filter by title or director…" onChange={setQ} />
-            <Button variant="outline" onClick={pickShort}>Pick 90m Film</Button>
+            <Button variant="outline" onClick={pickShort}>
+              Pick 90m Film
+            </Button>
             <ImportButton onDone={reload} />
           </div>
         </div>
@@ -95,8 +118,10 @@ export default function Watchlist() {
       </section>
       <div className={`${toolbar} my-6`}>
         <Segmented options={RUNTIME_OPTIONS} value={runtime} onChange={setRuntime} />
-        <div className="flex gap-3 items-center">
-          <span className={`${num} text-ink-muted`}>{data && `Showing ${data.total} of ${count}`}</span>
+        <div className="flex items-center gap-3">
+          <span className={`${num} text-ink-muted`}>
+            {data && `Showing ${data.total} of ${count}`}
+          </span>
           <Select value={shownSort} onValueChange={(v) => setSort(v as WatchlistSort)}>
             <SelectTrigger className="h-10" aria-label="Sort">
               <SelectValue />
@@ -115,7 +140,11 @@ export default function Watchlist() {
         {data && !data.items.length && (
           <EmptyState
             title={count ? 'Nothing fits those filters' : 'Your Watch List is empty'}
-            text={count ? 'Try a longer runtime or clear the search.' : 'Add films with “+ Add Film” or import a Letterboxd export.'}
+            text={
+              count
+                ? 'Try a longer runtime or clear the search.'
+                : 'Add films with “+ Add Film” or import a Letterboxd export.'
+            }
           />
         )}
         {data?.items.map((row) => (

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC
 
 
 class IngestMetaMixin:
@@ -16,12 +17,12 @@ class IngestMetaMixin:
 
     def cache_put(self, source: str, external_id: str, path: str, content_hash: str | None = None):
         """Insert or update a cache entry."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         self.conn.execute(
             """INSERT OR REPLACE INTO raw_cache (source, external_id, fetched_at, content_hash, path)
                VALUES (?, ?, ?, ?, ?)""",
-            (source, external_id, datetime.now(timezone.utc).isoformat(), content_hash, path),
+            (source, external_id, datetime.now(UTC).isoformat(), content_hash, path),
         )
         self.conn.commit()
 
@@ -62,14 +63,10 @@ class IngestMetaMixin:
 
     def resolve_review(self, item_id: int, tmdb_id: int | None = None, reject: bool = False):
         """Resolve a review queue entry."""
-        current = self.conn.execute(
-            "SELECT tmdb_id FROM items WHERE id = ?", (item_id,)
-        ).fetchone()
+        current = self.conn.execute("SELECT tmdb_id FROM items WHERE id = ?", (item_id,)).fetchone()
         if reject:
             self._forget_match_derived(item_id)
-            self.conn.execute(
-                "UPDATE items SET match_status = 'rejected' WHERE id = ?", (item_id,)
-            )
+            self.conn.execute("UPDATE items SET match_status = 'rejected' WHERE id = ?", (item_id,))
         elif tmdb_id is not None:
             if current is not None and current["tmdb_id"] != tmdb_id:
                 self._forget_match_derived(item_id)

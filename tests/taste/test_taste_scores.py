@@ -22,7 +22,9 @@ def db():
 def available(monkeypatch):
     monkeypatch.setattr(taste, "taste_available", lambda db, model_name="bge_m3": True)
     # taste_scores looks the check up in its own module, the web state through the package
-    monkeypatch.setattr(taste_scores_module, "taste_available", lambda db, model_name="bge_m3": True)
+    monkeypatch.setattr(
+        taste_scores_module, "taste_available", lambda db, model_name="bge_m3": True
+    )
 
 
 def test_unavailable_without_vectors(db):

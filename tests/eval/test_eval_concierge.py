@@ -21,8 +21,13 @@ def db():
     rows = [
         ("Quiet Harbor", 1962, 95, 0, "A fisherman endures a slow winter in a harbor town."),
         ("Paper Moon Rising", 1964, 110, 0, "A con artist and a child cross the plains."),
-        ("The Long Corridor", 1966, 150, 1,
-         "Detectives chase a missing ledger through a hospital."),
+        (
+            "The Long Corridor",
+            1966,
+            150,
+            1,
+            "Detectives chase a missing ledger through a hospital.",
+        ),
         ("Brief Encounter Again", 1985, 80, 1, "Two strangers meet on a train platform each week."),
         ("Midnight Ferry", 2010, 100, 0, "A ferry crossing turns into a tense mystery."),
     ]
@@ -38,13 +43,24 @@ def db():
 
 
 PROMPTS = [
-    {"query": "a tense mystery under 105 minutes", "expected_filters": {"runtime_max": 105},
-     "relevant": [{"title": "Midnight Ferry", "year": 2010}], "acceptable": []},
-    {"query": "slow drama from the 60s", "expected_filters": {"decade": 1960},
-     "relevant": [{"title": "Quiet Harbor", "year": 1962}],
-     "acceptable": [{"title": "Paper Moon Rising", "year": 1964}]},
-    {"query": "a film from my watchlist", "expected_filters": {"on_watchlist": True},
-     "relevant": [], "acceptable": []},
+    {
+        "query": "a tense mystery under 105 minutes",
+        "expected_filters": {"runtime_max": 105},
+        "relevant": [{"title": "Midnight Ferry", "year": 2010}],
+        "acceptable": [],
+    },
+    {
+        "query": "slow drama from the 60s",
+        "expected_filters": {"decade": 1960},
+        "relevant": [{"title": "Quiet Harbor", "year": 1962}],
+        "acceptable": [{"title": "Paper Moon Rising", "year": 1964}],
+    },
+    {
+        "query": "a film from my watchlist",
+        "expected_filters": {"on_watchlist": True},
+        "relevant": [],
+        "acceptable": [],
+    },
 ]
 
 
@@ -54,9 +70,18 @@ def by_name(results):
 
 def test_suite_runs_and_reports_expected_metrics(db):
     results = by_name(eval_concierge(db, prompts=PROMPTS, scope="all"))
-    assert {"parser_exact_match", "parser_field_accuracy", "constraint_satisfaction",
-            "hit@1", "hit@3", "hit@5", "mrr", "ndcg@5",
-            "rationale_groundedness", "citation_validity"} <= set(results)
+    assert {
+        "parser_exact_match",
+        "parser_field_accuracy",
+        "constraint_satisfaction",
+        "hit@1",
+        "hit@3",
+        "hit@5",
+        "mrr",
+        "ndcg@5",
+        "rationale_groundedness",
+        "citation_validity",
+    } <= set(results)
     assert all(r.suite == "concierge" for r in results.values())
     assert results["parser_exact_match"].value == 1.0
     assert results["constraint_satisfaction"].value == 1.0
@@ -79,8 +104,7 @@ def test_results_are_logged_to_eval_runs(db):
 def test_violates_detects_each_constraint(db):
     from kinolog.retrieval import SearchFilters
 
-    card = {"runtime_min": 100, "year": 1962,
-            "status": {"seen": True, "on_watchlist": False}}
+    card = {"runtime_min": 100, "year": 1962, "status": {"seen": True, "on_watchlist": False}}
     assert violates(card, SearchFilters(runtime_max=90)) == ["runtime_max"]
     assert violates(card, SearchFilters(decade=1970)) == ["decade"]
     assert violates(card, SearchFilters(seen=False)) == ["seen"]

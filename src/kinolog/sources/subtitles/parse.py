@@ -66,7 +66,7 @@ def parse_srt(srt_content: str) -> list[SubtitleEntry]:
     entries = []
 
     for block in blocks:
-        lines = [l.strip() for l in block.split("\n") if l.strip()]
+        lines = [line.strip() for line in block.split("\n") if line.strip()]
         if len(lines) < 2:
             continue
 
@@ -86,15 +86,17 @@ def parse_srt(srt_content: str) -> list[SubtitleEntry]:
         except Exception:
             continue
 
-        raw_text = " ".join(lines[time_line_idx + 1:])
+        raw_text = " ".join(lines[time_line_idx + 1 :])
         cleaned = clean_subtitle_text(raw_text)
         if cleaned:
-            entries.append(SubtitleEntry(
-                index=len(entries) + 1,
-                start_ms=start_ms,
-                end_ms=end_ms,
-                text=cleaned,
-            ))
+            entries.append(
+                SubtitleEntry(
+                    index=len(entries) + 1,
+                    start_ms=start_ms,
+                    end_ms=end_ms,
+                    text=cleaned,
+                )
+            )
 
     return entries
 
@@ -118,19 +120,21 @@ def chunk_subtitles_by_gap(
 
     for entry in entries:
         gap = entry.start_ms - prev_end_ms
-        curr_len = sum(len(l) for l in curr_lines)
+        curr_len = sum(len(line) for line in curr_lines)
 
         # Break scene if gap exceeds threshold or chunk is getting too long
         if (gap >= gap_threshold_ms and curr_lines) or (curr_len >= max_chunk_chars):
             text_block = " ".join(curr_lines).strip()
-            chunks.append(Chunk(
-                text=text_block,
-                ord=ord_idx,
-                section_name=f"Scene {ord_idx+1} ({ms_to_time(chunk_start_ms)} - {ms_to_time(prev_end_ms)})",
-                token_count=max(1, len(text_block) // 3),
-                start_ms=chunk_start_ms,
-                end_ms=prev_end_ms,
-            ))
+            chunks.append(
+                Chunk(
+                    text=text_block,
+                    ord=ord_idx,
+                    section_name=f"Scene {ord_idx + 1} ({ms_to_time(chunk_start_ms)} - {ms_to_time(prev_end_ms)})",
+                    token_count=max(1, len(text_block) // 3),
+                    start_ms=chunk_start_ms,
+                    end_ms=prev_end_ms,
+                )
+            )
             ord_idx += 1
             curr_lines = []
             chunk_start_ms = entry.start_ms
@@ -140,14 +144,16 @@ def chunk_subtitles_by_gap(
 
     if curr_lines:
         text_block = " ".join(curr_lines).strip()
-        chunks.append(Chunk(
-            text=text_block,
-            ord=ord_idx,
-            section_name=f"Scene {ord_idx+1} ({ms_to_time(chunk_start_ms)} - {ms_to_time(prev_end_ms)})",
-            token_count=max(1, len(text_block) // 3),
-            start_ms=chunk_start_ms,
-            end_ms=prev_end_ms,
-        ))
+        chunks.append(
+            Chunk(
+                text=text_block,
+                ord=ord_idx,
+                section_name=f"Scene {ord_idx + 1} ({ms_to_time(chunk_start_ms)} - {ms_to_time(prev_end_ms)})",
+                token_count=max(1, len(text_block) // 3),
+                start_ms=chunk_start_ms,
+                end_ms=prev_end_ms,
+            )
+        )
 
     return chunks
 
@@ -155,7 +161,7 @@ def chunk_subtitles_by_gap(
 def chunk_subtitles_by_window(
     entries: list[SubtitleEntry],
     window_duration_ms: int = 60000,  # 60-second fixed time window
-    stride_ms: int = 45000,           # 45-second stride (15s overlap)
+    stride_ms: int = 45000,  # 45-second stride (15s overlap)
 ) -> list[Chunk]:
     """
     Time-window based subtitle chunking (e.g. 60 seconds with 15s overlap).
@@ -174,14 +180,16 @@ def chunk_subtitles_by_window(
         window_entries = [e.text for e in entries if e.start_ms >= t_start and e.end_ms <= t_end]
         if window_entries:
             text_block = " ".join(window_entries).strip()
-            chunks.append(Chunk(
-                text=text_block,
-                ord=ord_idx,
-                section_name=f"Window ({ms_to_time(t_start)} - {ms_to_time(t_end)})",
-                token_count=max(1, len(text_block) // 3),
-                start_ms=t_start,
-                end_ms=t_end,
-            ))
+            chunks.append(
+                Chunk(
+                    text=text_block,
+                    ord=ord_idx,
+                    section_name=f"Window ({ms_to_time(t_start)} - {ms_to_time(t_end)})",
+                    token_count=max(1, len(text_block) // 3),
+                    start_ms=t_start,
+                    end_ms=t_end,
+                )
+            )
             ord_idx += 1
 
         t_start += stride_ms

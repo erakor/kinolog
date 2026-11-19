@@ -5,8 +5,8 @@ import { num } from '../../components/styles'
 
 export function CompletionPanel({ delta: d }: { delta: CompletionDelta }) {
   return (
-    <div className="bg-subtle border border-rule rounded-lg px-4 py-3 mt-3">
-      <div className="flex justify-between text-sm mb-2">
+    <div className="mt-3 rounded-lg border border-rule bg-subtle px-4 py-3">
+      <div className="mb-2 flex justify-between text-sm">
         <span>{d.name} Collection</span>
         <span className={num}>
           {d.seen}/{d.total} watched ({fmtPct(d.before_pct)} →{' '}
@@ -14,7 +14,7 @@ export function CompletionPanel({ delta: d }: { delta: CompletionDelta }) {
         </span>
       </div>
       <ProgressBar seen={d.seen} total={d.total} afterSeen={d.seen + 1} />
-      <p className="text-ink-muted text-xs mt-2">
+      <p className="mt-2 text-xs text-ink-muted">
         {d.remaining.length
           ? `Remaining after this: ${d.remaining.map((r) => `${r.title}${r.year ? ` (${r.year})` : ''}`).join(', ')}`
           : 'This would complete the filmography.'}

@@ -63,7 +63,17 @@ class DocumentsMixin:
             self.conn.execute(
                 """UPDATE chunks SET item_id=?, text=?, section_name=?, lang=?,
                    token_count=?, start_ms=?, end_ms=?, content_hash=? WHERE id=?""",
-                (item_id, text, section_name, lang, token_count, start_ms, end_ms, c_hash, row["id"]),
+                (
+                    item_id,
+                    text,
+                    section_name,
+                    lang,
+                    token_count,
+                    start_ms,
+                    end_ms,
+                    c_hash,
+                    row["id"],
+                ),
             )
             self.conn.commit()
             return row["id"]
@@ -72,8 +82,19 @@ class DocumentsMixin:
             """INSERT INTO chunks (item_id, document_id, strategy, ord, section_name,
                lang, text, token_count, start_ms, end_ms, content_hash)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (item_id, document_id, strategy, ord, section_name, lang, text,
-             token_count, start_ms, end_ms, c_hash),
+            (
+                item_id,
+                document_id,
+                strategy,
+                ord,
+                section_name,
+                lang,
+                text,
+                token_count,
+                start_ms,
+                end_ms,
+                c_hash,
+            ),
         )
         self.conn.commit()
         return cur.lastrowid  # type: ignore[return-value]

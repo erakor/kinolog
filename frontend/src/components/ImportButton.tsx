@@ -21,8 +21,12 @@ export function ImportButton({ onDone }: { onDone?: () => void | Promise<void> }
     setBusy(true)
     try {
       const s = await api.upload<ImportStats>('/api/import/letterboxd', file)
-      const skipped = s.skipped_manual_override ? `, ${s.skipped_manual_override} kept as you edited them` : ''
-      toast(`Imported ${s.diary} diary entries, ${s.watchlist} watch list, ${s.likes} likes${skipped}`)
+      const skipped = s.skipped_manual_override
+        ? `, ${s.skipped_manual_override} kept as you edited them`
+        : ''
+      toast(
+        `Imported ${s.diary} diary entries, ${s.watchlist} watch list, ${s.likes} likes${skipped}`,
+      )
       void refreshHealth()
       await onDone?.()
     } catch (e) {
@@ -37,7 +41,14 @@ export function ImportButton({ onDone }: { onDone?: () => void | Promise<void> }
       <Button variant="outline" disabled={busy} onClick={() => input.current?.click()}>
         <Upload /> Import CSV
       </Button>
-      <input ref={input} type="file" accept=".zip,.csv" className="sr-only" tabIndex={-1} onChange={onFile} />
+      <input
+        ref={input}
+        type="file"
+        accept=".zip,.csv"
+        className="sr-only"
+        tabIndex={-1}
+        onChange={onFile}
+      />
     </span>
   )
 }

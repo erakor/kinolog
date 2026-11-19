@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api, ApiError, qs } from './api'
 
 function mockFetch(status: number, body?: unknown) {
-  const fn = vi.fn(async (_url: string, _opts?: RequestInit) => new Response(body === undefined ? null : JSON.stringify(body), { status }))
+  const fn = vi.fn(
+    async (_url: string, _opts?: RequestInit) =>
+      new Response(body === undefined ? null : JSON.stringify(body), { status }),
+  )
   vi.stubGlobal('fetch', fn)
   return fn
 }
@@ -54,7 +57,14 @@ describe('api', () => {
   })
 
   it('falls back to a generic error for non-JSON bodies', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('boom', { status: 500, statusText: 'Server Error' })))
-    await expect(api.get('/api/x')).rejects.toMatchObject({ status: 500, code: 'error', message: 'Server Error' })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('boom', { status: 500, statusText: 'Server Error' })),
+    )
+    await expect(api.get('/api/x')).rejects.toMatchObject({
+      status: 500,
+      code: 'error',
+      message: 'Server Error',
+    })
   })
 })

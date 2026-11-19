@@ -70,7 +70,9 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     app = create_app(
-        args.db, load_model=not args.no_model, generator=generator,
+        args.db,
+        load_model=not args.no_model,
+        generator=generator,
         allowed_hosts={"*"} if args.allow_remote else None,
     )
     log_level = "debug" if args.verbose else "warning"  # access log carries concierge queries

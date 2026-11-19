@@ -14,11 +14,31 @@ def db_with_data():
 
     # Add some films
     films = [
-        ("La Dolce Vita", 1960, "Directed by: Federico Fellini. A film about modern Roman society and decadence."),
-        ("8½", 1963, "Directed by: Federico Fellini. A filmmaker struggles with creative crisis and memories."),
-        ("Le Mépris", 1963, "Directed by: Jean-Luc Godard. A couple's relationship disintegrates during a film production in Capri."),
-        ("À bout de souffle", 1960, "Directed by: Jean-Luc Godard. A small-time thief steals a car and kills a policeman in Paris."),
-        ("Bicycle Thieves", 1948, "Directed by: Vittorio De Sica. A man searches Rome for his stolen bicycle."),
+        (
+            "La Dolce Vita",
+            1960,
+            "Directed by: Federico Fellini. A film about modern Roman society and decadence.",
+        ),
+        (
+            "8½",
+            1963,
+            "Directed by: Federico Fellini. A filmmaker struggles with creative crisis and memories.",
+        ),
+        (
+            "Le Mépris",
+            1963,
+            "Directed by: Jean-Luc Godard. A couple's relationship disintegrates during a film production in Capri.",
+        ),
+        (
+            "À bout de souffle",
+            1960,
+            "Directed by: Jean-Luc Godard. A small-time thief steals a car and kills a policeman in Paris.",
+        ),
+        (
+            "Bicycle Thieves",
+            1948,
+            "Directed by: Vittorio De Sica. A man searches Rome for his stolen bicycle.",
+        ),
     ]
 
     for title, year, text in films:

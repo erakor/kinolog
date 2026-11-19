@@ -47,10 +47,12 @@ def build_generator(
                 max_tokens=MAX_TOKENS,
                 system=SYSTEM_PROMPT,
                 output_config={"effort": "low"},
-                messages=[{
-                    "role": "user",
-                    "content": f"Request: {question}\n\n{context_text}\n\nWrite the rationale.",
-                }],
+                messages=[
+                    {
+                        "role": "user",
+                        "content": f"Request: {question}\n\n{context_text}\n\nWrite the rationale.",
+                    }
+                ],
             )
         except Exception as e:  # network, auth, rate limit: degrade to the template
             logger.warning("LLM rationale failed: %s", type(e).__name__)

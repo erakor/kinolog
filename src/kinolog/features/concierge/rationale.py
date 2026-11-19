@@ -50,18 +50,33 @@ def _template_text(card: dict, filters: dict, deltas: list, hearts: dict, chunks
 def _facts(card: dict, deltas: list, hearts: dict) -> list[dict]:
     facts = []
     if card.get("runtime_min"):
-        facts.append({"label": "Runtime", "value": f"{card['runtime_min']} min",
-                      "from": "items.runtime_min"})
+        facts.append(
+            {"label": "Runtime", "value": f"{card['runtime_min']} min", "from": "items.runtime_min"}
+        )
     if card["directors"]:
-        facts.append({"label": "Director", "value": ", ".join(d["name"] for d in card["directors"]),
-                      "from": "credits"})
+        facts.append(
+            {
+                "label": "Director",
+                "value": ", ".join(d["name"] for d in card["directors"]),
+                "from": "credits",
+            }
+        )
     for d in deltas[:1]:
-        facts.append({"label": "Completion",
-                      "value": f"{d.name}: {d.before_pct:.0f}% → {d.after_pct:.0f}%",
-                      "from": "collections"})
+        facts.append(
+            {
+                "label": "Completion",
+                "value": f"{d.name}: {d.before_pct:.0f}% → {d.after_pct:.0f}%",
+                "from": "collections",
+            }
+        )
     for name, n in hearts.items():
         if n:
-            facts.append({"label": "Hearted by director", "value": f"{n} × {name}",
-                          "from": "user_status.liked"})
+            facts.append(
+                {
+                    "label": "Hearted by director",
+                    "value": f"{n} × {name}",
+                    "from": "user_status.liked",
+                }
+            )
             break
     return facts

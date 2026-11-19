@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from kinolog.eval.runner import EvalResult
 from kinolog.store import Database
@@ -35,12 +35,14 @@ def find_adaptation_pairs(db: Database) -> list[AdaptationPair]:
         title_lower = b["title"].lower().strip()
         if title_lower in film_by_title:
             f = film_by_title[title_lower]
-            pairs.append(AdaptationPair(
-                book_id=b["id"],
-                book_title=b["title"],
-                film_id=f["id"],
-                film_title=f["title"],
-            ))
+            pairs.append(
+                AdaptationPair(
+                    book_id=b["id"],
+                    book_title=b["title"],
+                    film_id=f["id"],
+                    film_title=f["title"],
+                )
+            )
 
     return pairs
 
@@ -89,8 +91,28 @@ def eval_adaptation_pairs(
     f2b_hit5 = sum(1 for r in film_to_book_ranks if r <= 5) / len(pairs)
 
     return [
-        EvalResult(suite="adaptation", metric="book_to_film_hit@5", value=b2f_hit5, config={"n_pairs": len(pairs)}),
-        EvalResult(suite="adaptation", metric="book_to_film_mrr", value=b2f_mrr, config={"n_pairs": len(pairs)}),
-        EvalResult(suite="adaptation", metric="film_to_book_hit@5", value=f2b_hit5, config={"n_pairs": len(pairs)}),
-        EvalResult(suite="adaptation", metric="film_to_book_mrr", value=f2b_mrr, config={"n_pairs": len(pairs)}),
+        EvalResult(
+            suite="adaptation",
+            metric="book_to_film_hit@5",
+            value=b2f_hit5,
+            config={"n_pairs": len(pairs)},
+        ),
+        EvalResult(
+            suite="adaptation",
+            metric="book_to_film_mrr",
+            value=b2f_mrr,
+            config={"n_pairs": len(pairs)},
+        ),
+        EvalResult(
+            suite="adaptation",
+            metric="film_to_book_hit@5",
+            value=f2b_hit5,
+            config={"n_pairs": len(pairs)},
+        ),
+        EvalResult(
+            suite="adaptation",
+            metric="film_to_book_mrr",
+            value=f2b_mrr,
+            config={"n_pairs": len(pairs)},
+        ),
     ]

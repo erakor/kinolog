@@ -21,8 +21,15 @@ class RatingsMixin:
                (item_id, source, score, raw, votes, provider, fetched_at)
                VALUES (?, ?, ?, ?, ?, ?, ?)""",
             [
-                (item_id, r["source"], float(r["score"]), r.get("raw"), r.get("votes"),
-                 provider, now)
+                (
+                    item_id,
+                    r["source"],
+                    float(r["score"]),
+                    r.get("raw"),
+                    r.get("votes"),
+                    provider,
+                    now,
+                )
                 for r in ratings
             ],
         )
@@ -41,7 +48,11 @@ class RatingsMixin:
                 tuple(part),
             ):
                 out[r["item_id"]].append(
-                    {"source": r["source"], "score": r["score"], "raw": r["raw"],
-                     "votes": r["votes"]}
+                    {
+                        "source": r["source"],
+                        "score": r["score"],
+                        "raw": r["raw"],
+                        "votes": r["votes"],
+                    }
                 )
         return out

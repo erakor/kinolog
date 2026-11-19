@@ -98,24 +98,65 @@ def test_empty_and_symbol_only_input():
 # --- pick pipeline -----------------------------------------------------------------------
 
 
-
 @pytest.fixture
 def pdb():
     db = Database(":memory:")
     ann = db.upsert_person("Ann Auteur", tmdb_person_id=1)
     films = [
-        ("Quiet Harbor", 1990, 95, True, True, False,
-         "A fisherman endures a slow winter in a harbor town."),
-        ("Paper Moon Rising", 1995, 110, True, False, False,
-         "A con artist and a child cross the plains."),
-        ("The Long Corridor", 2000, 150, False, False, True,
-         "Detectives chase a missing ledger through a hospital."),
-        ("Brief Encounter Again", 2005, 80, False, False, True,
-         "Two strangers meet on a train platform each week."),
-        ("Midnight Ferry", 2010, 100, False, False, False,
-         "A ferry crossing turns into a tense mystery."),
-        ("Mystery Unknown", 2011, None, False, False, False,
-         "A tense mystery with no recorded runtime."),
+        (
+            "Quiet Harbor",
+            1990,
+            95,
+            True,
+            True,
+            False,
+            "A fisherman endures a slow winter in a harbor town.",
+        ),
+        (
+            "Paper Moon Rising",
+            1995,
+            110,
+            True,
+            False,
+            False,
+            "A con artist and a child cross the plains.",
+        ),
+        (
+            "The Long Corridor",
+            2000,
+            150,
+            False,
+            False,
+            True,
+            "Detectives chase a missing ledger through a hospital.",
+        ),
+        (
+            "Brief Encounter Again",
+            2005,
+            80,
+            False,
+            False,
+            True,
+            "Two strangers meet on a train platform each week.",
+        ),
+        (
+            "Midnight Ferry",
+            2010,
+            100,
+            False,
+            False,
+            False,
+            "A ferry crossing turns into a tense mystery.",
+        ),
+        (
+            "Mystery Unknown",
+            2011,
+            None,
+            False,
+            False,
+            False,
+            "A tense mystery with no recorded runtime.",
+        ),
     ]
     for title, year, rt, seen, liked, queued, text in films:
         i = db.upsert_item("film", title, year, runtime_min=rt)
@@ -217,12 +258,15 @@ def test_taste_failure_degrades_gracefully(pdb):
     assert out["picks"] and any(d.startswith("no_taste") for d in out["degraded"])
 
 
-@pytest.mark.parametrize("text,key,value", [
-    ("something to discover 90 minutes", "runtime_max", 90),
-    ("admin 2 hours", "runtime_max", 120),
-    ("at least 2 hours", "runtime_min", 120),
-    ("minimum 100 minutes", "runtime_min", 100),
-])
+@pytest.mark.parametrize(
+    "text,key,value",
+    [
+        ("something to discover 90 minutes", "runtime_max", 90),
+        ("admin 2 hours", "runtime_max", 120),
+        ("at least 2 hours", "runtime_min", 120),
+        ("minimum 100 minutes", "runtime_min", 100),
+    ],
+)
 def test_qualifiers_need_word_boundaries(text, key, value):
     assert parse_constraints(text).filters == {key: value}
 

@@ -27,12 +27,12 @@ def db():
     film("A2", 1995, "Ann", seen=True)
     film("A3", 2000, "Ann", queued=True)
     film("A4", 2005, "Ann")
-    film("A-short", 2001, "Ann", runtime=12)       # excluded: short
+    film("A-short", 2001, "Ann", runtime=12)  # excluded: short
     film("A-tv", 2002, "Ann", runtime=90, is_tv=1)  # excluded: TV
     film("B1", 1980, "Bob", seen=True)
     film("B2", 1985, "Bob", seen=True)
-    film("C1", 1970, "Cy", seen=True)               # single film: below min_films
-    film("A-unk", 2010, "Ann", runtime=None)        # unknown runtime is counted
+    film("C1", 1970, "Cy", seen=True)  # single film: below min_films
+    film("A-unk", 2010, "Ann", runtime=None)  # unknown runtime is counted
     d.upsert_item("book", "A Book", 2000)
     yield d
     d.close()
@@ -84,9 +84,9 @@ def test_completion_deltas_batched(db):
     )
     assert out[ids["A3"]][0].before_pct == 40.0 and out[ids["A3"]][0].after_pct == 60.0
     assert {r["title"] for r in out[ids["A3"]][0].remaining} == {"A4", "A-unk"}
-    assert out[ids["A1"]] == []        # already seen: no delta
-    assert out[ids["A-short"]] == []   # excluded from collections
-    assert out[ids["A Book"]] == []    # no credits
+    assert out[ids["A1"]] == []  # already seen: no delta
+    assert out[ids["A-short"]] == []  # excluded from collections
+    assert out[ids["A Book"]] == []  # no credits
     assert completion_deltas(db, []) == {}
 
 

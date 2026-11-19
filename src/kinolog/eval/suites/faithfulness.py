@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Callable
 from importlib import resources
 from pathlib import Path
-from typing import Callable
 
 from kinolog.eval.runner import EvalResult
 from kinolog.rag.agent import KinologChatAgent
@@ -21,7 +21,7 @@ def load_faithfulness_prompts(path: Path = PROMPTS_PATH) -> list[dict]:
     if not path.exists():
         logger.warning("Faithfulness prompts file not found: %s", path)
         return []
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -57,14 +57,16 @@ def eval_faithfulness(
         if is_fully:
             fully_grounded_count += 1
 
-        details.append({
-            "id": p.get("id"),
-            "question": q,
-            "groundedness": score,
-            "is_fully_grounded": is_fully,
-            "mentioned": res["mentioned_item_ids"],
-            "context": res["context_item_ids"],
-        })
+        details.append(
+            {
+                "id": p.get("id"),
+                "question": q,
+                "groundedness": score,
+                "is_fully_grounded": is_fully,
+                "mentioned": res["mentioned_item_ids"],
+                "context": res["context_item_ids"],
+            }
+        )
 
     pct_fully_grounded = (fully_grounded_count / len(prompts)) * 100.0
     mean_groundedness = sum(grounded_scores) / len(grounded_scores)

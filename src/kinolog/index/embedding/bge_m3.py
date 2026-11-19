@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 @register("bge_m3")
-class BGE_M3:
+class BGE_M3:  # noqa: N801 (named after the model)
     """BAAI/bge-m3 via sentence-transformers (1024-dim, multilingual)."""
 
     def __init__(self, device: str | None = None):

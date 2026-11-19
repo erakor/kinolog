@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
 import { api } from '../api'
 import type { Health } from '../types'
 
@@ -16,7 +24,8 @@ export function useHealth() {
 export function healthNotes(h: Health | null): string[] {
   if (!h) return []
   if (!h.vec_available) return ['Vector search is unavailable, so keyword (BM25) search is used.']
-  if (!h.model_enabled) return ['Embedding model is off (--no-model): keyword search only, no taste ranking.']
+  if (!h.model_enabled)
+    return ['Embedding model is off (--no-model): keyword search only, no taste ranking.']
   return []
 }
 
@@ -30,6 +39,7 @@ export function HealthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
   useEffect(() => {
+    // eslint-disable-next-line react/set-state-in-effect -- refreshHealth sets state only after awaiting the request
     void refreshHealth()
   }, [refreshHealth])
   const value = useMemo(() => ({ health, refreshHealth }), [health, refreshHealth])

@@ -3,19 +3,19 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from kinolog.store.errors import InvalidInputError
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def chunked(items: list, size: int = 500):
     """Yield slices so IN (...) lists stay under SQLite's variable limit (999 on old builds)."""
     for i in range(0, len(items), size):
-        yield items[i:i + size]
+        yield items[i : i + size]
 
 
 def _check_date(value: str) -> str:

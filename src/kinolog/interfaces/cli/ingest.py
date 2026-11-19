@@ -9,6 +9,7 @@ from kinolog.store import Database
 
 # --- Core command handlers ---
 
+
 def handle_ingest_letterboxd(db_path: str, export_dir: str):
     db = Database(db_path)
     stats = pipeline.load_letterboxd(db, export_dir)
@@ -56,8 +57,12 @@ def handle_ingest_filmographies(
         return
     db = Database(db_path)
     stats = pipeline.filmographies(
-        db, min_seen=min_seen, person_name=person_name, limit=limit,
-        fetch_details=fetch_details, refresh=refresh,
+        db,
+        min_seen=min_seen,
+        person_name=person_name,
+        limit=limit,
+        fetch_details=fetch_details,
+        refresh=refresh,
     )
     rows = [[k, str(v)] for k, v in stats.items()]
     print_table("Director filmographies", ["Metric", "Count"], rows)
@@ -65,7 +70,9 @@ def handle_ingest_filmographies(
 
 
 def handle_ingest_omdb(
-    db_path: str, item_type: str = "film", max_requests: int | None = None,
+    db_path: str,
+    item_type: str = "film",
+    max_requests: int | None = None,
     refresh: bool = False,
 ):
     try:
@@ -88,6 +95,7 @@ def handle_ingest_backfill_runtime(db_path: str):
 
 def handle_ingest_review(db_path: str):
     from kinolog.interfaces.cli.review import review_queue
+
     review_queue(db_path)
 
 
