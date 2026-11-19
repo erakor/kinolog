@@ -24,6 +24,7 @@ export function FilmRow({ film: f, actions }: { film: DirectorFilm; actions?: Re
           'inline-grid place-items-center shrink-0 size-4 rounded-sm border-2 text-xs leading-none',
           checkTone,
         )}
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- an icon in a span; the label is what a screen reader needs
         role="img"
         aria-label={state}
       >

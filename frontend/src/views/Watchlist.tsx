@@ -56,6 +56,7 @@ export default function Watchlist() {
     }
   }, [sort, runtime, q])
 
+  // eslint-disable-next-line react/set-state-in-effect -- new data clears the highlight once; deriving it would need the previous data
   useEffect(() => setHighlightedId(null), [data])
   useEffect(() => {
     highlightRef.current?.scrollIntoView?.({ block: 'center', behavior: 'smooth' })

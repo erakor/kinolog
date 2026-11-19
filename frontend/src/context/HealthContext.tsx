@@ -30,6 +30,7 @@ export function HealthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
   useEffect(() => {
+    // eslint-disable-next-line react/set-state-in-effect -- refreshHealth sets state only after awaiting the request
     void refreshHealth()
   }, [refreshHealth])
   const value = useMemo(() => ({ health, refreshHealth }), [health, refreshHealth])

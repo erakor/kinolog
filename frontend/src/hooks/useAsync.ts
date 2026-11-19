@@ -49,8 +49,10 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]): AsyncState<T
   useEffect(() => {
     run()
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- bumping the counter is what drops a superseded run's answer
       seq.current++
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deps come from the caller, as with useEffect itself
   }, [...deps, refreshKey])
 
   // A failed first load has nothing to show: let the view's ErrorBoundary report it.

@@ -13,6 +13,7 @@ export function SearchBox({ placeholder, onChange, initial = '' }: SearchBoxProp
   const [text, setText] = useState(initial)
   const emitted = useRef(initial.trim())
   const cb = useRef(onChange)
+  // eslint-disable-next-line react/refs -- latest-callback ref, so a new onChange doesn't restart the debounce
   cb.current = onChange
 
   useEffect(() => {

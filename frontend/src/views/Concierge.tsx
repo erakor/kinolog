@@ -136,6 +136,7 @@ export default function Concierge({ query }: { query: URLSearchParams }) {
       started.current = true
       void ask(q)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs the ?q= query once on mount (started guards it), not on every change
   }, [])
 
   /** After queue/log, refresh just that pick's status instead of re-running the retrieval. */

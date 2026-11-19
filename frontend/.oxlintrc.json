@@ -1,8 +1,21 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
+  "extends": [
+    "./node_modules/@erakor/toolchain/oxlint/react.json"
+  ],
   "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
+    "react/only-export-components": [
+      "warn",
+      {
+        "allowConstantExport": true,
+        "allowExportNames": [
+          "useHealth",
+          "healthNotes",
+          "useRefresh",
+          "hash",
+          "seedHash"
+        ]
+      }
+    ]
   }
 }

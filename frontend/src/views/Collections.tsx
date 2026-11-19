@@ -97,7 +97,7 @@ export default function Collections() {
           <p className={eyebrow}>Filmography completion</p>
           <h1 className={heroTitle}>Director Collections</h1>
           <p className={heroLede}>
-            Track every feature in a director's body of work. See how close you are to completing each
+            Track every feature in a director’s body of work. See how close you are to completing each
             filmography and queue or log the missing titles.
           </p>
           <div className={`${num} text-ink-muted flex gap-6 flex-wrap mt-6`}>
