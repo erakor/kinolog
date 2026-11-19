@@ -27,7 +27,7 @@ def load_known_item_queries(path: str | Path = KNOWN_ITEMS_PATH) -> list[dict]:
     if not p.exists():
         logger.warning("Known-item query file not found: %s", path)
         return []
-    with open(p, "r", encoding="utf-8") as f:
+    with open(p, encoding="utf-8") as f:
         return json.load(f)
 
 

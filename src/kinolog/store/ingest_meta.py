@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC
 
 
 class IngestMetaMixin:
@@ -16,12 +17,12 @@ class IngestMetaMixin:
 
     def cache_put(self, source: str, external_id: str, path: str, content_hash: str | None = None):
         """Insert or update a cache entry."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         self.conn.execute(
             """INSERT OR REPLACE INTO raw_cache (source, external_id, fetched_at, content_hash, path)
                VALUES (?, ?, ?, ?, ?)""",
-            (source, external_id, datetime.now(timezone.utc).isoformat(), content_hash, path),
+            (source, external_id, datetime.now(UTC).isoformat(), content_hash, path),
         )
         self.conn.commit()
 

@@ -116,8 +116,8 @@ def test_first_heart_date():
 
 
 def test_idempotent_load(db, export_dir):
-    stats1 = load_letterboxd(db, export_dir)
-    stats2 = load_letterboxd(db, export_dir)
+    load_letterboxd(db, export_dir)
+    load_letterboxd(db, export_dir)
 
     # Should not duplicate items
     items = db.get_items(item_type="film")

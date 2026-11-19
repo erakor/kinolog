@@ -35,7 +35,7 @@ def _clean_isbn(raw: str | None) -> str | None:
 
 
 def _parse_csv(path: Path) -> list[dict]:
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
     if rows:

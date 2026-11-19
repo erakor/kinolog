@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 try:
-    import click
+    import click  # noqa: F401 (only checks that the cli extra is installed)
     from rich.console import Console
     from rich.table import Table
 

@@ -29,9 +29,9 @@ def embed_chunks(
 
     # Get chunks that need embedding
     chunks = db.execute(
-        """SELECT c.id, c.text FROM chunks c
+        f"""SELECT c.id, c.text FROM chunks c
            WHERE c.strategy = ?
-           AND c.id NOT IN (SELECT chunk_id FROM {table})""".format(table=vec_table),
+           AND c.id NOT IN (SELECT chunk_id FROM {vec_table})""",
         (strategy,),
     ).fetchall()
 

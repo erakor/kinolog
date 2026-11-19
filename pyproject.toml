@@ -16,7 +16,7 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
-    "ruff>=0.5",
+    "ruff==0.17.6",  # pinned: CI checks formatting, which can shift between versions
 ]
 mcp = [
     "mcp>=1.0",
@@ -51,6 +51,9 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
+# ruff format owns line length; what it leaves over 100 is long strings (SQL, tool
+# descriptions), which read better unsplit. Same rule as the JS side, where oxfmt owns it.
+ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -18,7 +18,7 @@ DIARY_EXTRA_COLS = {"Rating", "Rewatch", "Tags"}  # diary.csv has more
 
 def _parse_csv(path: Path) -> list[dict]:
     """Parse a Letterboxd CSV, returning list of row dicts."""
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
     if rows:

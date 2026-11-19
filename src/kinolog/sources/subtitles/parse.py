@@ -66,7 +66,7 @@ def parse_srt(srt_content: str) -> list[SubtitleEntry]:
     entries = []
 
     for block in blocks:
-        lines = [l.strip() for l in block.split("\n") if l.strip()]
+        lines = [line.strip() for line in block.split("\n") if line.strip()]
         if len(lines) < 2:
             continue
 
@@ -120,7 +120,7 @@ def chunk_subtitles_by_gap(
 
     for entry in entries:
         gap = entry.start_ms - prev_end_ms
-        curr_len = sum(len(l) for l in curr_lines)
+        curr_len = sum(len(line) for line in curr_lines)
 
         # Break scene if gap exceeds threshold or chunk is getting too long
         if (gap >= gap_threshold_ms and curr_lines) or (curr_len >= max_chunk_chars):

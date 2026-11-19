@@ -1,5 +1,7 @@
 """Tests for evaluation metrics."""
 
+import pytest
+
 from kinolog.eval.metrics import hit_at_k, mrr, recall_at_k
 from kinolog.rag.grounding import groundedness
 
@@ -39,6 +41,3 @@ def test_groundedness():
     assert groundedness([1, 2, 3], {1, 2, 3, 4}) == 1.0
     assert groundedness([1, 2, 3], {1, 2}) == pytest.approx(2 / 3)
     assert groundedness([], {1, 2}) == 1.0  # vacuously true
-
-
-import pytest

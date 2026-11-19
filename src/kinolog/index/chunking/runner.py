@@ -6,7 +6,7 @@ import logging
 
 from kinolog.config import DEFAULT_STRATEGY
 from kinolog.index.chunking.base import STRATEGIES
-from kinolog.store import Database, content_hash
+from kinolog.store import Database
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,6 @@ def chunk_document(
         (document_id, strategy),
     ).fetchall()
     if existing:
-        c_hash = content_hash(doc["text"])
         first_chunk = db.execute(
             "SELECT content_hash FROM chunks WHERE document_id = ? AND strategy = ? LIMIT 1",
             (document_id, strategy),
