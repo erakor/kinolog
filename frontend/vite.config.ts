@@ -11,6 +11,9 @@ export default defineConfig({
   base: '/',
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   build: { outDir: '../src/kinolog/interfaces/web/dist', emptyOutDir: true, assetsDir: 'assets' },
-  server: { host: '127.0.0.1', proxy: { '/api': { target: 'http://127.0.0.1:8765', changeOrigin: false } } },
+  server: {
+    host: '127.0.0.1',
+    proxy: { '/api': { target: 'http://127.0.0.1:8765', changeOrigin: false } },
+  },
   test: { environment: 'jsdom', globals: true, setupFiles: ['./src/test-setup.ts'] },
 })

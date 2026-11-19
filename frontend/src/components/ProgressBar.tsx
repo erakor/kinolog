@@ -13,7 +13,10 @@ export function ProgressBar({ seen, total, afterSeen = null }: ProgressBarProps)
   return (
     <Progress value={seen} max={total || 1}>
       {afterSeen != null && (
-        <div className="absolute inset-y-0 left-0 rounded-full bg-brand-soft" style={{ width: `${pct(afterSeen, total)}%` }} />
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-brand-soft"
+          style={{ width: `${pct(afterSeen, total)}%` }}
+        />
       )}
     </Progress>
   )

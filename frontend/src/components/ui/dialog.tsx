@@ -9,7 +9,10 @@ function Dialog(props: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
 }
 
-function DialogOverlay({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
+function DialogOverlay({
+  className,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
   return (
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
@@ -44,7 +47,12 @@ function DialogContent({
       >
         {children}
         <DialogPrimitive.Close asChild>
-          <Button variant="ghost" size="icon" aria-label="Close" className="absolute top-3 right-3 size-8">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Close"
+            className="absolute top-3 right-3 size-8"
+          >
             <X aria-hidden="true" />
           </Button>
         </DialogPrimitive.Close>
@@ -54,12 +62,22 @@ function DialogContent({
 }
 
 function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div data-slot="dialog-header" className={cn('mb-4 flex flex-col gap-1.5 pr-8', className)} {...props} />
+  return (
+    <div
+      data-slot="dialog-header"
+      className={cn('mb-4 flex flex-col gap-1.5 pr-8', className)}
+      {...props}
+    />
+  )
 }
 
 function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
-    <div data-slot="dialog-footer" className={cn('mt-4 flex flex-wrap justify-end gap-2', className)} {...props} />
+    <div
+      data-slot="dialog-footer"
+      className={cn('mt-4 flex flex-wrap justify-end gap-2', className)}
+      {...props}
+    />
   )
 }
 

@@ -29,7 +29,10 @@ export function SearchBox({ placeholder, onChange, initial = '' }: SearchBoxProp
 
   return (
     <div className="relative max-w-lg flex-auto basis-64">
-      <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+      <Search
+        className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+        aria-hidden="true"
+      />
       <Input
         className="h-10 pl-9"
         type="search"

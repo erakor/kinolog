@@ -3,7 +3,10 @@ import type * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-function ToggleGroup({ className, ...props }: React.ComponentProps<typeof ToggleGroupPrimitive.Root>) {
+function ToggleGroup({
+  className,
+  ...props
+}: React.ComponentProps<typeof ToggleGroupPrimitive.Root>) {
   return (
     <ToggleGroupPrimitive.Root
       data-slot="toggle-group"
@@ -13,7 +16,10 @@ function ToggleGroup({ className, ...props }: React.ComponentProps<typeof Toggle
   )
 }
 
-function ToggleGroupItem({ className, ...props }: React.ComponentProps<typeof ToggleGroupPrimitive.Item>) {
+function ToggleGroupItem({
+  className,
+  ...props
+}: React.ComponentProps<typeof ToggleGroupPrimitive.Item>) {
   return (
     <ToggleGroupPrimitive.Item
       data-slot="toggle-group-item"

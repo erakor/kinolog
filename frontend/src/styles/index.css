@@ -1,6 +1,6 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "./tokens.css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import './tokens.css';
 
 /* Only what Preflight does not already cover. */
 @layer base {
@@ -24,7 +24,7 @@
     cursor: pointer;
   }
   /* Preflight drops the stock inner padding of date fields; keep it so inputs keep their height. */
-  input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+  input[type='date']::-webkit-datetime-edit-fields-wrapper {
     padding: 1px 0;
   }
   /* Preflight fades placeholders to 50% of the text color; keep the browser's grey. */

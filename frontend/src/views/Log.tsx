@@ -9,7 +9,14 @@ import { SearchBox } from '../components/SearchBox'
 import { Segmented } from '../components/Segmented'
 import { Pencil, Star, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { eyebrow, heroLede, heroTitle, listBox, num, toolbar } from '../components/styles'
 import { directorNames, fmtHours } from '../format'
 import { useAction } from '../hooks/useAction'
@@ -33,7 +40,10 @@ function LogRow({ entry: e, reload }: { entry: LogEntry; reload: () => void }) {
 
   async function rate(value: number | null) {
     setPending({ base: e.rating, value })
-    const ok = await run(() => api.patch(`/api/log/${e.entry_id}`, { rating: value }), 'Rating saved')
+    const ok = await run(
+      () => api.patch(`/api/log/${e.entry_id}`, { rating: value }),
+      'Rating saved',
+    )
     if (!ok) setPending(null)
   }
 
@@ -47,27 +57,52 @@ function LogRow({ entry: e, reload }: { entry: LogEntry; reload: () => void }) {
       <TableCell className={num}>{e.watched_on}</TableCell>
       <TableCell>
         {it.title} <span className={`${num} text-ink-muted`}>{it.year ? `(${it.year})` : ''}</span>
-        {e.rewatch && <div className="text-ink-muted text-xs">Rewatch</div>}
+        {e.rewatch && <div className="text-xs text-ink-muted">Rewatch</div>}
       </TableCell>
       <TableCell className="text-ink-muted">{directorNames(it.directors)}</TableCell>
-      <TableCell className={`${num} text-ink-muted`}>{it.runtime_min ? `${it.runtime_min} min` : ''}</TableCell>
+      <TableCell className={`${num} text-ink-muted`}>
+        {it.runtime_min ? `${it.runtime_min} min` : ''}
+      </TableCell>
       <TableCell>
         <div className="flex items-center gap-1.5">
           {rating ? <Star className="size-4 fill-brand text-brand" aria-hidden="true" /> : null}
-          <RatingSelect className="font-mono" aria-label={`Rating for ${it.title}`} value={rating} onChange={rate} />
+          <RatingSelect
+            className="font-mono"
+            aria-label={`Rating for ${it.title}`}
+            value={rating}
+            onChange={rate}
+          />
         </div>
       </TableCell>
       <TableCell className="whitespace-nowrap">
         <ExternalRatings ratings={it.external_ratings} />
       </TableCell>
       <TableCell className="whitespace-nowrap">
-        <Button variant="ghost" size="icon" aria-label={`Edit ${it.title}`} title="Edit" onClick={() => setEditing(true)}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={`Edit ${it.title}`}
+          title="Edit"
+          onClick={() => setEditing(true)}
+        >
           <Pencil />
         </Button>
-        <Button variant="ghost" size="icon" aria-label={`Delete ${it.title} entry`} title="Delete entry" onClick={remove}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={`Delete ${it.title} entry`}
+          title="Delete entry"
+          onClick={remove}
+        >
           <Trash2 />
         </Button>
-        {editing && <EditLogDialog entry={{ ...e, rating }} reload={reload} onClose={() => setEditing(false)} />}
+        {editing && (
+          <EditLogDialog
+            entry={{ ...e, rating }}
+            reload={reload}
+            onClose={() => setEditing(false)}
+          />
+        )}
       </TableCell>
     </TableRow>
   )
@@ -87,21 +122,21 @@ export default function Log() {
   const none = !!data && !data.entries.length
   return (
     <>
-      <section className="grid gap-6 mb-4">
-        <div className="flex justify-between gap-4 flex-wrap items-end">
+      <section className="mb-4 grid gap-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className={eyebrow}>Chronological diary</p>
             <h1 className={heroTitle}>Watching Log</h1>
             <p className={heroLede}>
               {s && (
                 <>
-                  <span className={num}>{s.count}</span> films logged · <span className={num}>{fmtHours(s.total_minutes)}</span> hrs
-                  watched
+                  <span className={num}>{s.count}</span> films logged ·{' '}
+                  <span className={num}>{fmtHours(s.total_minutes)}</span> hrs watched
                 </>
               )}
             </p>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-wrap gap-2">
             <ImportButton onDone={reload} />
           </div>
         </div>
@@ -149,9 +184,11 @@ export default function Log() {
           </Table>
         </div>
       )}
-      <div className="text-center mt-4">
+      <div className="mt-4 text-center">
         {data && data.entries.length < data.total && (
-          <Button variant="outline" onClick={() => setPages((p) => p + 1)}>Show more</Button>
+          <Button variant="outline" onClick={() => setPages((p) => p + 1)}>
+            Show more
+          </Button>
         )}
       </div>
     </>

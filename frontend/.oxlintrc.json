@@ -1,20 +1,12 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "extends": [
-    "./node_modules/@erakor/toolchain/oxlint/react.json"
-  ],
+  "extends": ["./node_modules/@erakor/toolchain/oxlint/react.json"],
   "rules": {
     "react/only-export-components": [
       "warn",
       {
         "allowConstantExport": true,
-        "allowExportNames": [
-          "useHealth",
-          "healthNotes",
-          "useRefresh",
-          "hash",
-          "seedHash"
-        ]
+        "allowExportNames": ["useHealth", "healthNotes", "useRefresh", "hash", "seedHash"]
       }
     ]
   }

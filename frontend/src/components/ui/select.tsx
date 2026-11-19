@@ -12,12 +12,16 @@ function SelectValue(props: React.ComponentProps<typeof SelectPrimitive.Value>) 
   return <SelectPrimitive.Value data-slot="select-value" {...props} />
 }
 
-function SelectTrigger({ className, children, ...props }: React.ComponentProps<typeof SelectPrimitive.Trigger>) {
+function SelectTrigger({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Trigger>) {
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       className={cn(
-        "flex w-fit items-center justify-between gap-2 rounded-lg border border-input bg-card px-2.5 py-2 text-sm whitespace-nowrap transition-colors outline-none",
+        'flex w-fit items-center justify-between gap-2 rounded-lg border border-input bg-card px-2.5 py-2 text-sm whitespace-nowrap transition-colors outline-none',
         'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
         'disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-muted-foreground',
         'h-9',
@@ -35,7 +39,11 @@ function SelectTrigger({ className, children, ...props }: React.ComponentProps<t
   )
 }
 
-function SelectContent({ className, children, ...props }: React.ComponentProps<typeof SelectPrimitive.Content>) {
+function SelectContent({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Content>) {
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
@@ -49,9 +57,7 @@ function SelectContent({ className, children, ...props }: React.ComponentProps<t
         position="popper"
         {...props}
       >
-        <SelectPrimitive.Viewport
-          className="h-(--radix-select-trigger-height) w-full min-w-(--radix-select-trigger-width) scroll-my-1 p-1"
-        >
+        <SelectPrimitive.Viewport className="h-(--radix-select-trigger-height) w-full min-w-(--radix-select-trigger-width) scroll-my-1 p-1">
           {children}
         </SelectPrimitive.Viewport>
       </SelectPrimitive.Content>
@@ -59,7 +65,11 @@ function SelectContent({ className, children, ...props }: React.ComponentProps<t
   )
 }
 
-function SelectItem({ className, children, ...props }: React.ComponentProps<typeof SelectPrimitive.Item>) {
+function SelectItem({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Item>) {
   return (
     <SelectPrimitive.Item
       data-slot="select-item"

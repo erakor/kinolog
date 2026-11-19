@@ -22,7 +22,10 @@ export function today(): string {
 }
 
 /** Per source: chip label and how to show the normalized 0..100 score on the provider's scale. */
-const RATING_SOURCES: Record<string, { short: string; name: string; value: (score: number) => string }> = {
+const RATING_SOURCES: Record<
+  string,
+  { short: string; name: string; value: (score: number) => string }
+> = {
   imdb: { short: 'IMDb', name: 'IMDb', value: (s) => (s / 10).toFixed(1) },
   rotten_tomatoes: { short: 'RT', name: 'Rotten Tomatoes', value: fmtPct },
   metacritic: { short: 'MC', name: 'Metacritic', value: (s) => String(Math.round(s)) },

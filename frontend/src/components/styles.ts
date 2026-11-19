@@ -4,7 +4,8 @@ export const num = 'font-mono tabular-nums'
 export const eyebrow = 'text-brand text-sm'
 export const link = 'text-brand text-sm hover:underline'
 
-export const empty = 'text-center px-4 py-12 text-muted-foreground bg-card border border-dashed border-border rounded-xl'
+export const empty =
+  'text-center px-4 py-12 text-muted-foreground bg-card border border-dashed border-border rounded-xl'
 
 /** Card grids: one column, two or three from the md breakpoint. */
 export const grid2 = 'grid gap-4 grid-cols-1 md:grid-cols-2'
@@ -14,7 +15,8 @@ export const grid3 = 'grid gap-4 grid-cols-1 md:grid-cols-3'
 export const heroSplit = 'grid gap-6 mb-8 md:grid-cols-[1.6fr_1fr] md:items-start'
 export const heroTitle = 'text-4xl mt-2 mb-3'
 export const heroLede = 'text-ink-muted max-w-prose'
-export const heroArt = 'rounded-xl overflow-hidden border border-rule [&_svg]:block [&_svg]:size-full'
+export const heroArt =
+  'rounded-xl overflow-hidden border border-rule [&_svg]:block [&_svg]:size-full'
 
 /** Director completion card header: name + percentage, then a mono subline. */
 export const dirHead = 'flex justify-between items-baseline gap-3'

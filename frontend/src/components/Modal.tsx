@@ -17,7 +17,9 @@ const FIELDS = 'input, select, button, [role="combobox"]'
 export function Modal({ title, onClose, children }: ModalProps) {
   const content = useRef<HTMLDivElement>(null)
   // Captured on first render, before the dialog moves focus.
-  const [opener] = useState(() => (document.activeElement instanceof HTMLElement ? document.activeElement : null))
+  const [opener] = useState(() =>
+    document.activeElement instanceof HTMLElement ? document.activeElement : null,
+  )
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent

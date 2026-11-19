@@ -39,18 +39,21 @@ function Shell() {
 
   return (
     <>
-      <header className="bg-bg border-b border-rule sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-3.5 flex items-center justify-between gap-4 flex-wrap">
-          <a className="font-display font-extrabold text-2xl" href="#/concierge">
+      <header className="sticky top-0 z-10 border-b border-rule bg-bg">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-3.5">
+          <a className="font-display text-2xl font-extrabold" href="#/concierge">
             Kinolog
           </a>
-          <nav className="flex gap-6 order-3 w-full overflow-x-auto md:order-none md:w-auto md:gap-8" aria-label="Primary">
+          <nav
+            className="order-3 flex w-full gap-6 overflow-x-auto md:order-none md:w-auto md:gap-8"
+            aria-label="Primary"
+          >
             {NAV.map(([name, label]) => (
               <a
                 key={name}
                 href={`#/${name}`}
                 aria-current={route.name === name ? 'page' : undefined}
-                className="text-ink-muted py-1.5 border-b-2 border-transparent whitespace-nowrap text-sm md:text-base hover:text-ink aria-[current=page]:text-ink aria-[current=page]:border-brand"
+                className="border-b-2 border-transparent py-1.5 text-sm whitespace-nowrap text-ink-muted hover:text-ink aria-[current=page]:border-brand aria-[current=page]:text-ink md:text-base"
               >
                 {label}
               </a>
@@ -62,14 +65,14 @@ function Shell() {
         </div>
       </header>
       <div
-        className="bg-brand-wash text-ink text-center px-4 py-2 text-sm border-b border-rule"
+        className="border-b border-rule bg-brand-wash px-4 py-2 text-center text-sm text-ink"
         hidden={notes.length === 0}
       >
         {notes.join(' ')}
       </div>
-      <main className="max-w-6xl mx-auto pt-8 px-4 pb-12 outline-none" tabIndex={-1}>
+      <main className="mx-auto max-w-6xl px-4 pt-8 pb-12 outline-none" tabIndex={-1}>
         <ErrorBoundary key={route.name} resetKey={`${refreshKey}:${route.query.toString()}`}>
-          <Suspense fallback={<p className="text-ink-muted py-8">Loading…</p>}>
+          <Suspense fallback={<p className="py-8 text-ink-muted">Loading…</p>}>
             <View key={route.query.toString()} query={route.query} />
           </Suspense>
         </ErrorBoundary>
@@ -79,7 +82,7 @@ function Shell() {
           <AddFilmDialog onClose={() => setAddFilmOpen(false)} />
         </Suspense>
       )}
-      <footer className="max-w-6xl mx-auto px-4 py-6 border-t border-rule flex justify-between flex-wrap gap-3 text-sm text-ink-muted">
+      <footer className="mx-auto flex max-w-6xl flex-wrap justify-between gap-3 border-t border-rule px-4 py-6 text-sm text-ink-muted">
         <span>Kinolog: personal watch list and director completion</span>
         <span>
           <a className="ml-4 hover:text-ink" href="#/log">
