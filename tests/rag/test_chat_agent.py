@@ -12,11 +12,15 @@ from kinolog.store import Database
 def db_for_chat():
     db = Database(":memory:")
     id1 = db.upsert_item("film", "La Dolce Vita", 1960)
-    doc1 = db.upsert_document(id1, "tmdb", "en", "A decadent journalist wanders through high society Rome.")
+    doc1 = db.upsert_document(
+        id1, "tmdb", "en", "A decadent journalist wanders through high society Rome."
+    )
     chunk_document(db, doc1, strategy="whole")
 
     id2 = db.upsert_item("film", "8½", 1963)
-    doc2 = db.upsert_document(id2, "tmdb", "en", "Director Guido Anselmi suffers creative blockage.")
+    doc2 = db.upsert_document(
+        id2, "tmdb", "en", "Director Guido Anselmi suffers creative blockage."
+    )
     chunk_document(db, doc2, strategy="whole")
 
     yield db
@@ -33,8 +37,16 @@ def test_chat_agent_answer_and_grounding(db_for_chat):
 
 def test_eval_faithfulness(db_for_chat):
     prompts = [
-        {"id": 1, "question": "Which films are set in Rome?", "expected_item_titles": ["La Dolce Vita"]},
-        {"id": 2, "question": "Tell me about a filmmaker having a creative crisis", "expected_item_titles": ["8½"]},
+        {
+            "id": 1,
+            "question": "Which films are set in Rome?",
+            "expected_item_titles": ["La Dolce Vita"],
+        },
+        {
+            "id": 2,
+            "question": "Tell me about a filmmaker having a creative crisis",
+            "expected_item_titles": ["8½"],
+        },
     ]
     results = eval_faithfulness(db_for_chat, prompts=prompts)
     assert len(results) == 2
@@ -68,8 +80,16 @@ def test_answer_query_uses_prefetched_results_without_searching(monkeypatch):
         raise AssertionError("search must not be called")
 
     monkeypatch.setattr(agent_mod, "search", boom)
-    res = [SearchResult(item_id=ids["Solaris"], chunk_id=1, score=1.0, title="Solaris",
-                        year=1972, chunk_text="An astronaut visits a space station.")]
+    res = [
+        SearchResult(
+            item_id=ids["Solaris"],
+            chunk_id=1,
+            score=1.0,
+            title="Solaris",
+            year=1972,
+            chunk_text="An astronaut visits a space station.",
+        )
+    ]
     out = agent_mod.KinologChatAgent(db).answer_query("anything", results=res)
     assert [c["title"] for c in out["citations"]] == ["Solaris"]
 
@@ -94,7 +114,9 @@ def test_scoped_mention_check_and_citation_validation():
 
     agent = KinologChatAgent(db)
     out = agent.answer_query(
-        "ocean planet", generator_fn=gen, search_mode="bm25",
+        "ocean planet",
+        generator_fn=gen,
+        search_mode="bm25",
         mention_scope={ids["Solaris"], ids["Ran"]},
     )
     assert set(out["mentioned_item_ids"]) == {ids["Solaris"], ids["Ran"]}
@@ -123,9 +145,18 @@ def test_check_grounding_directly():
     from kinolog.retrieval import SearchResult
 
     db, ids = _agent_db()
-    ctx = assemble_context([SearchResult(
-        item_id=ids["Solaris"], chunk_id=1, score=1.0, title="Solaris", year=1972,
-        chunk_text="An astronaut visits a space station.")])
+    ctx = assemble_context(
+        [
+            SearchResult(
+                item_id=ids["Solaris"],
+                chunk_id=1,
+                score=1.0,
+                title="Solaris",
+                year=1972,
+                chunk_text="An astronaut visits a space station.",
+            )
+        ]
+    )
     ok = check_grounding(db, "Solaris [^1] fits.", ctx)
     assert ok["is_fully_grounded"] and ok["citations_valid"]
     bad = check_grounding(db, "Ran [^3] fits.", ctx, mention_scope={ids["Ran"]})

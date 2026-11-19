@@ -6,6 +6,7 @@ try:
     import click
     from rich.console import Console
     from rich.table import Table
+
     USE_CLICK = True
     console = Console()
 except ImportError:
@@ -34,10 +35,14 @@ def print_table(title: str, headers: list[str], rows: list[list[str]]):
         sep = "+-" + "-+-".join("-" * w for w in col_widths) + "-+"
         print(f"\n=== {title} ===")
         print(sep)
-        header_line = "| " + " | ".join(h.ljust(col_widths[i]) for i, h in enumerate(headers)) + " |"
+        header_line = (
+            "| " + " | ".join(h.ljust(col_widths[i]) for i, h in enumerate(headers)) + " |"
+        )
         print(header_line)
         print(sep)
         for row in rows:
-            line = "| " + " | ".join(str(val).ljust(col_widths[i]) for i, val in enumerate(row)) + " |"
+            line = (
+                "| " + " | ".join(str(val).ljust(col_widths[i]) for i, val in enumerate(row)) + " |"
+            )
             print(line)
         print(sep + "\n")

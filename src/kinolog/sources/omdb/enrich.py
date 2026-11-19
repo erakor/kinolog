@@ -76,7 +76,11 @@ def parse_ratings(data: dict) -> list[dict]:
 
 
 def enrich_item(
-    db: Database, client: OMDbClient, item_id: int, imdb_id: str, refresh: bool = False,
+    db: Database,
+    client: OMDbClient,
+    item_id: int,
+    imdb_id: str,
+    refresh: bool = False,
 ) -> dict:
     """Fetch OMDb ratings for one item and store them (no commit).
 
@@ -125,20 +129,29 @@ def enrich_all(
     ).fetchone()["c"]
 
     stats = {
-        "total": len(items), "no_imdb_id": missing, "rated": 0, "ratings": 0,
-        "not_found": 0, "errors": 0, "requests": 0, "deferred": 0, "quota_hit": 0,
+        "total": len(items),
+        "no_imdb_id": missing,
+        "rated": 0,
+        "ratings": 0,
+        "not_found": 0,
+        "errors": 0,
+        "requests": 0,
+        "deferred": 0,
+        "quota_hit": 0,
         "unavailable": 0,
     }
     start_requests = client.requests_made
     quota_hit = False
     failures_in_row = 0
-    logger.info("Fetching OMDb ratings for %d %ss (max %d requests)...",
-                len(items), item_type, max_requests)
+    logger.info(
+        "Fetching OMDb ratings for %d %ss (max %d requests)...", len(items), item_type, max_requests
+    )
 
     for i, row in enumerate(items):
         needs_request = refresh or not client.is_cached(row["imdb_id"])
         if needs_request and (
-            quota_hit or failures_in_row >= MAX_CONSECUTIVE_FAILURES
+            quota_hit
+            or failures_in_row >= MAX_CONSECUTIVE_FAILURES
             or client.requests_made - start_requests >= max_requests
         ):
             stats["deferred"] += 1
@@ -155,8 +168,9 @@ def enrich_all(
             stats["errors"] += 1
             logger.error("OMDb error for item %d: %s", row["id"], e)
             if failures_in_row == MAX_CONSECUTIVE_FAILURES:
-                logger.warning("OMDb unreachable %d times in a row; deferring the rest",
-                               failures_in_row)
+                logger.warning(
+                    "OMDb unreachable %d times in a row; deferring the rest", failures_in_row
+                )
             continue
         except Exception as e:
             logger.error("OMDb error for item %d: %s", row["id"], e)

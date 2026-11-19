@@ -137,12 +137,14 @@ def rank_watchlist(db: Database, ranker: str = DEFAULT_RANKER, limit: int = 20) 
     for s in scores[:limit]:
         item = db.get_item(s.item_id)
         if item:
-            results.append({
-                "title": item["title"],
-                "year": item["year"],
-                "score": round(s.score, 4),
-                "method": s.method,
-            })
+            results.append(
+                {
+                    "title": item["title"],
+                    "year": item["year"],
+                    "score": round(s.score, 4),
+                    "method": s.method,
+                }
+            )
     return results
 
 
@@ -233,7 +235,9 @@ def _completion_film(f: fcomp.FilmographyFilm, d: fcomp.FilmDelta | None) -> dic
         "seen": f.seen,
         "on_watchlist": f.on_watchlist,
         "in_index": f.item_id is not None,
-        "if_watched": None if d is None else {
+        "if_watched": None
+        if d is None
+        else {
             "before": f"{d.before_seen}/{d.total}",
             "after": f"{d.after_seen}/{d.total}",
             "before_pct": fcomp.format_pct(d.before_ratio),
@@ -260,8 +264,12 @@ def watchlist_director_impact(
     _positive("max_runtime", max_runtime)
     _positive("limit", limit)
     ranked = fcomp.watchlist_by_director_impact(
-        db, max_runtime=max_runtime, include_unseen=include_unseen,
-        include_unknown_runtime=include_unknown_runtime, limit=limit, today=today,
+        db,
+        max_runtime=max_runtime,
+        include_unseen=include_unseen,
+        include_unknown_runtime=include_unknown_runtime,
+        limit=limit,
+        today=today,
     )
     return [
         {
@@ -422,7 +430,7 @@ def watchlist_view(
     elif sort == "impact":
         rows.sort(key=lambda r: (-r["_gain"], r["title"].lower()))
 
-    page = rows[offset:offset + limit]
+    page = rows[offset : offset + limit]
     for r in page:
         r.pop("_gain", None)
     return {"total": total, "summary": db.watchlist_summary(), "items": page}
@@ -450,7 +458,7 @@ def directors_view(
     include_films: bool = False,
 ) -> dict:
     allc = coll.director_completion(db, sort=sort, status=status, q=q, min_films=min_films)
-    page = allc[offset:offset + limit]
+    page = allc[offset : offset + limit]
     if include_films:
         coll.attach_films(db, page)
     return {
@@ -491,15 +499,25 @@ def concierge_overview(db: Database) -> dict:
         unseen = [f for f in (d.films or []) if not f.seen]
         unseen.sort(key=lambda f: (f.runtime_min is None, f.runtime_min or 0, f.title))
         q = unseen[0] if unseen else None
-        radar.append({
-            "person_id": d.person_id, "name": d.name, "seen": d.seen, "total": d.total,
-            "pct": d.pct,
-            "quickest": None if q is None else {
-                "item_id": q.item_id, "title": q.title, "year": q.year,
-                "runtime_min": q.runtime_min, "on_watchlist": q.on_watchlist,
-                "after_pct": coll.pct(d.seen + 1, d.total),
-            },
-        })
+        radar.append(
+            {
+                "person_id": d.person_id,
+                "name": d.name,
+                "seen": d.seen,
+                "total": d.total,
+                "pct": d.pct,
+                "quickest": None
+                if q is None
+                else {
+                    "item_id": q.item_id,
+                    "title": q.title,
+                    "year": q.year,
+                    "runtime_min": q.runtime_min,
+                    "on_watchlist": q.on_watchlist,
+                    "after_pct": coll.pct(d.seen + 1, d.total),
+                },
+            }
+        )
     closest = None
     if radar:
         first = radar[0]

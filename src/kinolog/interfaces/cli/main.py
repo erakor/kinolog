@@ -41,49 +41,72 @@ def build_parser() -> argparse.ArgumentParser:
     )
     base_parser.add_argument("-v", "--verbose", action="store_true", help="Verbose logging")
 
-    parser = argparse.ArgumentParser(prog="kinolog", description="Personal Film & Book Index", parents=[base_parser])
+    parser = argparse.ArgumentParser(
+        prog="kinolog", description="Personal Film & Book Index", parents=[base_parser]
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # Ingest
-    ingest_parser = subparsers.add_parser("ingest", help="Ingestion commands", parents=[base_parser])
+    ingest_parser = subparsers.add_parser(
+        "ingest", help="Ingestion commands", parents=[base_parser]
+    )
     ingest_subs = ingest_parser.add_subparsers(dest="ingest_cmd", required=True)
 
-    lb_parser = ingest_subs.add_parser("letterboxd", help="Load Letterboxd export CSVs", parents=[base_parser])
+    lb_parser = ingest_subs.add_parser(
+        "letterboxd", help="Load Letterboxd export CSVs", parents=[base_parser]
+    )
     lb_parser.add_argument("export_dir", help="Path to directory containing Letterboxd CSVs or zip")
 
-    gr_parser = ingest_subs.add_parser("goodreads", help="Load Goodreads export CSV", parents=[base_parser])
+    gr_parser = ingest_subs.add_parser(
+        "goodreads", help="Load Goodreads export CSV", parents=[base_parser]
+    )
     gr_parser.add_argument("csv_path", help="Path to Goodreads CSV file")
 
-    res_parser = ingest_subs.add_parser("resolve", help="Resolve items to TMDB IDs", parents=[base_parser])
+    res_parser = ingest_subs.add_parser(
+        "resolve", help="Resolve items to TMDB IDs", parents=[base_parser]
+    )
     res_parser.add_argument("--type", default="film", help="Item type (film/book)")
 
-    enr_parser = ingest_subs.add_parser("enrich", help="Enrich items with TMDB metadata", parents=[base_parser])
+    enr_parser = ingest_subs.add_parser(
+        "enrich", help="Enrich items with TMDB metadata", parents=[base_parser]
+    )
     enr_parser.add_argument("--type", default="film", help="Item type (film/book)")
 
     omdb_parser = ingest_subs.add_parser(
-        "omdb", help="Fetch IMDb/Rotten Tomatoes/Metacritic scores from OMDb",
+        "omdb",
+        help="Fetch IMDb/Rotten Tomatoes/Metacritic scores from OMDb",
         parents=[base_parser],
     )
     omdb_parser.add_argument("--type", default="film", help="Item type")
-    omdb_parser.add_argument("--max-requests", type=int, default=None,
-                             help="Cap on network requests this run (free tier: 1000/day)")
-    omdb_parser.add_argument("--refresh", action="store_true",
-                             help="Re-fetch cached responses (counts against the cap)")
+    omdb_parser.add_argument(
+        "--max-requests",
+        type=int,
+        default=None,
+        help="Cap on network requests this run (free tier: 1000/day)",
+    )
+    omdb_parser.add_argument(
+        "--refresh", action="store_true", help="Re-fetch cached responses (counts against the cap)"
+    )
 
     film_ing = ingest_subs.add_parser(
         "filmographies",
         help="Fetch full TMDB director filmographies (for completion beyond the index)",
         parents=[base_parser],
     )
-    film_ing.add_argument("--min-seen", type=int, default=2,
-                          help="Only directors with at least this many seen films")
+    film_ing.add_argument(
+        "--min-seen", type=int, default=2, help="Only directors with at least this many seen films"
+    )
     film_ing.add_argument("--person", default=None, help="Only people whose name matches")
     film_ing.add_argument("--limit", type=int, default=None, help="Cap on directors this run")
-    film_ing.add_argument("--no-details", action="store_true",
-                          help="Skip per-film detail requests (films not already cached are "
-                               "not counted until details are fetched)")
-    film_ing.add_argument("--refresh", action="store_true",
-                          help="Re-fetch cached person credits (filmographies grow)")
+    film_ing.add_argument(
+        "--no-details",
+        action="store_true",
+        help="Skip per-film detail requests (films not already cached are "
+        "not counted until details are fetched)",
+    )
+    film_ing.add_argument(
+        "--refresh", action="store_true", help="Re-fetch cached person credits (filmographies grow)"
+    )
 
     ingest_subs.add_parser(
         "backfill-runtime",
@@ -91,7 +114,9 @@ def build_parser() -> argparse.ArgumentParser:
         parents=[base_parser],
     )
 
-    ingest_subs.add_parser("review", help="Review and clear the match review queue", parents=[base_parser])
+    ingest_subs.add_parser(
+        "review", help="Review and clear the match review queue", parents=[base_parser]
+    )
 
     chk_parser = ingest_subs.add_parser("chunk", help="Chunk documents", parents=[base_parser])
     chk_parser.add_argument("--strategy", default=DEFAULT_STRATEGY, help="Chunk strategy")
@@ -119,12 +144,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="Director completion (run `ingest filmographies` first for full filmographies)",
         parents=[base_parser],
     )
-    comp_parser.add_argument("name", nargs="?", default=None,
-                             help="Director name (partial match); omit to list directors")
-    comp_parser.add_argument("--min-seen", type=int, default=None,
-                             help="Minimum seen films (default 1, or 0 with a name)")
-    comp_parser.add_argument("--min-total", type=int, default=None,
-                             help="Minimum feature films (default 2, or 1 with a name)")
+    comp_parser.add_argument(
+        "name",
+        nargs="?",
+        default=None,
+        help="Director name (partial match); omit to list directors",
+    )
+    comp_parser.add_argument(
+        "--min-seen",
+        type=int,
+        default=None,
+        help="Minimum seen films (default 1, or 0 with a name)",
+    )
+    comp_parser.add_argument(
+        "--min-total",
+        type=int,
+        default=None,
+        help="Minimum feature films (default 2, or 1 with a name)",
+    )
     comp_parser.add_argument("--limit", type=int, default=25)
 
     impact_parser = subparsers.add_parser(
@@ -132,21 +169,35 @@ def build_parser() -> argparse.ArgumentParser:
         help="Rank watchlist films by how much they advance a director's completion",
         parents=[base_parser],
     )
-    impact_parser.add_argument("--max-runtime", type=int, default=None,
-                               help="Only films up to N minutes (presets: 90, 105, 120)")
-    impact_parser.add_argument("--include-unseen", action="store_true",
-                               help="Also consider unseen films that are not on the watchlist")
-    impact_parser.add_argument("--include-unknown-runtime", action="store_true",
-                               help="Keep films with no known runtime under --max-runtime")
+    impact_parser.add_argument(
+        "--max-runtime",
+        type=int,
+        default=None,
+        help="Only films up to N minutes (presets: 90, 105, 120)",
+    )
+    impact_parser.add_argument(
+        "--include-unseen",
+        action="store_true",
+        help="Also consider unseen films that are not on the watchlist",
+    )
+    impact_parser.add_argument(
+        "--include-unknown-runtime",
+        action="store_true",
+        help="Keep films with no known runtime under --max-runtime",
+    )
     impact_parser.add_argument("--limit", type=int, default=20)
 
     # Filmography
-    film_parser = subparsers.add_parser("filmography", help="Show person's filmography", parents=[base_parser])
+    film_parser = subparsers.add_parser(
+        "filmography", help="Show person's filmography", parents=[base_parser]
+    )
     film_parser.add_argument("name", help="Person name")
     film_parser.add_argument("--role", default=None, help="Filter by role")
 
     # Crew overlap
-    crew_parser = subparsers.add_parser("crew-overlap", help="Find crew in hearted films", parents=[base_parser])
+    crew_parser = subparsers.add_parser(
+        "crew-overlap", help="Find crew in hearted films", parents=[base_parser]
+    )
     crew_parser.add_argument("--role", default="Director", help="Role")
     crew_parser.add_argument("--min-overlap", type=int, default=2)
 
@@ -154,7 +205,9 @@ def build_parser() -> argparse.ArgumentParser:
     eval_parser = subparsers.add_parser("eval", help="Evaluation commands", parents=[base_parser])
     eval_subs = eval_parser.add_subparsers(dest="eval_cmd", required=True)
 
-    ki_parser = eval_subs.add_parser("known-items", help="Run known-item retrieval eval", parents=[base_parser])
+    ki_parser = eval_subs.add_parser(
+        "known-items", help="Run known-item retrieval eval", parents=[base_parser]
+    )
     ki_parser.add_argument("--mode", default="bm25", choices=["bm25", "vector", "rrf"])
 
     con_parser = eval_subs.add_parser("concierge", help="Run concierge eval", parents=[base_parser])
@@ -165,7 +218,9 @@ def build_parser() -> argparse.ArgumentParser:
     con_parser.add_argument("--hearts", action="store_true", help="Also run held-out hearts check")
     con_parser.add_argument("--splits", type=int, default=5)
 
-    hearts_parser = eval_subs.add_parser("hearts", help="Run hearts recall eval", parents=[base_parser])
+    hearts_parser = eval_subs.add_parser(
+        "hearts", help="Run hearts recall eval", parents=[base_parser]
+    )
     hearts_parser.add_argument("--ranker", default="mean_heart", help="Taste ranker")
     hearts_parser.add_argument("--splits", type=int, default=10)
     return parser
@@ -201,8 +256,14 @@ def run_argparse_cli():
         elif args.ingest_cmd == "embed":
             handle_ingest_embed(args.db, args.model, args.strategy, args.device)
     elif args.command == "search":
-        handle_search(args.db, args.query, mode=args.mode, limit=args.limit,
-                      item_type=args.type, seen=args.seen)
+        handle_search(
+            args.db,
+            args.query,
+            mode=args.mode,
+            limit=args.limit,
+            item_type=args.type,
+            seen=args.seen,
+        )
     elif args.command == "stats":
         handle_stats(args.db)
     elif args.command == "filmography":
@@ -210,14 +271,16 @@ def run_argparse_cli():
     elif args.command == "completion":
         handle_completion(args.db, args.name, args.min_seen, args.min_total, args.limit)
     elif args.command == "watchlist-impact":
-        handle_watchlist_impact(args.db, args.max_runtime, args.include_unseen,
-                                args.include_unknown_runtime, args.limit)
+        handle_watchlist_impact(
+            args.db, args.max_runtime, args.include_unseen, args.include_unknown_runtime, args.limit
+        )
     elif args.command == "crew-overlap":
         handle_crew_overlap(args.db, role=args.role, min_overlap=args.min_overlap)
     elif args.command == "eval":
         if args.eval_cmd == "concierge":
-            handle_eval_concierge(args.db, args.mode, args.ranker, args.w_taste, args.w_comp,
-                                  args.hearts, args.splits)
+            handle_eval_concierge(
+                args.db, args.mode, args.ranker, args.w_taste, args.w_comp, args.hearts, args.splits
+            )
         elif args.eval_cmd == "known-items":
             handle_eval_known_items(args.db, mode=args.mode)
         elif args.eval_cmd == "hearts":

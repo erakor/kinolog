@@ -59,6 +59,10 @@ def load_and_chunk_subtitle_file(
         )
         chunk_ids.append(cid)
 
-    logger.info("Loaded and chunked subtitle for item %d (%d chunks, strategy '%s')",
-                item_id, len(chunk_ids), strategy)
+    logger.info(
+        "Loaded and chunked subtitle for item %d (%d chunks, strategy '%s')",
+        item_id,
+        len(chunk_ids),
+        strategy,
+    )
     return chunk_ids

@@ -26,7 +26,13 @@ logger = logging.getLogger(__name__)
 
 PROMPTS_PATH = Path(str(resources.files("kinolog.eval") / "datasets" / "concierge_prompts.json"))
 CONSTRAINT_FIELDS = (
-    "runtime_max", "runtime_min", "decade", "year_min", "year_max", "seen", "on_watchlist",
+    "runtime_max",
+    "runtime_min",
+    "decade",
+    "year_min",
+    "year_max",
+    "seen",
+    "on_watchlist",
 )
 CITE_RE = re.compile(r"\[\^(\d+)\]")
 
@@ -84,8 +90,14 @@ def eval_concierge(
     prompts = load_concierge_prompts() if prompts is None else prompts
     if not prompts:
         return []
-    cfg = {"scope": scope, "limit": limit, "w_taste": w_taste, "w_comp": w_comp,
-           "generator": "llm" if generator_fn else "template", **(config or {})}
+    cfg = {
+        "scope": scope,
+        "limit": limit,
+        "w_taste": w_taste,
+        "w_comp": w_comp,
+        "generator": "llm" if generator_fn else "template",
+        **(config or {}),
+    }
 
     exact, field_hits, field_total = [], 0, 0
     satisfied, picked = 0, 0
@@ -105,8 +117,15 @@ def eval_concierge(
         exact.append(1.0 if ok else 0.0)
 
         out = pick(
-            db, p["query"], model=model, scope=scope, limit=limit, generator_fn=generator_fn,
-            taste_fn=taste_fn, w_taste=w_taste, w_comp=w_comp,
+            db,
+            p["query"],
+            model=model,
+            scope=scope,
+            limit=limit,
+            generator_fn=generator_fn,
+            taste_fn=taste_fn,
+            w_taste=w_taste,
+            w_comp=w_comp,
         )
         sf = to_search_filters(parsed, scope)
         ids = [pk["item"]["item_id"] for pk in out["picks"]]
@@ -202,8 +221,15 @@ def eval_concierge_hearts(
             if not prompt:
                 continue
             out = pick(
-                db, prompt, model=model, scope="all", limit=max(k_values), exclude_ids=train,
-                taste_fn=taste_fn, w_taste=w_taste, rationales=False,
+                db,
+                prompt,
+                model=model,
+                scope="all",
+                limit=max(k_values),
+                exclude_ids=train,
+                taste_fn=taste_fn,
+                w_taste=w_taste,
+                rationales=False,
             )
             ids = [pk["item"]["item_id"] for pk in out["picks"]]
             for k in k_values:
@@ -214,8 +240,12 @@ def eval_concierge_hearts(
     cfg = {"w_taste": w_taste, "splits": n_splits, "holdout_frac": holdout_frac}
     return [
         EvalResult(
-            suite="concierge", metric=f"hearts_hit@{k}", value=statistics.mean(v),
-            stdev=statistics.stdev(v) if len(v) > 1 else 0.0, config=cfg,
+            suite="concierge",
+            metric=f"hearts_hit@{k}",
+            value=statistics.mean(v),
+            stdev=statistics.stdev(v) if len(v) > 1 else 0.0,
+            config=cfg,
         )
-        for k, v in per_k.items() if v
+        for k, v in per_k.items()
+        if v
     ]

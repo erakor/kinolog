@@ -22,4 +22,3 @@ def get_db(request: Request) -> Iterator[Database]:
         yield state.db
     finally:
         state.db_lock.release()
-

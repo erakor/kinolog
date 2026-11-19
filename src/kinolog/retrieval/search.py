@@ -42,9 +42,7 @@ def search(
             raise ValueError("Vector search requires an embedding model")
         results = search_vector(db, query_embedding, model_name, limit=limit, filters=filters)
     elif mode == "rrf":
-        results = search_rrf(
-            db, query, query_embedding, model_name, limit=limit, filters=filters
-        )
+        results = search_rrf(db, query, query_embedding, model_name, limit=limit, filters=filters)
     else:
         raise ValueError(f"Unknown search mode: {mode}")
 

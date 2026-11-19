@@ -42,10 +42,7 @@ def _get_item_embeddings(
         if not rows:
             continue
 
-        embeddings = np.array([
-            np.frombuffer(row["embedding"], dtype=np.float32)
-            for row in rows
-        ])
+        embeddings = np.array([np.frombuffer(row["embedding"], dtype=np.float32) for row in rows])
 
         if rollup == "mean":
             vec = embeddings.mean(axis=0)
@@ -67,9 +64,7 @@ def _get_item_embeddings(
 
 def _get_heart_ids(db: Database, first_heart_date: str | None = None) -> list[int]:
     """Get item IDs of hearted films."""
-    rows = db.execute(
-        "SELECT item_id FROM user_status WHERE liked = 1"
-    ).fetchall()
+    rows = db.execute("SELECT item_id FROM user_status WHERE liked = 1").fetchall()
     return [r["item_id"] for r in rows]
 
 
@@ -80,9 +75,7 @@ def _get_candidate_ids(
     item_type: str = "film",
 ) -> list[int]:
     """Get candidate item IDs for taste ranking."""
-    rows = db.execute(
-        "SELECT id FROM items WHERE item_type = ?", (item_type,)
-    ).fetchall()
+    rows = db.execute("SELECT id FROM items WHERE item_type = ?", (item_type,)).fetchall()
     ids = [r["id"] for r in rows]
     if exclude_ids:
         ids = [i for i in ids if i not in exclude_ids]

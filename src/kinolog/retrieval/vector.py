@@ -70,13 +70,15 @@ def search_vector(
     for row in rows:
         # Convert distance to similarity (cosine distance -> cosine similarity)
         similarity = 1.0 - row["distance"]
-        results.append(SearchResult(
-            item_id=row["item_id"],
-            chunk_id=row["chunk_id"],
-            score=similarity,
-            title=row["title"],
-            year=row["year"],
-            chunk_text=row["chunk_text"],
-            source="vector",
-        ))
+        results.append(
+            SearchResult(
+                item_id=row["item_id"],
+                chunk_id=row["chunk_id"],
+                score=similarity,
+                title=row["title"],
+                year=row["year"],
+                chunk_text=row["chunk_text"],
+                source="vector",
+            )
+        )
     return results

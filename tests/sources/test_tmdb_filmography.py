@@ -20,10 +20,21 @@ CREDITS = {
     ],
 }
 DETAILS = {
-    1: {"title": "One", "release_date": "1990-01-01", "runtime": 100, "status": "Released",
-        "genres": [{"id": 99, "name": "Documentary"}]},
-    3: {"title": "Three", "release_date": "2001-03-04", "runtime": 0, "status": "Released",
-        "video": True, "genres": [{"id": 18, "name": "Drama"}]},
+    1: {
+        "title": "One",
+        "release_date": "1990-01-01",
+        "runtime": 100,
+        "status": "Released",
+        "genres": [{"id": 99, "name": "Documentary"}],
+    },
+    3: {
+        "title": "Three",
+        "release_date": "2001-03-04",
+        "runtime": 0,
+        "status": "Released",
+        "video": True,
+        "genres": [{"id": 18, "name": "Drama"}],
+    },
 }
 
 
@@ -184,8 +195,20 @@ def test_cli_parser_accepts_filmographies_options():
     from kinolog.interfaces.cli.main import build_parser
 
     args = build_parser().parse_args(
-        ["ingest", "filmographies", "--min-seen", "3", "--person", "Fellini", "--limit", "5",
-         "--no-details", "--refresh", "--db", "x.db"]
+        [
+            "ingest",
+            "filmographies",
+            "--min-seen",
+            "3",
+            "--person",
+            "Fellini",
+            "--limit",
+            "5",
+            "--no-details",
+            "--refresh",
+            "--db",
+            "x.db",
+        ]
     )
     assert (args.min_seen, args.person, args.limit) == (3, "Fellini", 5)
     assert args.no_details and args.refresh and args.db == "x.db"

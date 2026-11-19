@@ -19,13 +19,17 @@ def mcp_server(tmp_path):
     fellini = db.upsert_person("Federico Fellini", tmdb_person_id=4415)
     db.upsert_credit(id1, fellini, "Director", "Directing")
 
-    doc1 = db.upsert_document(id1, "tmdb", "en", "A journalist in Rome experiencing decadence and modern society.")
+    doc1 = db.upsert_document(
+        id1, "tmdb", "en", "A journalist in Rome experiencing decadence and modern society."
+    )
     chunk_document(db, doc1, strategy="whole")
 
     id2 = db.upsert_item("film", "8½", 1963)
     db.upsert_user_status(id2, seen=1, liked=1, on_watchlist=0)
     db.upsert_credit(id2, fellini, "Director", "Directing")
-    doc2 = db.upsert_document(id2, "tmdb", "en", "A film director suffers from creative blockage and artistic crisis.")
+    doc2 = db.upsert_document(
+        id2, "tmdb", "en", "A film director suffers from creative blockage and artistic crisis."
+    )
     chunk_document(db, doc2, strategy="whole")
 
     id3 = db.upsert_item("film", "Solaris", 1972)
@@ -103,7 +107,10 @@ def test_rank_watchlist_uses_db_id_helpers(mcp_server, monkeypatch):
 def test_director_completion_lists_fellini_as_index_only(mcp_server):
     (row,) = mcp_server.handle_tool("director_completion", {})
     assert (row["person"], row["seen"], row["total"], row["percent"]) == (
-        "Federico Fellini", 2, 2, 100,
+        "Federico Fellini",
+        2,
+        2,
+        100,
     )
     assert row["coverage"] == "index_only" and "films" not in row
 

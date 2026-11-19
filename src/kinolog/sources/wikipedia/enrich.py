@@ -39,13 +39,32 @@ def build_wikipedia_document(title: str, sections_data: dict, lang: str = "en") 
     sections = sections_data.get("remaining", {}).get("sections", [])
     wanted_sections = {
         # EN
-        "plot", "synopsis", "premise", "production", "development",
-        "filming", "themes", "reception", "critical response", "legacy",
+        "plot",
+        "synopsis",
+        "premise",
+        "production",
+        "development",
+        "filming",
+        "themes",
+        "reception",
+        "critical response",
+        "legacy",
         # FR
-        "synopsis", "résumé", "fiche technique", "distribution", "tournage",
-        "accueil", "critique", "analyse", "thèmes",
+        "synopsis",
+        "résumé",
+        "fiche technique",
+        "distribution",
+        "tournage",
+        "accueil",
+        "critique",
+        "analyse",
+        "thèmes",
         # IT
-        "trama", "produzione", "accoglienza", "critica", "temi",
+        "trama",
+        "produzione",
+        "accoglienza",
+        "critica",
+        "temi",
     }
 
     for sec in sections:

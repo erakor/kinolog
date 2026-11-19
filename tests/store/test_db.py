@@ -85,9 +85,7 @@ class TestUserStatus:
         item_id = db.upsert_item("film", "Test Film", 2000)
         db.upsert_user_status(item_id, seen=1, seen_date="2024-01-01")
 
-        row = db.execute(
-            "SELECT * FROM user_status WHERE item_id = ?", (item_id,)
-        ).fetchone()
+        row = db.execute("SELECT * FROM user_status WHERE item_id = ?", (item_id,)).fetchone()
         assert row["seen"] == 1
         assert row["seen_date"] == "2024-01-01"
 
@@ -96,9 +94,7 @@ class TestUserStatus:
         db.upsert_user_status(item_id, seen=1)
         db.upsert_user_status(item_id, liked=1, liked_date="2024-06-01")
 
-        row = db.execute(
-            "SELECT * FROM user_status WHERE item_id = ?", (item_id,)
-        ).fetchone()
+        row = db.execute("SELECT * FROM user_status WHERE item_id = ?", (item_id,)).fetchone()
         assert row["seen"] == 1
         assert row["liked"] == 1
 
@@ -138,14 +134,15 @@ class TestDocumentsAndChunks:
         item_id = db.upsert_item("film", "Test", 2000)
         doc_id = db.upsert_document(item_id, "tmdb", "en", "Test doc")
         chunk_id = db.upsert_chunk(
-            item_id, doc_id, "whole", 0,
+            item_id,
+            doc_id,
+            "whole",
+            0,
             "A beautiful film about love in Paris",
         )
 
         # FTS should find it
-        rows = db.execute(
-            "SELECT rowid FROM chunks_fts WHERE chunks_fts MATCH 'Paris'"
-        ).fetchall()
+        rows = db.execute("SELECT rowid FROM chunks_fts WHERE chunks_fts MATCH 'Paris'").fetchall()
         assert len(rows) == 1
         assert rows[0]["rowid"] == chunk_id
 

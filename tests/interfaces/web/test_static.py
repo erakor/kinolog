@@ -64,4 +64,3 @@ def test_light_theme_only():
     css = (Path(FRONTEND_DIR) / "src/styles/tokens.css").read_text()
     assert "prefers-color-scheme" not in css
     assert "--color-accent" in css
-

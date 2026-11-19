@@ -51,15 +51,17 @@ def assemble_context(
 
         total_tokens += tokens
         ref_ids.add(r.item_id)
-        selected_chunks.append(RetrievedChunkContext(
-            item_id=r.item_id,
-            title=r.title,
-            year=r.year,
-            chunk_id=r.chunk_id,
-            text=text_snippet,
-            score=r.score,
-            citation_id=len(selected_chunks) + 1,
-        ))
+        selected_chunks.append(
+            RetrievedChunkContext(
+                item_id=r.item_id,
+                title=r.title,
+                year=r.year,
+                chunk_id=r.chunk_id,
+                text=text_snippet,
+                score=r.score,
+                citation_id=len(selected_chunks) + 1,
+            )
+        )
 
     # Build prompt context text
     lines = ["=== RETRIEVED CONTEXT ==="]

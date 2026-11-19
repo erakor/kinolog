@@ -63,8 +63,13 @@ def filmographies(
     client = TMDBClient()
     try:
         return enrich_all_filmographies(
-            db, client, min_seen=min_seen, person_name=person_name, limit=limit,
-            fetch_details=fetch_details, refresh=refresh,
+            db,
+            client,
+            min_seen=min_seen,
+            person_name=person_name,
+            limit=limit,
+            fetch_details=fetch_details,
+            refresh=refresh,
         )
     finally:
         client.close()
@@ -86,7 +91,10 @@ def omdb(
     client = OMDbClient()
     try:
         return enrich_all(
-            db, client, item_type=item_type, refresh=refresh,
+            db,
+            client,
+            item_type=item_type,
+            refresh=refresh,
             max_requests=DAILY_LIMIT if max_requests is None else max_requests,
         )
     finally:
@@ -97,14 +105,13 @@ def backfill_runtime(db: Database) -> dict:
     """Set runtime_min / is_tv / imdb_id from stored TMDB documents and cache (no network)."""
     from kinolog.sources.tmdb.enrich import backfill_imdb_ids, backfill_runtime_and_tv
 
-    return {**backfill_runtime_and_tv(db), **{
-        f"cache_{k}": v for k, v in backfill_imdb_ids(db).items()
-    }}
+    return {
+        **backfill_runtime_and_tv(db),
+        **{f"cache_{k}": v for k, v in backfill_imdb_ids(db).items()},
+    }
 
 
-def chunk(
-    db: Database, strategy: str = DEFAULT_STRATEGY, item_type: str | None = None
-) -> dict:
+def chunk(db: Database, strategy: str = DEFAULT_STRATEGY, item_type: str | None = None) -> dict:
     from kinolog.index.chunking import chunk_all_documents
 
     return chunk_all_documents(db, strategy=strategy, item_type=item_type)

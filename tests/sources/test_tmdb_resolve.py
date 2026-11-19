@@ -24,8 +24,17 @@ class FakeClient:
 def test_confident_match_is_stored_as_auto():
     db = Database(":memory:")
     item_id = db.upsert_item("film", "La Dolce Vita", 1960)
-    client = FakeClient([{"id": 42, "title": "La Dolce Vita", "original_title": "La dolce vita",
-                          "release_date": "1960-02-05", "popularity": 10}])
+    client = FakeClient(
+        [
+            {
+                "id": 42,
+                "title": "La Dolce Vita",
+                "original_title": "La dolce vita",
+                "release_date": "1960-02-05",
+                "popularity": 10,
+            }
+        ]
+    )
     result = TMDBResolver(client).resolve_item(db, item_id, "La Dolce Vita", 1960)
     assert result["id"] == 42
     item = db.get_item(item_id)

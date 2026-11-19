@@ -13,8 +13,13 @@ V3 = FIXTURES / "schema_v3.sql"  # the schema before migrations existed (+ colum
 V4 = FIXTURES / "schema_v4.sql"  # the schema before migration 005
 V5 = FIXTURES / "schema_v5.sql"  # the current schema
 SEPARATOR = "\n-- ---\n"
-_ORDER = ("CREATE TABLE", "CREATE VIRTUAL TABLE", "CREATE UNIQUE INDEX", "CREATE INDEX",
-          "CREATE TRIGGER")
+_ORDER = (
+    "CREATE TABLE",
+    "CREATE VIRTUAL TABLE",
+    "CREATE UNIQUE INDEX",
+    "CREATE INDEX",
+    "CREATE TRIGGER",
+)
 
 
 def fixture_statements(path: Path = V5) -> list[str]:
@@ -22,9 +27,7 @@ def fixture_statements(path: Path = V5) -> list[str]:
 
 
 def schema_dump(conn) -> list[str]:
-    rows = conn.execute(
-        "SELECT sql FROM sqlite_master WHERE sql IS NOT NULL ORDER BY type, name"
-    )
+    rows = conn.execute("SELECT sql FROM sqlite_master WHERE sql IS NOT NULL ORDER BY type, name")
     return [r[0] for r in rows]
 
 

@@ -36,11 +36,7 @@ def chunk_by_section(
     for line in lines:
         stripped = line.strip()
         # Detect section headers
-        if (
-            stripped.endswith(":")
-            and len(stripped) < 60
-            and len(stripped) > 2
-        ):
+        if stripped.endswith(":") and len(stripped) < 60 and len(stripped) > 2:
             if current_lines:
                 sections.append((current_name, "\n".join(current_lines).strip()))
             current_name = stripped.rstrip(":")
@@ -60,12 +56,14 @@ def chunk_by_section(
         text_with_prefix = section_text
         if prepend_title and section_name != "header":
             text_with_prefix = f"{title_line}\n[{section_name}]\n{section_text}"
-        chunks.append(Chunk(
-            text=text_with_prefix,
-            ord=i,
-            section_name=section_name,
-            token_count=_estimate_tokens(text_with_prefix),
-        ))
+        chunks.append(
+            Chunk(
+                text=text_with_prefix,
+                ord=i,
+                section_name=section_name,
+                token_count=_estimate_tokens(text_with_prefix),
+            )
+        )
 
     return chunks
 

@@ -87,32 +87,38 @@ def eval_known_items(
         mrr_val = mrr(result_ids, {target_id})
         mrr_values.append(mrr_val)
 
-        details.append({
-            "query": query_text,
-            "target": target_title,
-            "hit_5": hit_at_k(result_ids, target_id, 5),
-            "mrr": mrr_val,
-            "rank": result_ids.index(target_id) + 1 if target_id in result_ids else None,
-        })
+        details.append(
+            {
+                "query": query_text,
+                "target": target_title,
+                "hit_5": hit_at_k(result_ids, target_id, 5),
+                "mrr": mrr_val,
+                "rank": result_ids.index(target_id) + 1 if target_id in result_ids else None,
+            }
+        )
 
     eval_results = []
     for k in k_values:
         vals = results_by_k[k]
         if vals:
-            eval_results.append(EvalResult(
-                suite="known_items",
-                metric=f"hit@{k}",
-                value=sum(vals) / len(vals),
-                config={"n_queries": len(vals)},
-            ))
+            eval_results.append(
+                EvalResult(
+                    suite="known_items",
+                    metric=f"hit@{k}",
+                    value=sum(vals) / len(vals),
+                    config={"n_queries": len(vals)},
+                )
+            )
 
     if mrr_values:
-        eval_results.append(EvalResult(
-            suite="known_items",
-            metric="mrr",
-            value=sum(mrr_values) / len(mrr_values),
-            config={"n_queries": len(mrr_values)},
-            details=details,
-        ))
+        eval_results.append(
+            EvalResult(
+                suite="known_items",
+                metric="mrr",
+                value=sum(mrr_values) / len(mrr_values),
+                config={"n_queries": len(mrr_values)},
+                details=details,
+            )
+        )
 
     return eval_results

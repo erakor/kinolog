@@ -14,20 +14,37 @@ def db_with_adaptations():
 
     # Add book and film of Solaris
     b_id = db.upsert_item("book", "Solaris", 1961)
-    doc_b = db.upsert_document(b_id, "openlibrary", "en", "Solaris (1961)\nScience fiction novel by Stanislaw Lem about cosmonauts on Solaris station.")
+    doc_b = db.upsert_document(
+        b_id,
+        "openlibrary",
+        "en",
+        "Solaris (1961)\nScience fiction novel by Stanislaw Lem about cosmonauts on Solaris station.",
+    )
     chunk_document(db, doc_b, strategy="whole")
 
     f_id = db.upsert_item("film", "Solaris", 1972)
-    doc_f = db.upsert_document(f_id, "tmdb", "en", "Solaris (1972)\nFilm directed by Andrei Tarkovsky based on the novel by Stanislaw Lem.")
+    doc_f = db.upsert_document(
+        f_id,
+        "tmdb",
+        "en",
+        "Solaris (1972)\nFilm directed by Andrei Tarkovsky based on the novel by Stanislaw Lem.",
+    )
     chunk_document(db, doc_f, strategy="whole")
 
     # Add book and film of Le Mépris / Contempt
     b_id2 = db.upsert_item("book", "Le Mépris", 1954)
-    doc_b2 = db.upsert_document(b_id2, "openlibrary", "fr", "Le Mépris (1954)\nRoman d'Alberto Moravia.")
+    doc_b2 = db.upsert_document(
+        b_id2, "openlibrary", "fr", "Le Mépris (1954)\nRoman d'Alberto Moravia."
+    )
     chunk_document(db, doc_b2, strategy="whole")
 
     f_id2 = db.upsert_item("film", "Le Mépris", 1963)
-    doc_f2 = db.upsert_document(f_id2, "tmdb", "fr", "Le Mépris (1963)\nFilm de Jean-Luc Godard adapté du roman d'Alberto Moravia.")
+    doc_f2 = db.upsert_document(
+        f_id2,
+        "tmdb",
+        "fr",
+        "Le Mépris (1963)\nFilm de Jean-Luc Godard adapté du roman d'Alberto Moravia.",
+    )
     chunk_document(db, doc_f2, strategy="whole")
 
     yield db

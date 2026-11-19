@@ -11,10 +11,12 @@ def handle_eval_known_items(db_path: str, mode: str = "bm25"):
     from kinolog.eval.runner import log_results
     from kinolog.eval.suites.known_items import eval_known_items
     from kinolog.retrieval import search as do_search
+
     db = Database(db_path)
     model = None
     if mode in ("vector", "rrf"):
         from kinolog.index.embedding import BGE_M3
+
         model = BGE_M3()
 
     def search_fn(query):
@@ -31,6 +33,7 @@ def handle_eval_hearts(db_path: str, ranker: str = "mean_heart", splits: int = 1
     from kinolog.eval.runner import log_results
     from kinolog.eval.suites.hearts import eval_hearts_recall
     from kinolog.taste import RANKERS
+
     db = Database(db_path)
     if ranker not in RANKERS:
         print(f"Unknown ranker: {ranker}. Available: {list(RANKERS.keys())}")
@@ -44,12 +47,18 @@ def handle_eval_hearts(db_path: str, ranker: str = "mean_heart", splits: int = 1
 
 
 def handle_eval_concierge(
-    db_path: str, mode: str = "bm25", ranker: str = DEFAULT_RANKER,
-    w_taste: float = 0.0, w_comp: float = 0.0, hearts: bool = False, splits: int = 5,
+    db_path: str,
+    mode: str = "bm25",
+    ranker: str = DEFAULT_RANKER,
+    w_taste: float = 0.0,
+    w_comp: float = 0.0,
+    hearts: bool = False,
+    splits: int = 5,
 ):
     from kinolog.eval.runner import log_results
     from kinolog.eval.suites.concierge import eval_concierge, eval_concierge_hearts
     from kinolog.taste import RANKERS, taste_scores
+
     db = Database(db_path)
     if ranker not in RANKERS:
         print(f"Unknown ranker: {ranker}. Available: {list(RANKERS.keys())}")
@@ -57,13 +66,18 @@ def handle_eval_concierge(
     model = None
     if mode in ("vector", "rrf"):
         from kinolog.index.embedding import BGE_M3
+
         model = BGE_M3()
 
     def taste_fn(ids):
         return taste_scores(db, ids, ranker)
 
     results = eval_concierge(
-        db, model=model, taste_fn=taste_fn if w_taste else None, w_taste=w_taste, w_comp=w_comp,
+        db,
+        model=model,
+        taste_fn=taste_fn if w_taste else None,
+        w_taste=w_taste,
+        w_comp=w_comp,
         config={"mode": mode, "ranker": ranker},
     )
     if hearts:

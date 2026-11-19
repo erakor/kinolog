@@ -39,7 +39,9 @@ def test_scope_watchlist_only(client, db):
         "/api/concierge", json={"query": "give me a movie", "scope": "watchlist", "limit": 10}
     ).json()
     assert {p["item"]["title"] for p in body["picks"]} == {
-        "The Long Corridor", "Brief Encounter Again", "Glass Orchard",
+        "The Long Corridor",
+        "Brief Encounter Again",
+        "Glass Orchard",
     }
     assert all(p["item"]["status"]["on_watchlist"] for p in body["picks"])
 

@@ -21,14 +21,35 @@ from kinolog.features.completion import (
 TODAY = date(2026, 6, 1)
 
 
-def film(title="F", year=2000, *, runtime=100, seen=False, wl=False, status="Released",
-         release_date="default", is_video=False, genres=(), is_tv=False, tmdb_id=None):
+def film(
+    title="F",
+    year=2000,
+    *,
+    runtime=100,
+    seen=False,
+    wl=False,
+    status="Released",
+    release_date="default",
+    is_video=False,
+    genres=(),
+    is_tv=False,
+    tmdb_id=None,
+):
     if release_date == "default":
         release_date = f"{year}-01-01" if year else None
     return FilmographyFilm(
-        tmdb_id=tmdb_id, item_id=None, title=title, year=year, release_date=release_date,
-        runtime=runtime, status=status, is_video=is_video, genre_ids=tuple(genres),
-        seen=seen, on_watchlist=wl, is_tv=is_tv,
+        tmdb_id=tmdb_id,
+        item_id=None,
+        title=title,
+        year=year,
+        release_date=release_date,
+        runtime=runtime,
+        status=status,
+        is_video=is_video,
+        genre_ids=tuple(genres),
+        seen=seen,
+        on_watchlist=wl,
+        is_tv=is_tv,
     )
 
 
@@ -90,8 +111,9 @@ def test_runtime_boundaries(limit):
 
 
 def test_seen_short_is_in_neither_numerator_nor_denominator():
-    c = comp([film("Short", 1990, runtime=15, seen=True), film("A", 2000, seen=True),
-              film("B", 2001)])
+    c = comp(
+        [film("Short", 1990, runtime=15, seen=True), film("A", 2000, seen=True), film("B", 2001)]
+    )
     assert (c.seen, c.total) == (1, 2)
 
 
@@ -100,14 +122,17 @@ def test_forty_minutes_is_a_short_like_collections():
     assert is_feature(film(runtime=41), today=TODAY)
 
 
-@pytest.mark.parametrize("kw", [
-    {"release_date": "2027-01-01"},
-    {"release_date": None},
-    {"status": "Post Production"},
-    {"is_video": True},
-    {"genres": (10770,)},
-    {"is_tv": True},
-])
+@pytest.mark.parametrize(
+    "kw",
+    [
+        {"release_date": "2027-01-01"},
+        {"release_date": None},
+        {"status": "Post Production"},
+        {"is_video": True},
+        {"genres": (10770,)},
+        {"is_tv": True},
+    ],
+)
 def test_excluded_by_default(kw):
     assert not is_feature(film(**kw), today=TODAY)
 
@@ -149,8 +174,16 @@ def test_distinct_films_with_equal_fields_are_not_merged():
 def test_co_directed_film_sums_both_deltas():
     shared = film("Shared", 2000, tmdb_id=9)
     a = comp([film("A1", 1990, seen=True), shared], person_id=1, name="Ann")  # 1/2
-    b = comp([film("B1", 1990, seen=True), film("B2", 1991, seen=True),
-              film("B3", 1992, seen=True), shared], person_id=2, name="Bob")  # 3/4
+    b = comp(
+        [
+            film("B1", 1990, seen=True),
+            film("B2", 1991, seen=True),
+            film("B3", 1992, seen=True),
+            shared,
+        ],
+        person_id=2,
+        name="Bob",
+    )  # 3/4
     (fi,) = aggregate_impact(completion_deltas(a) + completion_deltas(b))
     assert len(fi.deltas) == 2
     assert fi.impact == pytest.approx(1 / 2 + 1 / 4)
@@ -182,6 +215,7 @@ def test_impact_ordering():
 
 # --- Loaders ---
 
+
 def director(db, name, tmdb_person_id):
     return db.upsert_person(name, tmdb_person_id=tmdb_person_id)
 
@@ -207,10 +241,12 @@ def test_without_a_filmography_uses_director_credits_only(db):
 def test_with_a_filmography_non_indexed_films_are_unseen_with_no_item(db):
     ann = director(db, "Ann", 2)
     indexed(db, ann, "Seen", 1990, tmdb_id=10, seen=1)
-    db.upsert_tmdb_movie(10, "Seen", year=1990, release_date="1990-05-01", runtime=100,
-                         status="Released")
-    db.upsert_tmdb_movie(11, "Unlogged", year=2001, release_date="2001-05-01", runtime=95,
-                         status="Released")
+    db.upsert_tmdb_movie(
+        10, "Seen", year=1990, release_date="1990-05-01", runtime=100, status="Released"
+    )
+    db.upsert_tmdb_movie(
+        11, "Unlogged", year=2001, release_date="2001-05-01", runtime=95, status="Released"
+    )
     db.set_person_filmography(ann, [10, 11])
     (c,) = director_completions(db, name="Ann", today=TODAY)
     assert (c.coverage, c.seen, c.total) == ("tmdb", 1, 2)
@@ -260,10 +296,15 @@ def test_watchlist_impact_defaults_to_watchlist_and_include_unseen_adds_the_rest
     indexed(db, ann, "Seen", 1990, tmdb_id=10, seen=1)
     indexed(db, ann, "Queued", 1995, tmdb_id=11, on_watchlist=1)
     indexed(db, ann, "Shelf", 1998, tmdb_id=12)
-    for t, y, ti in ((10, 1990, "Seen"), (11, 1995, "Queued"), (12, 1998, "Shelf"),
-                     (13, 2003, "Unlogged")):
-        db.upsert_tmdb_movie(t, ti, year=y, release_date=f"{y}-01-01", runtime=90,
-                             status="Released")
+    for t, y, ti in (
+        (10, 1990, "Seen"),
+        (11, 1995, "Queued"),
+        (12, 1998, "Shelf"),
+        (13, 2003, "Unlogged"),
+    ):
+        db.upsert_tmdb_movie(
+            t, ti, year=y, release_date=f"{y}-01-01", runtime=90, status="Released"
+        )
     db.set_person_filmography(ann, [10, 11, 12, 13])
     default = watchlist_by_director_impact(db, today=TODAY)
     assert [i.film.title for i in default] == ["Queued"]

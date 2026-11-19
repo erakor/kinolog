@@ -57,14 +57,16 @@ def eval_faithfulness(
         if is_fully:
             fully_grounded_count += 1
 
-        details.append({
-            "id": p.get("id"),
-            "question": q,
-            "groundedness": score,
-            "is_fully_grounded": is_fully,
-            "mentioned": res["mentioned_item_ids"],
-            "context": res["context_item_ids"],
-        })
+        details.append(
+            {
+                "id": p.get("id"),
+                "question": q,
+                "groundedness": score,
+                "is_fully_grounded": is_fully,
+                "mentioned": res["mentioned_item_ids"],
+                "context": res["context_item_ids"],
+            }
+        )
 
     pct_fully_grounded = (fully_grounded_count / len(prompts)) * 100.0
     mean_groundedness = sum(grounded_scores) / len(grounded_scores)

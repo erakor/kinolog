@@ -9,9 +9,13 @@ from kinolog.sources.tmdb.enrich import (
 from kinolog.store import Database
 
 DETAILS = {
-    "title": "Tiny", "original_title": "Tiny", "release_date": "1999-01-01",
-    "genres": [{"name": "Drama"}, {"name": "TV Movie"}], "runtime": 74,
-    "credits": {"crew": [], "cast": []}, "overview": "x",
+    "title": "Tiny",
+    "original_title": "Tiny",
+    "release_date": "1999-01-01",
+    "genres": [{"name": "Drama"}, {"name": "TV Movie"}],
+    "runtime": 74,
+    "credits": {"crew": [], "cast": []},
+    "overview": "x",
 }
 
 

@@ -121,8 +121,7 @@ class TMDBResolver:
             try:
                 details = self.client.get_details(best["id"])
                 alt_titles = [
-                    a["title"]
-                    for a in details.get("alternative_titles", {}).get("titles", [])
+                    a["title"] for a in details.get("alternative_titles", {}).get("titles", [])
                 ]
                 for alt in alt_titles:
                     if alt.lower().strip() == title.lower().strip():
@@ -136,8 +135,14 @@ class TMDBResolver:
         if best_score >= 0.7 and (len(scored) == 1 or scored[0][0] - scored[1][0] > 0.2):
             # Auto-accept
             db.set_match(item_id, tmdb_id=best["id"], confidence=best_score)
-            logger.debug("Auto-matched '%s' (%s) -> TMDB %d (%.2f: %s)",
-                         title, year, best["id"], best_score, best_reason)
+            logger.debug(
+                "Auto-matched '%s' (%s) -> TMDB %d (%.2f: %s)",
+                title,
+                year,
+                best["id"],
+                best_score,
+                best_reason,
+            )
             return best
         else:
             # Queue for manual review
@@ -154,8 +159,13 @@ class TMDBResolver:
             ]
             db.queue_for_review(item_id, candidates_for_review, "ambiguous")
             db.mark_queued(item_id)
-            logger.info("Queued '%s' (%s) for review: %d candidates, best=%.2f",
-                        title, year, len(candidates_for_review), best_score)
+            logger.info(
+                "Queued '%s' (%s) for review: %d candidates, best=%.2f",
+                title,
+                year,
+                len(candidates_for_review),
+                best_score,
+            )
             return None
 
     def resolve_all(self, db: Database, item_type: str = "film") -> dict:

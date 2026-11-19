@@ -20,29 +20,56 @@ def goodreads_csv(tmp_path):
     """Create a fake Goodreads export."""
     csv_path = tmp_path / "goodreads_library_export.csv"
     with open(csv_path, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=[
-            "Book Id", "Title", "Author", "ISBN", "ISBN13",
-            "My Rating", "Year Published", "Original Publication Year",
-            "Date Read", "Date Added", "Bookshelves", "Exclusive Shelf",
-        ])
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "Book Id",
+                "Title",
+                "Author",
+                "ISBN",
+                "ISBN13",
+                "My Rating",
+                "Year Published",
+                "Original Publication Year",
+                "Date Read",
+                "Date Added",
+                "Bookshelves",
+                "Exclusive Shelf",
+            ],
+        )
         writer.writeheader()
-        writer.writerow({
-            "Book Id": "1", "Title": "The Stranger", "Author": "Albert Camus",
-            "ISBN": '="0679720200"', "ISBN13": '="9780679720201"',
-            "My Rating": "0", "Year Published": "1989",
-            "Original Publication Year": "1942",
-            "Date Read": "2024-01-01", "Date Added": "2023-12-01",
-            "Bookshelves": "", "Exclusive Shelf": "read",
-        })
-        writer.writerow({
-            "Book Id": "2", "Title": "If on a winter's night a traveler",
-            "Author": "Italo Calvino",
-            "ISBN": '=""', "ISBN13": '="9780156439619"',
-            "My Rating": "0", "Year Published": "1981",
-            "Original Publication Year": "1979",
-            "Date Read": "", "Date Added": "2024-03-01",
-            "Bookshelves": "", "Exclusive Shelf": "to-read",
-        })
+        writer.writerow(
+            {
+                "Book Id": "1",
+                "Title": "The Stranger",
+                "Author": "Albert Camus",
+                "ISBN": '="0679720200"',
+                "ISBN13": '="9780679720201"',
+                "My Rating": "0",
+                "Year Published": "1989",
+                "Original Publication Year": "1942",
+                "Date Read": "2024-01-01",
+                "Date Added": "2023-12-01",
+                "Bookshelves": "",
+                "Exclusive Shelf": "read",
+            }
+        )
+        writer.writerow(
+            {
+                "Book Id": "2",
+                "Title": "If on a winter's night a traveler",
+                "Author": "Italo Calvino",
+                "ISBN": '=""',
+                "ISBN13": '="9780156439619"',
+                "My Rating": "0",
+                "Year Published": "1981",
+                "Original Publication Year": "1979",
+                "Date Read": "",
+                "Date Added": "2024-03-01",
+                "Bookshelves": "",
+                "Exclusive Shelf": "to-read",
+            }
+        )
     return csv_path
 
 

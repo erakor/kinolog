@@ -111,9 +111,10 @@ def enrich_director_filmography(
             detail_errors += 1
             details = None
         director_ids.append(tmdb_id)
-        if details is None and db.execute(
-            "SELECT 1 FROM tmdb_movies WHERE tmdb_id = ?", (tmdb_id,)
-        ).fetchone():
+        if (
+            details is None
+            and db.execute("SELECT 1 FROM tmdb_movies WHERE tmdb_id = ?", (tmdb_id,)).fetchone()
+        ):
             continue  # keep the facts stored earlier rather than replace them with less
         facts = _movie_facts(credit, details)
         db.upsert_tmdb_movie(

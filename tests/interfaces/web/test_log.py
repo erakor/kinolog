@@ -44,8 +44,12 @@ def test_create_validation(client, db):
     ids = seed(db)
     iid = ids["Midnight Ferry"]
     assert client.post("/api/log", json={"item_id": iid, "watched_on": "9/9/24"}).status_code == 422
-    assert client.post("/api/log", json={"item_id": iid, "watched_on": "2024-01-01", "rating": 0}
-                       ).status_code == 422
+    assert (
+        client.post(
+            "/api/log", json={"item_id": iid, "watched_on": "2024-01-01", "rating": 0}
+        ).status_code
+        == 422
+    )
     missing = {"item_id": 9999, "watched_on": "2024-01-01"}
     assert client.post("/api/log", json=missing).status_code == 404
 

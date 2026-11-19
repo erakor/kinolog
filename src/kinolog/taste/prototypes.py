@@ -49,10 +49,13 @@ def rank_prototypes(
     for item_id, vec in candidate_embeddings.items():
         cosines = centroids @ vec
         max_cosine = float(np.max(cosines))
-        scores.append(TasteScore(
-            item_id=item_id, score=max_cosine,
-            method=f"prototypes_k{actual_k}",
-        ))
+        scores.append(
+            TasteScore(
+                item_id=item_id,
+                score=max_cosine,
+                method=f"prototypes_k{actual_k}",
+            )
+        )
 
     scores.sort(key=lambda x: x.score, reverse=True)
     return scores

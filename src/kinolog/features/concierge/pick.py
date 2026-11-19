@@ -86,10 +86,9 @@ def _mention_scope(db: Database) -> MentionScope:
     which would match ordinary prose.
     """
     rows = db.execute("SELECT id, title FROM items WHERE item_type = 'film'").fetchall()
-    return MentionScope(db, {
-        r["id"] for r in rows
-        if len(r["title"]) >= 4 and r["title"].lower() not in STOPWORDS
-    })
+    return MentionScope(
+        db, {r["id"] for r in rows if len(r["title"]) >= 4 and r["title"].lower() not in STOPWORDS}
+    )
 
 
 def _chunk_meta(db: Database, chunk_ids: list[int]) -> dict[int, dict]:
@@ -111,8 +110,13 @@ def _item_chunks(
     """Most relevant chunks of one item (query-scoped), else its leading chunks."""
     if residual:
         found = search(
-            db, residual, model=model, mode=mode, limit=3,
-            filters=SearchFilters(item_ids=[item_id]), dedupe_items=False,
+            db,
+            residual,
+            model=model,
+            mode=mode,
+            limit=3,
+            filters=SearchFilters(item_ids=[item_id]),
+            dedupe_items=False,
         )
         if found:
             return found
@@ -124,8 +128,13 @@ def _item_chunks(
     ).fetchall()
     return [
         SearchResult(
-            item_id=item_id, chunk_id=r["id"], score=0.0, title=item.get("title", ""),
-            year=item.get("year"), chunk_text=r["text"], source="chunk",
+            item_id=item_id,
+            chunk_id=r["id"],
+            score=0.0,
+            title=item.get("title", ""),
+            year=item.get("year"),
+            chunk_text=r["text"],
+            source="chunk",
         )
         for r in rows
     ]
@@ -177,15 +186,23 @@ def pick(
     else:
         mode = "bm25"
         degraded.append(
-            "no_vector: sqlite-vec unavailable" if not db.vec_available
+            "no_vector: sqlite-vec unavailable"
+            if not db.vec_available
             else "no_model: embedding model not loaded"
         )
 
     residual = "" if (parsed.intent == "completion" or director_name) else parsed.residual_query
     ranked: list[tuple[int, float]]
     if residual:
-        results = search(db, residual, model=model, mode=mode, limit=CANDIDATE_LIMIT,
-                         filters=filters, dedupe_items=True)
+        results = search(
+            db,
+            residual,
+            model=model,
+            mode=mode,
+            limit=CANDIDATE_LIMIT,
+            filters=filters,
+            dedupe_items=True,
+        )
         top = results[0].score if results and results[0].score else 1.0
         ranked = [(r.item_id, r.score / top) for r in results]
     else:
@@ -237,10 +254,15 @@ def pick(
         }
         card = cards[item_id]
         if not rationales:
-            picks.append({
-                "item": card, "score": round(score, 4), "score_parts": score_parts,
-                "completion": [asdict(d) for d in deltas.get(item_id, [])], "rationale": None,
-            })
+            picks.append(
+                {
+                    "item": card,
+                    "score": round(score, 4),
+                    "score_parts": score_parts,
+                    "completion": [asdict(d) for d in deltas.get(item_id, [])],
+                    "rationale": None,
+                }
+            )
             continue
         chunks = _item_chunks(db, item_id, residual, model, mode)
         assembled = assemble_context(chunks, token_budget=RATIONALE_TOKEN_BUDGET)
@@ -262,7 +284,8 @@ def pick(
                 llm_text = generator_fn(query, assembled.context_text + "\n" + facts_block)
                 llm_check = check_grounding(db, llm_text, assembled, mention_scope)
                 ok = (
-                    bool(llm_text.strip()) and llm_check["is_fully_grounded"]
+                    bool(llm_text.strip())
+                    and llm_check["is_fully_grounded"]
                     and llm_check["citations_valid"]
                     and (not assembled.chunks or "[^" in llm_text)
                 )
@@ -274,28 +297,33 @@ def pick(
                 degraded.append("llm_ungrounded: fell back to template rationale")
 
         meta = _chunk_meta(db, [c.chunk_id for c in assembled.chunks])
-        picks.append({
-            "item": card,
-            "score": round(score, 4),
-            "score_parts": score_parts,
-            "completion": [asdict(d) for d in deltas.get(item_id, [])],
-            "rationale": {
-                "text": text,
-                "generator": generator,
-                "citations": [
-                    {
-                        "n": c.citation_id, "chunk_id": c.chunk_id, "item_id": c.item_id,
-                        "title": c.title, "year": c.year,
-                        "section_name": meta.get(c.chunk_id, {}).get("section_name"),
-                        "source": meta.get(c.chunk_id, {}).get("source"),
-                        "snippet": _snippet(c.text, 240),
-                    }
-                    for c in assembled.chunks
-                ],
-                "groundedness": check["groundedness"],
-                "facts": facts,
-            },
-        })
+        picks.append(
+            {
+                "item": card,
+                "score": round(score, 4),
+                "score_parts": score_parts,
+                "completion": [asdict(d) for d in deltas.get(item_id, [])],
+                "rationale": {
+                    "text": text,
+                    "generator": generator,
+                    "citations": [
+                        {
+                            "n": c.citation_id,
+                            "chunk_id": c.chunk_id,
+                            "item_id": c.item_id,
+                            "title": c.title,
+                            "year": c.year,
+                            "section_name": meta.get(c.chunk_id, {}).get("section_name"),
+                            "source": meta.get(c.chunk_id, {}).get("source"),
+                            "snippet": _snippet(c.text, 240),
+                        }
+                        for c in assembled.chunks
+                    ],
+                    "groundedness": check["groundedness"],
+                    "facts": facts,
+                },
+            }
+        )
 
     response = {
         "query": query,
@@ -312,7 +340,12 @@ def pick(
 
 
 def _explain_empty(
-    db: Database, parsed: ParsedQuery, scope: str, residual: str, model: Any, mode: str,
+    db: Database,
+    parsed: ParsedQuery,
+    scope: str,
+    residual: str,
+    model: Any,
+    mode: str,
     director_ids: list[int],
 ) -> dict:
     """Say which active constraint, if relaxed, would bring results back."""

@@ -39,8 +39,14 @@ DURATION_RE = re.compile(
 
 
 _DECADE_WORDS = {
-    "twenties": 1920, "thirties": 1930, "forties": 1940, "fifties": 1950, "sixties": 1960,
-    "seventies": 1970, "eighties": 1980, "nineties": 1990,
+    "twenties": 1920,
+    "thirties": 1930,
+    "forties": 1940,
+    "fifties": 1950,
+    "sixties": 1960,
+    "seventies": 1970,
+    "eighties": 1980,
+    "nineties": 1990,
 }
 
 
@@ -85,9 +91,7 @@ SEEN_RE = re.compile(
 )
 
 
-WATCHLIST_RE = re.compile(
-    r"\b(?:(?:from|on|in|off)\s+)?my\s+watch\s*list\b", re.IGNORECASE
-)
+WATCHLIST_RE = re.compile(r"\b(?:(?:from|on|in|off)\s+)?my\s+watch\s*list\b", re.IGNORECASE)
 
 
 BOOK_RE = re.compile(r"\b(?:books?|novels?)\b", re.IGNORECASE)
@@ -118,12 +122,73 @@ SHORT_RUNTIME_MAX = 100
 
 
 STOPWORDS = {
-    "i", "i'm", "im", "i've", "ive", "have", "has", "had", "give", "me", "a", "an", "the", "some",
-    "something", "anything", "to", "watch", "watching", "tonight", "today", "now", "please",
-    "want", "wanna", "would", "could", "should", "what", "which", "can", "you", "suggest",
-    "recommend", "find", "show", "pick", "need", "for", "of", "in", "on", "that", "is", "it",
-    "my", "tonights", "just", "got", "with", "about", "and", "or", "but", "so", "from", "up",
-    "yet", "time", "free", "got", "only", "really", "very", "any", "be", "something's",
+    "i",
+    "i'm",
+    "im",
+    "i've",
+    "ive",
+    "have",
+    "has",
+    "had",
+    "give",
+    "me",
+    "a",
+    "an",
+    "the",
+    "some",
+    "something",
+    "anything",
+    "to",
+    "watch",
+    "watching",
+    "tonight",
+    "today",
+    "now",
+    "please",
+    "want",
+    "wanna",
+    "would",
+    "could",
+    "should",
+    "what",
+    "which",
+    "can",
+    "you",
+    "suggest",
+    "recommend",
+    "find",
+    "show",
+    "pick",
+    "need",
+    "for",
+    "of",
+    "in",
+    "on",
+    "that",
+    "is",
+    "it",
+    "my",
+    "tonights",
+    "just",
+    "got",
+    "with",
+    "about",
+    "and",
+    "or",
+    "but",
+    "so",
+    "from",
+    "up",
+    "yet",
+    "time",
+    "free",
+    "got",
+    "only",
+    "really",
+    "very",
+    "any",
+    "be",
+    "something's",
 }
 
 

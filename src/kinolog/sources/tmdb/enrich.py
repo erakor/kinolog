@@ -64,7 +64,10 @@ def imdb_id_from_details(details: dict) -> str | None:
 
 
 def apply_details_columns(
-    db: Database, item_id: int, details: dict, overwrite: bool = True,
+    db: Database,
+    item_id: int,
+    details: dict,
+    overwrite: bool = True,
 ) -> None:
     """Write the structured item columns TMDB details provide (no commit for batched facts).
 
@@ -120,12 +123,14 @@ def _extract_crew(credits: dict) -> list[dict]:
         dept = member.get("department", "")
         job = member.get("job", "")
         if dept in KEY_ROLES and job in KEY_ROLES[dept]:
-            crew.append({
-                "tmdb_person_id": member["id"],
-                "name": member["name"],
-                "role": job,
-                "department": dept,
-            })
+            crew.append(
+                {
+                    "tmdb_person_id": member["id"],
+                    "name": member["name"],
+                    "role": job,
+                    "department": dept,
+                }
+            )
     return crew
 
 
@@ -133,12 +138,14 @@ def _extract_cast(credits: dict, limit: int = 10) -> list[dict]:
     """Extract top cast from TMDB credits."""
     cast = []
     for member in credits.get("cast", [])[:limit]:
-        cast.append({
-            "tmdb_person_id": member["id"],
-            "name": member["name"],
-            "role": member.get("character", ""),
-            "department": "Acting",
-        })
+        cast.append(
+            {
+                "tmdb_person_id": member["id"],
+                "name": member["name"],
+                "role": member.get("character", ""),
+                "department": "Acting",
+            }
+        )
     return cast
 
 
@@ -190,13 +197,17 @@ def _build_document_text(details: dict, lang: str = "en") -> str:
     if dps:
         parts.append(f"Cinematography: {', '.join(dps)}")
 
-    writers = [m["name"] for m in credits.get("crew", [])
-               if m.get("job") in ("Writer", "Screenplay")]
+    writers = [
+        m["name"] for m in credits.get("crew", []) if m.get("job") in ("Writer", "Screenplay")
+    ]
     if writers:
         parts.append(f"Written by: {', '.join(writers)}")
 
-    composers = [m["name"] for m in credits.get("crew", [])
-                 if m.get("job") in ("Original Music Composer", "Music")]
+    composers = [
+        m["name"]
+        for m in credits.get("crew", [])
+        if m.get("job") in ("Original Music Composer", "Music")
+    ]
     if composers:
         parts.append(f"Music: {', '.join(composers)}")
 

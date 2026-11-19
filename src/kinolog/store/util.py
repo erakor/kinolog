@@ -15,7 +15,7 @@ def _now() -> str:
 def chunked(items: list, size: int = 500):
     """Yield slices so IN (...) lists stay under SQLite's variable limit (999 on old builds)."""
     for i in range(0, len(items), size):
-        yield items[i:i + size]
+        yield items[i : i + size]
 
 
 def _check_date(value: str) -> str:

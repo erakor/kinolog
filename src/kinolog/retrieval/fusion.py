@@ -67,14 +67,16 @@ def search_rrf(
     results = []
     for chunk_id, score in sorted_chunks[:limit]:
         r = chunk_data[chunk_id]
-        results.append(SearchResult(
-            item_id=r.item_id,
-            chunk_id=r.chunk_id,
-            score=score,
-            title=r.title,
-            year=r.year,
-            chunk_text=r.chunk_text,
-            source="rrf",
-        ))
+        results.append(
+            SearchResult(
+                item_id=r.item_id,
+                chunk_id=r.chunk_id,
+                score=score,
+                title=r.title,
+                year=r.year,
+                chunk_text=r.chunk_text,
+                source="rrf",
+            )
+        )
 
     return results

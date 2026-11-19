@@ -26,9 +26,7 @@ def chunk_document(
 
     Returns list of chunk IDs.
     """
-    doc = db.execute(
-        "SELECT * FROM documents WHERE id = ?", (document_id,)
-    ).fetchone()
+    doc = db.execute("SELECT * FROM documents WHERE id = ?", (document_id,)).fetchone()
     if not doc:
         raise ValueError(f"Document {document_id} not found")
 
@@ -72,7 +70,9 @@ def chunk_document(
 
     logger.debug(
         "Chunked document %d with strategy '%s': %d chunks",
-        document_id, strategy, len(chunk_ids),
+        document_id,
+        strategy,
+        len(chunk_ids),
     )
     return chunk_ids
 
@@ -96,6 +96,10 @@ def chunk_all_documents(
         chunk_ids = chunk_document(db, doc["id"], strategy=strategy)
         stats["chunks_created"] += len(chunk_ids)
 
-    logger.info("Chunked %d documents with '%s': %d chunks total",
-                stats["total"], strategy, stats["chunks_created"])
+    logger.info(
+        "Chunked %d documents with '%s': %d chunks total",
+        stats["total"],
+        strategy,
+        stats["chunks_created"],
+    )
     return stats

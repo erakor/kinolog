@@ -25,6 +25,7 @@ class KinologServer:
         if self._model is None:
             try:
                 from kinolog.index.embedding import BGE_M3
+
                 self._model = BGE_M3()
             except Exception as e:
                 logger.warning("Embedding model not available: %s", e)

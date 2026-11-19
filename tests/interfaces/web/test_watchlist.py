@@ -46,7 +46,9 @@ def test_taste_sort_with_stubbed_ranker(client, db, monkeypatch):
 
     monkeypatch.setattr(taste, "taste_available", lambda db, model_name="bge_m3": True)
     # taste_scores looks the check up in its own module, the web state through the package
-    monkeypatch.setattr(taste_scores_module, "taste_available", lambda db, model_name="bge_m3": True)
+    monkeypatch.setattr(
+        taste_scores_module, "taste_available", lambda db, model_name="bge_m3": True
+    )
 
     def fake(db_, cands, hearts, **kw):
         order = {ids["Brief Encounter Again"]: 0.9, ids["Glass Orchard"]: 0.5}

@@ -21,8 +21,14 @@ def list_directors(
     db: Database = Depends(get_db),
 ):
     return services.directors_view(
-        db, sort=sort, status=status, q=q, min_films=min_films,
-        limit=limit, offset=offset, include_films=include_films,
+        db,
+        sort=sort,
+        status=status,
+        q=q,
+        min_films=min_films,
+        limit=limit,
+        offset=offset,
+        include_films=include_films,
     )
 
 

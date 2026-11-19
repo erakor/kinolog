@@ -15,13 +15,37 @@ def db_for_eval():
     db = Database(":memory:")
 
     films = [
-        ("La Dolce Vita", 1960, "film shot at Cinecittà with natural light Marcello Mastroianni as a journalist in Rome"),
-        ("8½", 1963, "black and white film about a filmmaker's creative crisis and memories Fellini"),
-        ("L'Avventura", 1960, "a woman wanders through a barren volcanic island looking for her vanished friend"),
-        ("Le Mépris", 1963, "French New Wave couple arguing in an apartment long tracking shots Godard"),
+        (
+            "La Dolce Vita",
+            1960,
+            "film shot at Cinecittà with natural light Marcello Mastroianni as a journalist in Rome",
+        ),
+        (
+            "8½",
+            1963,
+            "black and white film about a filmmaker's creative crisis and memories Fellini",
+        ),
+        (
+            "L'Avventura",
+            1960,
+            "a woman wanders through a barren volcanic island looking for her vanished friend",
+        ),
+        (
+            "Le Mépris",
+            1963,
+            "French New Wave couple arguing in an apartment long tracking shots Godard",
+        ),
         ("À bout de souffle", 1960, "Belmondo imitating Bogart jump cuts through Paris Godard"),
-        ("Bicycle Thieves", 1948, "Italian neorealist film about a man searching for his stolen bicycle De Sica"),
-        ("The Seventh Seal", 1957, "Bergman film about a knight playing chess with Death during the plague"),
+        (
+            "Bicycle Thieves",
+            1948,
+            "Italian neorealist film about a man searching for his stolen bicycle De Sica",
+        ),
+        (
+            "The Seventh Seal",
+            1957,
+            "Bergman film about a knight playing chess with Death during the plague",
+        ),
         ("The Exterminating Angel", 1962, "surrealist dinner party that never ends Buñuel"),
         ("Solaris", 1972, "Tarkovsky film about a space station orbiting a sentient ocean"),
     ]
@@ -38,7 +62,11 @@ def db_for_eval():
 
 def test_eval_known_items(db_for_eval):
     queries = [
-        {"query": "Cinecittà natural light journalist", "target_title": "La Dolce Vita", "target_year": 1960},
+        {
+            "query": "Cinecittà natural light journalist",
+            "target_title": "La Dolce Vita",
+            "target_year": 1960,
+        },
         {"query": "stolen bicycle Rome", "target_title": "Bicycle Thieves", "target_year": 1948},
     ]
 

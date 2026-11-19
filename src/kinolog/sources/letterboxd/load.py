@@ -25,7 +25,9 @@ def _parse_csv(path: Path) -> list[dict]:
         cols = set(rows[0].keys())
         missing = EXPECTED_COLS - cols
         if missing:
-            logger.warning("CSV %s missing expected columns: %s (has: %s)", path.name, missing, cols)
+            logger.warning(
+                "CSV %s missing expected columns: %s (has: %s)", path.name, missing, cols
+            )
     return rows
 
 
@@ -162,8 +164,13 @@ def load_letterboxd(db: Database, export_dir: str | Path) -> dict:
 
     logger.info("Found Letterboxd CSVs: %s", list(csvs.keys()))
     stats = {
-        "watched": 0, "watchlist": 0, "likes": 0, "diary": 0, "ratings": 0,
-        "skipped_manual_override": 0, "first_heart_date": None,
+        "watched": 0,
+        "watchlist": 0,
+        "likes": 0,
+        "diary": 0,
+        "ratings": 0,
+        "skipped_manual_override": 0,
+        "first_heart_date": None,
     }
 
     # --- Load watched ---
@@ -223,9 +230,7 @@ def load_letterboxd(db: Database, export_dir: str | Path) -> dict:
             if _manual_wins(st, liked_on):
                 stats["skipped_manual_override"] += 1
                 continue
-            db.upsert_user_status(
-                item_id, liked=1, liked_date=liked_on, **_source_field(st)
-            )
+            db.upsert_user_status(item_id, liked=1, liked_date=liked_on, **_source_field(st))
             stats["likes"] += 1
         logger.info("Loaded %d liked films", stats["likes"])
 

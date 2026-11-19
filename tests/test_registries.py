@@ -7,14 +7,22 @@ from kinolog.taste import RANKERS
 
 def test_chunking_strategy_names():
     assert set(STRATEGIES) == {
-        "whole", "fixed_256_50", "fixed_512_100", "section", "section_no_prefix",
+        "whole",
+        "fixed_256_50",
+        "fixed_512_100",
+        "section",
+        "section_no_prefix",
     }
 
 
 def test_taste_ranker_names():
     assert set(RANKERS) == {
-        "mean_heart", "nearest_exemplar", "top_3_mean",
-        "prototypes_4", "prototypes_5", "prototypes_6",
+        "mean_heart",
+        "nearest_exemplar",
+        "top_3_mean",
+        "prototypes_4",
+        "prototypes_5",
+        "prototypes_6",
     }
 
 

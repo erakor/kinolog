@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = ["AssembledContext", "KinologChatAgent", "RetrievedChunkContext", "assemble_context"]
 
+
 class KinologChatAgent:
     """Chat agent that retrieves context and generates grounded answers with citations."""
 
@@ -70,9 +71,8 @@ class KinologChatAgent:
                     items_summary.append(
                         f"- **{c.title}**{year_str} [^{c.citation_id}]: {c.text[:140]}..."
                     )
-                answer = (
-                    "Based on your index, here are relevant items:\n\n"
-                    + "\n".join(items_summary)
+                answer = "Based on your index, here are relevant items:\n\n" + "\n".join(
+                    items_summary
                 )
         else:
             answer = generator_fn(question, assembled.context_text)
@@ -85,8 +85,10 @@ class KinologChatAgent:
             "context": assembled.context_text,
             "citations": [
                 {
-                    "citation_id": c.citation_id, "item_id": c.item_id,
-                    "title": c.title, "year": c.year,
+                    "citation_id": c.citation_id,
+                    "item_id": c.item_id,
+                    "title": c.title,
+                    "year": c.year,
                 }
                 for c in assembled.chunks
             ],

@@ -28,8 +28,15 @@ class FilmographyMixin:
                 is_video, genre_ids, fetched_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
-                tmdb_id, title, original_title, release_date or None, year, runtime or None,
-                status, int(is_video), json.dumps(list(genre_ids or [])),
+                tmdb_id,
+                title,
+                original_title,
+                release_date or None,
+                year,
+                runtime or None,
+                status,
+                int(is_video),
+                json.dumps(list(genre_ids or [])),
                 datetime.now(UTC).isoformat(),
             ),
         )

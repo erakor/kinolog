@@ -96,11 +96,19 @@ def _films_for(db: Database, person_ids: list[int], role: str) -> dict[int, list
     rows.sort(key=lambda r: (r["year"] is None, r["year"] or 0, r["title"]))
     out: dict[int, list[DirectorFilm]] = {}
     for r in rows:
-        out.setdefault(r["person_id"], []).append(DirectorFilm(
-            item_id=r["id"], title=r["title"], year=r["year"], runtime_min=r["runtime_min"],
-            seen=bool(r["seen"]), liked=bool(r["liked"]), on_watchlist=bool(r["on_watchlist"]),
-            rating=r["rating"], runtime_unknown=r["runtime_min"] is None,
-        ))
+        out.setdefault(r["person_id"], []).append(
+            DirectorFilm(
+                item_id=r["id"],
+                title=r["title"],
+                year=r["year"],
+                runtime_min=r["runtime_min"],
+                seen=bool(r["seen"]),
+                liked=bool(r["liked"]),
+                on_watchlist=bool(r["on_watchlist"]),
+                rating=r["rating"],
+                runtime_unknown=r["runtime_min"] is None,
+            )
+        )
     return out
 
 
@@ -121,8 +129,13 @@ def best_gain(deltas: list[CompletionDelta]) -> float:
 
 def _summary_from_row(r: Any) -> DirectorCompletion:
     return DirectorCompletion(
-        person_id=r["person_id"], name=r["name"], seen=r["seen"], total=r["total"],
-        pct=pct(r["seen"], r["total"]), hearted=r["hearted"], unseen_on_watchlist=r["queued"],
+        person_id=r["person_id"],
+        name=r["name"],
+        seen=r["seen"],
+        total=r["total"],
+        pct=pct(r["seen"], r["total"]),
+        hearted=r["hearted"],
+        unseen_on_watchlist=r["queued"],
     )
 
 
@@ -166,7 +179,7 @@ def director_completion(
             title_hits = _directors_with_title(db, needle, role)
             result = [d for d in result if needle in d.name.lower() or d.person_id in title_hits]
 
-    result = result[offset:] if limit is None else result[offset:offset + limit]
+    result = result[offset:] if limit is None else result[offset : offset + limit]
     if with_films:
         attach_films(db, result, role)
     return result
@@ -253,13 +266,20 @@ def completion_deltas(
         if with_remaining:
             remaining = [
                 {"item_id": f.item_id, "title": f.title, "year": f.year}
-                for f in unseen.get(r["person_id"], []) if f.item_id != r["item_id"]
+                for f in unseen.get(r["person_id"], [])
+                if f.item_id != r["item_id"]
             ][:3]
-        out[r["item_id"]].append(CompletionDelta(
-            person_id=r["person_id"], name=s["name"], seen=s["seen"], total=s["total"],
-            before_pct=pct(s["seen"], s["total"]), after_pct=pct(s["seen"] + 1, s["total"]),
-            remaining=remaining,
-        ))
+        out[r["item_id"]].append(
+            CompletionDelta(
+                person_id=r["person_id"],
+                name=s["name"],
+                seen=s["seen"],
+                total=s["total"],
+                before_pct=pct(s["seen"], s["total"]),
+                after_pct=pct(s["seen"] + 1, s["total"]),
+                remaining=remaining,
+            )
+        )
     for deltas in out.values():
         deltas.sort(key=lambda d: -(d.after_pct - d.before_pct))
     return out

@@ -93,7 +93,7 @@ class ViewsMixin:
         }.get(sort, "us.watchlist_added_at DESC, i.id DESC")
         ids = [r["id"] for r in self.conn.execute(sql + f" ORDER BY {order}", params)]
         total = len(ids)
-        ids = ids[offset:] if limit is None else ids[offset:offset + limit]
+        ids = ids[offset:] if limit is None else ids[offset : offset + limit]
         cards = self.get_item_cards(ids)
         return total, [cards[i] for i in ids]
 
@@ -145,9 +145,11 @@ class ViewsMixin:
             "count": len(rows),
             "avg_rating": round(sum(rated) / len(rated), 2) if rated else None,
             "total_minutes": sum(r["runtime_min"] or 0 for r in rows),
-            "by_month": [{"month": m, "count": c} for m, c in sorted(by_month.items(), reverse=True)],
+            "by_month": [
+                {"month": m, "count": c} for m, c in sorted(by_month.items(), reverse=True)
+            ],
         }
-        page = rows[offset:] if limit is None else rows[offset:offset + limit]
+        page = rows[offset:] if limit is None else rows[offset : offset + limit]
         cards = self.get_item_cards([r["item_id"] for r in page])
         entries = [self._entry_dict(r, cards[r["item_id"]]) for r in page]
         return len(rows), entries, summary
@@ -175,8 +177,17 @@ class ViewsMixin:
     def stats(self) -> dict[str, int]:
         """Quick table row counts."""
         tables = [
-            "items", "user_status", "documents", "chunks", "people", "credits", "eval_runs",
-            "watch_log", "external_ratings", "tmdb_movies", "person_filmography",
+            "items",
+            "user_status",
+            "documents",
+            "chunks",
+            "people",
+            "credits",
+            "eval_runs",
+            "watch_log",
+            "external_ratings",
+            "tmdb_movies",
+            "person_filmography",
         ]
         result = {}
         for t in tables:
