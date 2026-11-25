@@ -45,6 +45,6 @@ jobs:
 
   # Typecheck, oxlint, oxfmt and Vitest: the job every erakor JS package shares.
   frontend:
-    uses: erakor/toolchain/.github/workflows/node-checks.yml@a43487e76663bd84ede121057887848f69e6016d # v1.4.0
+    uses: erakor/toolchain/.github/workflows/node-checks.yml@1c7c1111a17a5b01999b98616554611d605b7339 # v1.5.0 once tagged
     with:
       working-directory: frontend
